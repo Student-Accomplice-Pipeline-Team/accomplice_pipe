@@ -144,6 +144,7 @@ class _PipeProxy(PipeProxyInterface):
         asset = Asset(name)
         asset.path = '/groups/accomplice/pipeline/production/asset' + self._get_data(f'/assets?name={name}', Asset).strip()
         return asset
+        #return self._get_data(f'/assets?name={name}', Asset)
 
     def get_assets(self, *names) -> Iterable[Asset]:
         """Get asset data from the pipe. NOT FULLY IMPLEMENTED."""

@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 from helper import interface
 
-from typing import Sequence
+from typing import Iterable, Set, Sequence
 
 from shared.object import Asset
 
@@ -24,6 +24,11 @@ class DatabaseInterface(metaclass=ABCMeta):
     @abstractmethod
     def get_asset(self, name: str) -> Asset:
         """Get an Asset object"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_assets(self, names: Iterable[str]) -> Set[Asset]:
+        """Get multiple Asset objects"""
         raise NotImplementedError
 
     @abstractmethod

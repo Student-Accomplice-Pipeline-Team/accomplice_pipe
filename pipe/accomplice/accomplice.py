@@ -311,12 +311,14 @@ class AccomplicePipe(SimplePipe):
         # Get the key for all assets
         if 'list' in query:
             list_type = query.get('list')
-            if list_type == 'name':
+            if 'name' in list_type:
                 return self.asset_lookup.keys()
+                #return self._database.get_asset_list()
 
         # Get the specified assets
         if 'name' in query:
             return set([self.asset_lookup.get(asset) for asset in query.get('name')])
+            #return set(self._database.get_assets(query.get('name')))
         
         return self.asset_lookup
 

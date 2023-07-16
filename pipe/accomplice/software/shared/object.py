@@ -1,5 +1,5 @@
 import json
-from typing import Type, Union, Iterable
+from typing import Type, Union, Iterable, Optional
 from enum import Enum
 
 
@@ -34,8 +34,9 @@ class Asset(JsonSerializable):
     checked_out = False
     variants : Iterable[str] = None
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, path: Optional[str] = None) -> None:
         self.name = name
+        self.path = path
 
     def get_geo_path(self):
         return f"{self.path}/geo/"
