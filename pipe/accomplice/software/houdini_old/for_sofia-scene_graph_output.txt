@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+     File "", line 1, in
+     File "/opt/hfs19.0/houdini/python_panels/SceneGraphDetails.pypanel", line 24, in onCreateInterface
+     toolutils.safe_reload(panel)
+     File "/opt/hfs19.0/houdini/python3.7libs/scenegraphdetails/panel.py", line 429, in __init__
+     default=True)
+     File "/opt/hfs19.0/houdini/python3.7libs/husdui/common.py", line 624, in getPref
+     prefs = self._getPrefs()
+     File "/opt/hfs19.0/houdini/python3.7libs/husdui/common.py", line 608, in _getPrefs
+     self._prefs = json.load(f)
+     File "/opt/hfs19.0/python/lib/python3.7/json/__init__.py", line 296, in load
+     parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+     File "/opt/hfs19.0/python/lib/python3.7/json/__init__.py", line 348, in loads
+     return _default_decoder.decode(s)
+     File "/opt/hfs19.0/python/lib/python3.7/json/decoder.py", line 337, in decode
+     obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+     File "/opt/hfs19.0/python/lib/python3.7/json/decoder.py", line 355, in raw_decode
+     raise JSONDecodeError("Expecting value", s, err.value) from None
+    json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+
+
+J02046 Missing data entirely for primitive parameterlist token 'P' on prototype mesh_0 - primitive dropped.
+
+    

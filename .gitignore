@@ -1,0 +1,28 @@
+# Ignore production, test, and tool backup files
+/.git-old/
+/AccompliceTempPipeTools/
+/icons/
+/launch/
+/lib/
+/notes/
+/production/
+/production_new/
+/test/
+/pipe/tools/**/backup
+/pipe/accomplice/unfamiliar_tools
+
+# Ignore IDE files
+**/.idea/
+**/.vscode/
+
+# Ignore temporary files
+**/__pycache__/
+**/__private/
+*.pyc
+*.swp
+
+# Ignore large binary files
+*.hdanc
+*.hipnc
+*.usd
+*.usdc

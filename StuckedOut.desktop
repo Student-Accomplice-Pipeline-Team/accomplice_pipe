@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=StuckedOut
+Name[en_US]=StuckedOut
+Comment=Student Accomplice's shot checkout tool
+Comment[en_US.UTF-8]=Student Accomplice's shot checkout tool
+Exec=gnome-terminal -- bash -c "/groups/accomplice/pipeline/launch/film-launcher.sh checkout; exec bash"
+Icon=/groups/accomplice/pipeline/icons/uwu.png
+Terminal=false
+Type=Application
+Categories=Utility;Application;

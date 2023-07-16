@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=Stunuke
+Name[en_US]=Stunuke
+Comment=Student Accomplice's Nuke environment
+Comment[en_US.UTF-8]=Student Accomplice's Nuke environment
+Exec=/groups/accomplice/pipeline/pipe/main.py --pipe=accomplice nuke
+Icon=/opt/Nuke13.2v2/plugins/icons/NukeXApp48.png
+Terminal=false
+Type=Application
+Categories=Utility;Application;

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=Stumaya
+Name[en_US]=Stumaya
+Comment=Student Accomplice's Maya environment
+Comment[en_US.UTF-8]=Student Accomplice's Maya environment
+Exec=/groups/accomplice/pipeline/pipe/main.py --pipe=accomplice maya
+Icon=/usr/share/icons/custom/maya/maya-app.svg
+Terminal=false
+Type=Application
+Categories=Utility;Application;

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="open_asset_file" label="Open Asset File" icon="PLASMA_App">
+    <helpText><![CDATA[Open asset file.]]></helpText>
+    <script scriptType="python"><![CDATA[import os
+import pipe
+
+
+def open_asset_file():
+    if hou.hipFile.hasUnsavedChanges():
+        warning_response = hou.ui.displayMessage(
+            "The current file has not been saved. Continue anyways?",
+            buttons=("Continue", "Cancel"),
+            severity=hou.severityType.ImportantMessage,
+            default_choice=1
+        )
+        if warning_response == 1:
+            return
+    
+    asset_names = sorted(pipe.server.get_asset_list())
+    
+    asset_response = hou.ui.selectFromList(
+        asset_names,
+        exclusive=True,
+        message="Select the Asset File that you'd like to open.",
+        title="Open Asset File",
+        column_header="Assets"
+    )
+    
+    if asset_response:
+        asset_name = asset_names[asset_response[0]]
+        asset = pipe.server.get_asset(asset_name)
+        file_path = os.path.join(asset.path, asset.name + ".hipnc")
+        
+        if os.path.isfile(file_path):
+            hou.hipFile.load(file_path, suppress_save_prompt=True)
+        else:
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(file_path)
+            
+            stage = hou.node("stage")
+            geo_node = stage.createNode("accomp_geo_variant")
+            # material_node = stage.createNode("ccm64_edit_shader")
+            # material_node.setFirstInput(geo_node)
+            # publish_node = stage.createNode("accomp_asset_publish")
+            # publish_node.setFirstInput(material_node)
+            stage.layoutChildren()
+            
+            hou.hipFile.save(file_path)
+
+
+open_asset_file()
+]]></script>
+  </tool>
+
+  <tool name="open_asset_file0" label="Open Asset File" icon="PLASMA_App">
+    <helpText><![CDATA[Open Asset File]]></helpText>
+    <script scriptType="python"><![CDATA[import os
+import pipe
+
+
+def open_asset_file():
+    if hou.hipFile.hasUnsavedChanges():
+        warning_response = hou.ui.displayMessage(
+            "The current file has not been saved. Continue anyways?",
+            buttons=("Continue", "Cancel"),
+            severity=hou.severityType.ImportantMessage,
+            default_choice=1
+        )
+        if warning_response == 1:
+            return
+    
+    asset_names = sorted(pipe.server.get_asset_list())
+    
+    asset_response = hou.ui.selectFromList(
+        asset_names
+    )
+    
+    if asset_response:
+        asset_name = asset_names[asset_response[0]]
+        asset = pipe.server.get_asset(asset_name)
+        file_path = os.path.join(asset.path, "asset.hipnc")
+        
+        if os.path.isfile(file_path):
+            hou.hipFile.load(file_path, suppress_save_prompt=True)
+        else:
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(file_path)
+
+
+open_asset_file()]]></script>
+  </tool>
+</shelfDocument>

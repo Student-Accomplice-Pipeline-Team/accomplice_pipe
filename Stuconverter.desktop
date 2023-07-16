@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=Stuconverter
+Name[en_US]=Stuconverter
+Comment=Student Accomplice's video converter
+Comment[en_US.UTF-8]=Student Accomplice's video converter
+Exec=groups/accomplice/pipeline/launch/film-launcher.sh video-converter
+Icon=/groups/accomplice/pipeline/icons/playblast.svg
+Terminal=false
+Type=Application
+Categories=Utility;Application;

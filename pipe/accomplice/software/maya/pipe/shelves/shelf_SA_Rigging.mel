@@ -1,0 +1,43 @@
+global proc shelf_SA_Rigging () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "from PySide2 import QtWidgets\nimport functools\nimport platform\n\nimport os\n\nclass RiggingToolkitUI(QtWidgets.QDialog):\n    def __init__(self, scripts_dir, parent=None):\n        super(RiggingToolkitUI, self).__init__(parent)\n        self.setWindowTitle('Rigging Toolkit')\n        self.setMinimumWidth(300)\n\n        layout = QtWidgets.QVBoxLayout(self)\n\n        for script_file in os.listdir(scripts_dir):\n            if script_file.endswith('.py') or script_file.endswith('.mel'):\n                script_name = os.path.splitext(script_file)[0]\n                button = QtWidgets.QPushButton(script_name)\n                button.clicked.connect(functools.partial(self.run_script, scripts_dir, script_file))\n                layout.addWidget(button)\n\n    def run_script(self, scripts_dir, script_file):\n        script_path = os.path.join(scripts_dir, script_file)\n        if script_file.endswith('.mel'):\n            mel.eval('source \"{}\";'.format(script_path))\n        else:\n            with open(script_path) as f:\n                script_code = compile(f.read(), script_path, 'exec')\n                exec(script_code)\n\n# Determine the operating system\nif platform.system() == 'Windows':\n    scripts_dir = 'G:/accomplice/characterTeam/InTeamFiles/RiggingScripts'\nelif platform.system() == 'Linux':\n    scripts_dir = '/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts'\nelse:\n    raise NotImplementedError('Unsupported operating system.')\n\nui = RiggingToolkitUI(scripts_dir)\nui.show()" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "from PySide2 import QtWidgets\nimport functools\nimport platform\n\n..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "scriptManager" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from PySide2 import QtWidgets\nimport functools\nimport platform\n\nimport os\n\nclass RiggingToolkitUI(QtWidgets.QDialog):\n    def __init__(self, scripts_dir, parent=None):\n        super(RiggingToolkitUI, self).__init__(parent)\n        self.setWindowTitle('Rigging Toolkit')\n        self.setMinimumWidth(300)\n\n        layout = QtWidgets.QVBoxLayout(self)\n\n        for script_file in os.listdir(scripts_dir):\n            if script_file.endswith('.py') or script_file.endswith('.mel'):\n                script_name = os.path.splitext(script_file)[0]\n                button = QtWidgets.QPushButton(script_name)\n                button.clicked.connect(functools.partial(self.run_script, scripts_dir, script_file))\n                layout.addWidget(button)\n\n    def run_script(self, scripts_dir, script_file):\n        script_path = os.path.join(scripts_dir, script_file)\n        if script_file.endswith('.mel'):\n            mel.eval('source \"{}\";'.format(script_path))\n        else:\n            with open(script_path) as f:\n                script_code = compile(f.read(), script_path, 'exec')\n                exec(script_code)\n\n# Determine the operating system\nif platform.system() == 'Windows':\n    scripts_dir = 'G:/accomplice/characterTeam/InTeamFiles/RiggingScripts'\nelif platform.system() == 'Linux':\n    scripts_dir = '/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts'\nelse:\n    raise NotImplementedError('Unsupported operating system.')\n\nui = RiggingToolkitUI(scripts_dir)\nui.show()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 

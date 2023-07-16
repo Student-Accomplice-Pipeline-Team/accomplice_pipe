@@ -1,0 +1,114 @@
+{
+    "layers": 
+    {
+        "beauty": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "low_quality": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 12,
+                "xn__rihidermaxsamples_n3af": 128
+            }
+        },
+        "maggie": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "singe":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "kelleth":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "fx":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "volume":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "layout":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        },
+        "basic":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.015,
+                "xn__rihiderminsamples_n3af": 32,
+                "xn__rihidermaxsamples_n3af": 1024
+            }
+        }
+    },
+    "AOVs": [
+        "Ci",
+        "a",
+        "Nn",
+        "u",
+        "v",
+        "beauty",
+        "directDiffuse",
+        "directSpecular",
+        "indirectDiffuse",
+        "indirectSpecular",
+        "subsurface",
+        "directSpecularGlassLobe",
+        "indirectSpecularGlassLobe",
+        "subsurfaceLobe",
+        "transmissiveGlassLobe",
+        "shadow",
+        "__depth"
+    ]
+}

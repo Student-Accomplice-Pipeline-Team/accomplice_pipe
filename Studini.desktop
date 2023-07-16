@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=Studini
+Name[en_US]=Studini
+Comment=Student Accomplice's Houdini environment
+Comment[en_US.UTF-8]=Student Accomplice's Houdini environment
+Exec=/groups/accomplice/pipeline/pipe/main.py --pipe=accomplice houdini
+Icon=/opt/hfs19.0.589/houdini_logo.png
+Terminal=false
+Type=Application
+Categories=Utility;Application;

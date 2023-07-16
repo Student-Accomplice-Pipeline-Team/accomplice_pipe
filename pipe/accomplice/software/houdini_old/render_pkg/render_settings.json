@@ -1,0 +1,158 @@
+{
+    "layers": 
+    {
+        "beauty": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrUnified",
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+		
+            }
+        },
+        "low_quality": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 4,
+                "xn__rihidermaxsamples_n3af": 64,
+		"xn__riintegratorname_01ak" : "PxrUnified",
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "_maggie": 
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrPathTracer",
+		"xn__riintegratorPxrUnifiedtraceLightPaths_70bkk" : 1,
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "_singe":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrPathTracer",
+		"xn__riintegratorPxrUnifiedtraceLightPaths_70bkk" : 1,
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "_kelleth":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrPathTracer",
+		"xn__riintegratorPxrUnifiedtraceLightPaths_70bkk" : 1,
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "fx":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrPathTracer",
+		"xn__riintegratorPxrUnifiedtraceLightPaths_70bkk" : 1,
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "volume":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrUnified",
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "layout":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrUnified",
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        },
+        "basic":
+        {
+            "settings": 
+            {
+                "xn__rihiderdarkfalloff_94af": 0.025,
+                "xn__riRiPixelVariance_n3ac": 0.05,
+                "xn__rihiderminsamples_n3af": 16,
+                "xn__rihidermaxsamples_n3af": 256,
+		"xn__riintegratorname_01ak" : "PxrUnified",
+		"xn__richeckpointinterval_j8ak" : "5m",
+		"xn__rilimitsgeocachememory_scbg" : 8000000,
+		"xn__rilimitsopacitycachememory_bjbg" : 8000000
+            }
+        }
+    },
+    "AOVs": [
+        "Ci",
+        "a",
+        "Nn",
+        "motionBack",
+        "u",
+        "v",
+        "z",
+        "albedo",
+        "beauty",
+        "directDiffuse",
+        "directSpecular",
+        "indirectDiffuse",
+        "indirectSpecular",
+        "subsurface",
+        "directSpecularGlassLobe",
+        "indirectSpecularGlassLobe",
+        "subsurfaceLobe",
+        "transmissiveGlassLobe",
+        "shadow",
+        "__depth"
+    ]
+}

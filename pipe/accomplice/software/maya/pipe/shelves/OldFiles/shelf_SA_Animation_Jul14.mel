@@ -1,0 +1,196 @@
+global proc shelf_SA_Animation () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "packedAutoReloadRigRefs = '''def accompliceAutoReloadRigRefs():\n    \n    import maya.cmds as mc\n    import os\n    \n    # get reference node for each character rig\n    refNodes = mc.ls(references=True)\n    \n    lettyRef = ''\n    vaughnRef = ''\n    edRef = ''\n    heroCarRef = ''\n    \n    for ref in refNodes:\n        if \"etty_\" in ref:\n            print(\"LETTY!\")\n            lettyRef = ref\n        elif \"aughn\" in ref:\n            print(\"VAUGHN!\")\n            vaughnRef = ref\n        elif \"Ed_\" in ref:\n            print(\"ED!\")\n            edRef = ref\n        elif \"eroCar_\" in ref:\n            print(\"HERO CAR!\")\n            heroCarRef = ref\n    \n    # rigsDir depending if user is on linux or windows\n    if os.path.exists(r\"G:/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"G:/accomplice/characterTeam/Rigs/\"\n    elif os.path.exists(r\"/groups/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"/groups/accomplice/characterTeam/Rigs/\"\n    else:\n        rigsDir = r\"C:/Users/natha/Desktop/RigsTest/\"\n    \n    # sort the rigsDir files into lists based on what character they belong to\n    lettyRigs = []\n    vaughnRigs = []\n    edRigs = []\n    heroCarRigs = []\n    \n    rigsDirList = os.listdir(rigsDir)\n    for myFile in rigsDirList:\n        if \"etty\" in myFile:\n            lettyRigs.append(myFile)\n        elif \"aughn\" in myFile:\n            vaughnRigs.append(myFile)\n        elif \"Ed_\" in myFile:\n            edRigs.append(myFile)\n        elif \"eroCar_\" in myFile:\n            heroCarRigs.append(myFile)\n    \n    # get the most recent rig for each\n    rigsDirListLong = [os.path.join(rigsDir, f) for f in os.listdir(rigsDir) if os.path.isfile(os.path.join(rigsDir, f))]\n    rigsDirListLong.sort(key=lambda x: os.path.getmtime(x))\n    \n    for myFile in rigsDirListLong:\n        if \"etty\" in myFile:\n            mostRecentLettyRig = myFile\n        elif \"aughn\" in myFile:\n            mostRecentVaughnRig = myFile\n        elif \"Ed_\" in myFile:\n            mostRecentEdRig = myFile\n        elif \"eroCar_\" in myFile:\n            mostRecentHeroCarRig = myFile\n    \n    count = 0\n    if lettyRef != '':\n        if mc.referenceQuery(lettyRef, filename = True) != mostRecentLettyRig:\n            mc.file(mostRecentLettyRig, loadReference=lettyRef)\n            count += 1\n    if vaughnRef != '':\n        if mc.referenceQuery(vaughnRef, filename = True) != mostRecentVaughnRig:\n            mc.file(mostRecentVaughnRig, loadReference=vaughnRef)\n            count += 1\n    if edRef != '':\n        if mc.referenceQuery(edRef, filename = True) != mostRecentEdRig:\n            mc.file(mostRecentEdRig, loadReference=edRef)\n            count += 1\n    if heroCarRef != '':\n        if mc.referenceQuery(heroCarRef, filename = True) != mostRecentHeroCarRig:\n            mc.file(mostRecentHeroCarRig, loadReference=heroCarRef)\n            count += 1\n    \n    return count\n    #mc.file(rigsDir + \"Letty_Rig_1.05_JUN_16.mb\", loadReference=\"Letty_Rig_1_05_JUN_16RN\")\n    \n#mc.warning(str(count) + \" Rigs Were Reloaded\")\n\ncount = accompliceAutoReloadRigRefs()\nmc.confirmDialog(\n            title = ' Rigs Successfully Updated',\n            message = str(count) + ' Rig References were Automatically Updated',\n            button = 'Ok',\n        )\n'''\nimport maya.cmds as mc\n\n# delete script node if it already exists\neverything = mc.ls()\nif \"accompliceAutoReloadRigRefs\" in str(everything):\n    mc.delete(\"accompliceAutoReloadRigRefs\")\n\n# bake the above auto-reload-refs function into this scene's file\nmc.scriptNode(st=2, n='accompliceAutoReloadRigRefs', stp='python', bs=packedAutoReloadRigRefs)\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "packedAutoReloadRigRefs = '''def accompliceAutoReloadRigRefs():\n..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "rigUpdate" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.4 
+        -image "kinReroot.png" 
+        -image1 "kinReroot.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "packedAutoReloadRigRefs = '''def accompliceAutoReloadRigRefs():\n    \n    import maya.cmds as mc\n    import os\n    \n    # get reference node for each character rig\n    refNodes = mc.ls(references=True)\n    \n    lettyRef = ''\n    vaughnRef = ''\n    edRef = ''\n    heroCarRef = ''\n    \n    for ref in refNodes:\n        if \"etty_\" in ref:\n            print(\"LETTY!\")\n            lettyRef = ref\n        elif \"aughn\" in ref:\n            print(\"VAUGHN!\")\n            vaughnRef = ref\n        elif \"Ed_\" in ref:\n            print(\"ED!\")\n            edRef = ref\n        elif \"eroCar_\" in ref:\n            print(\"HERO CAR!\")\n            heroCarRef = ref\n    \n    # rigsDir depending if user is on linux or windows\n    if os.path.exists(r\"G:/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"G:/accomplice/characterTeam/Rigs/\"\n    elif os.path.exists(r\"/groups/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"/groups/accomplice/characterTeam/Rigs/\"\n    else:\n        rigsDir = r\"C:/Users/natha/Desktop/RigsTest/\"\n    \n    # sort the rigsDir files into lists based on what character they belong to\n    lettyRigs = []\n    vaughnRigs = []\n    edRigs = []\n    heroCarRigs = []\n    \n    rigsDirList = os.listdir(rigsDir)\n    for myFile in rigsDirList:\n        if \"etty\" in myFile:\n            lettyRigs.append(myFile)\n        elif \"aughn\" in myFile:\n            vaughnRigs.append(myFile)\n        elif \"Ed_\" in myFile:\n            edRigs.append(myFile)\n        elif \"eroCar_\" in myFile:\n            heroCarRigs.append(myFile)\n    \n    # get the most recent rig for each\n    rigsDirListLong = [os.path.join(rigsDir, f) for f in os.listdir(rigsDir) if os.path.isfile(os.path.join(rigsDir, f))]\n    rigsDirListLong.sort(key=lambda x: os.path.getmtime(x))\n    \n    for myFile in rigsDirListLong:\n        if \"etty\" in myFile:\n            mostRecentLettyRig = myFile\n        elif \"aughn\" in myFile:\n            mostRecentVaughnRig = myFile\n        elif \"Ed_\" in myFile:\n            mostRecentEdRig = myFile\n        elif \"eroCar_\" in myFile:\n            mostRecentHeroCarRig = myFile\n    \n    count = 0\n    if lettyRef != '':\n        if mc.referenceQuery(lettyRef, filename = True) != mostRecentLettyRig:\n            mc.file(mostRecentLettyRig, loadReference=lettyRef)\n            count += 1\n    if vaughnRef != '':\n        if mc.referenceQuery(vaughnRef, filename = True) != mostRecentVaughnRig:\n            mc.file(mostRecentVaughnRig, loadReference=vaughnRef)\n            count += 1\n    if edRef != '':\n        if mc.referenceQuery(edRef, filename = True) != mostRecentEdRig:\n            mc.file(mostRecentEdRig, loadReference=edRef)\n            count += 1\n    if heroCarRef != '':\n        if mc.referenceQuery(heroCarRef, filename = True) != mostRecentHeroCarRig:\n            mc.file(mostRecentHeroCarRig, loadReference=heroCarRef)\n            count += 1\n    \n    return count\n    #mc.file(rigsDir + \"Letty_Rig_1.05_JUN_16.mb\", loadReference=\"Letty_Rig_1_05_JUN_16RN\")\n    \n#mc.warning(str(count) + \" Rigs Were Reloaded\")\n\ncount = accompliceAutoReloadRigRefs()\nmc.confirmDialog(\n            title = ' Rigs Successfully Updated',\n            message = str(count) + ' Rig References were Automatically Updated',\n            button = 'Ok',\n        )\n'''\nimport maya.cmds as mc\n\n# delete script node if it already exists\neverything = mc.ls()\nif \"accompliceAutoReloadRigRefs\" in str(everything):\n    mc.delete(\"accompliceAutoReloadRigRefs\")\n\n# bake the above auto-reload-refs function into this scene's file\nmc.scriptNode(st=2, n='accompliceAutoReloadRigRefs', stp='python', bs=packedAutoReloadRigRefs)\n\n\ndef accompliceAutoReloadRigRefs():\n    \n    import maya.cmds as mc\n    import os\n    \n    # get reference node for each character rig\n    refNodes = mc.ls(references=True)\n    \n    lettyRef = ''\n    vaughnRef = ''\n    edRef = ''\n    heroCarRef = ''\n    \n    for ref in refNodes:\n        if \"etty_\" in ref:\n            print(\"LETTY!\")\n            lettyRef = ref\n        elif \"aughn\" in ref:\n            print(\"VAUGHN!\")\n            vaughnRef = ref\n        elif \"Ed_\" in ref:\n            print(\"ED!\")\n            edRef = ref\n        elif \"eroCar_\" in ref:\n            print(\"HERO CAR!\")\n            heroCarRef = ref\n    \n    # rigsDir depending if user is on linux or windows\n    if os.path.exists(r\"G:/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"G:/accomplice/characterTeam/Rigs/\"\n    elif os.path.exists(r\"/groups/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"/groups/accomplice/characterTeam/Rigs/\"\n    else:\n        rigsDir = r\"C:/Users/natha/Desktop/RigsTest/\"\n    \n    # sort the rigsDir files into lists based on what character they belong to\n    lettyRigs = []\n    vaughnRigs = []\n    edRigs = []\n    heroCarRigs = []\n    \n    rigsDirList = os.listdir(rigsDir)\n    for myFile in rigsDirList:\n        if \"etty\" in myFile:\n            lettyRigs.append(myFile)\n        elif \"aughn\" in myFile:\n            vaughnRigs.append(myFile)\n        elif \"Ed_\" in myFile:\n            edRigs.append(myFile)\n        elif \"eroCar_\" in myFile:\n            heroCarRigs.append(myFile)\n    \n    # get the most recent rig for each\n    rigsDirListLong = [os.path.join(rigsDir, f) for f in os.listdir(rigsDir) if os.path.isfile(os.path.join(rigsDir, f))]\n    rigsDirListLong.sort(key=lambda x: os.path.getmtime(x))\n    \n    for myFile in rigsDirListLong:\n        if \"etty\" in myFile:\n            mostRecentLettyRig = myFile\n        elif \"aughn\" in myFile:\n            mostRecentVaughnRig = myFile\n        elif \"Ed_\" in myFile:\n            mostRecentEdRig = myFile\n        elif \"eroCar_\" in myFile:\n            mostRecentHeroCarRig = myFile\n    \n    count = 0\n    if lettyRef != '':\n        if mc.referenceQuery(lettyRef, filename = True) != mostRecentLettyRig:\n            mc.file(mostRecentLettyRig, loadReference=lettyRef)\n            count += 1\n    if vaughnRef != '':\n        if mc.referenceQuery(vaughnRef, filename = True) != mostRecentVaughnRig:\n            mc.file(mostRecentVaughnRig, loadReference=vaughnRef)\n            count += 1\n    if edRef != '':\n        if mc.referenceQuery(edRef, filename = True) != mostRecentEdRig:\n            mc.file(mostRecentEdRig, loadReference=edRef)\n            count += 1\n    if heroCarRef != '':\n        if mc.referenceQuery(heroCarRef, filename = True) != mostRecentHeroCarRig:\n            mc.file(mostRecentHeroCarRig, loadReference=heroCarRef)\n            count += 1\n    \n    return count\n    #mc.file(rigsDir + \"Letty_Rig_1.05_JUN_16.mb\", loadReference=\"Letty_Rig_1_05_JUN_16RN\")\n    \n#mc.warning(str(count) + \" Rigs Were Reloaded\")\n\ncount = accompliceAutoReloadRigRefs()\nmc.confirmDialog(\n            title = ' Rigs Successfully Updated',\n            message = str(count) + ' Rig References were Automatically Updated',\n            button = 'Ok',\n        )" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code adapted from: https://andytech.art/fixing-mayas-most-destructive-keyboard-shortcut\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''def fixMayaPasteCommand():\n    \n    import maya.cmds as mc\n    import maya.mel as mel\n    curPanel = mc.getPanel(underPointer = True)\n    \n    if curPanel == '':\n        curPanel = mc.getPanel(withFocus=True)\n    \n    checkPanel = mc.getPanel(typeOf=curPanel)\n    \n    if checkPanel != 'scriptedPanel':\n        if checkPanel == None:\n            return\n        print ('Pasting is dangerous in the ' + checkPanel + '\\n')\n        result = mc.confirmDialog(\n            title = 'Disabled pasting in the ' + checkPanel,\n            message = 'Are you sure you want to paste? Bad things might happen!',\n            button = ['Yes','No'],\n            defaultButton = 'No',\n            cancelButton = 'No',\n            icon = 'warning'\n        )\n        if result == 'Yes':\n            mel.eval('cutCopyPaste \"paste\"')\n        else:\n            print('Decided not to paste...\\n')\n    else:\n        print ('Pasting in the ' + curPanel + '\\n')\n        mel.eval('cutCopyPaste \"paste\"')\n\nfixMayaPasteCommand()'''\n\n\nconfig = {\n\t\"lang\": \"python\",\n\t\"code\": python_code,\n\t\"key\": \"v\",\n\t\"ctl\": True\n}\nsetHotkey('fixMayaPasteCommand',config)\n\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "ctlVFix" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "pasteV.png" 
+        -image1 "pasteV.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code adapted from: https://andytech.art/fixing-mayas-most-destructive-keyboard-shortcut\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''def fixMayaPasteCommand():\n    \n    import maya.cmds as mc\n    import maya.mel as mel\n    curPanel = mc.getPanel(underPointer = True)\n    \n    if curPanel == '':\n        curPanel = mc.getPanel(withFocus=True)\n    \n    checkPanel = mc.getPanel(typeOf=curPanel)\n    \n    if checkPanel != 'scriptedPanel':\n        if checkPanel == None:\n            return\n        print ('Pasting is dangerous in the ' + checkPanel + '\\n')\n        result = mc.confirmDialog(\n            title = 'Disabled pasting in the ' + checkPanel,\n            message = 'Are you sure you want to paste? Bad things might happen!',\n            button = ['Yes','No'],\n            defaultButton = 'No',\n            cancelButton = 'No',\n            icon = 'warning'\n        )\n        if result == 'Yes':\n            mel.eval('cutCopyPaste \"paste\"')\n        else:\n            print('Decided not to paste...\\n')\n    else:\n        print ('Pasting in the ' + curPanel + '\\n')\n        mel.eval('cutCopyPaste \"paste\"')\n\nfixMayaPasteCommand()'''\n\n\nconfig = {\n\t\"lang\": \"python\",\n\t\"code\": python_code,\n\t\"key\": \"v\",\n\t\"ctl\": True\n}\nsetHotkey('fixMayaPasteCommand',config)\n\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code by nathandickson365@gmail.com\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''import maya.cmds as mc\n\nsel = mc.ls(sl=True)\nchannels = ['.tx','.ty','.tz','.rx','.ry','.rz', '.sx', '.sy', '.sz']\nlockedCount = 0\n\nfor y in range(len(sel)):\n    if mc.objectType(sel[y]) == 'hikIKEffector':\n        mel.eval('hikStancePose')\n        \n    for x in range(len(channels)):\n        if mc.objectType(sel[y]) == 'hikIKEffector':\n            break\n        elif mc.getAttr(sel[y] + channels[x], lock=True):\n            lockedCount = lockedCount + 1\n        else:\n            if channels[x][1] == 's':\n                mc.setAttr(sel[y] + channels[x], 1)\n            else:\n                mc.setAttr(sel[y] + channels[x], 0)\n\nif lockedCount > 0:\n    warningMessage = str(lockedCount) + ' channels were locked and skipped'\n    mel.eval('warning \"' + warningMessage + '\"')\n'''\n\nconfig = {\n\"lang\": \"python\",\n\"code\": python_code,\n\"key\": \"0\",\n\"alt\": True\n}\nsetHotkey('zeroOutCtrls',config)\ncmds.confirmDialog(\n\ttitle = 'New Hotkey Set',\n\tmessage = 'ALT+0 now zeros out selected ctrls',\n\tbutton = 'Ok',\n)\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "alt0zeroOut" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "zeroDepth.png" 
+        -image1 "zeroDepth.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code by nathandickson365@gmail.com\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''import maya.cmds as mc\n\nsel = mc.ls(sl=True)\nchannels = ['.tx','.ty','.tz','.rx','.ry','.rz', '.sx', '.sy', '.sz']\nlockedCount = 0\n\nfor y in range(len(sel)):\n    if mc.objectType(sel[y]) == 'hikIKEffector':\n        mel.eval('hikStancePose')\n        \n    for x in range(len(channels)):\n        if mc.objectType(sel[y]) == 'hikIKEffector':\n            break\n        elif mc.getAttr(sel[y] + channels[x], lock=True):\n            lockedCount = lockedCount + 1\n        else:\n            if channels[x][1] == 's':\n                mc.setAttr(sel[y] + channels[x], 1)\n            else:\n                mc.setAttr(sel[y] + channels[x], 0)\n\nif lockedCount > 0:\n    warningMessage = str(lockedCount) + ' channels were locked and skipped'\n    mel.eval('warning \"' + warningMessage + '\"')\n'''\n\nconfig = {\n\"lang\": \"python\",\n\"code\": python_code,\n\"key\": \"0\",\n\"alt\": True\n}\nsetHotkey('zeroOutCtrls',config)\ncmds.confirmDialog(\n\ttitle = 'New Hotkey Set',\n\tmessage = 'ALT+0 now zeros out selected ctrls',\n\tbutton = 'Ok',\n)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 34
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nSelect all controls you want to add as space switches\nThe last control is the one that the space switches will be added on to\nRun the script and attributes will be created for space switches between those controls!\n\nAdapted from Truong Cg Artist\n'''\n\nimport maya.cmds as cmds\n\n# find current namespace\ndef checkNamespace(con):\n    if \":\" in con:\n        nameSpace = con.rpartition(':')[0]+\":\"\n        conRawName = con.rpartition(':')[2]\n        return [nameSpace,conRawName]\n    else:\n        return \"\"\n\nselItems = cmds.ls(sl=1)\nif not selItems or len(selItems)<2:\n    raise Exception(\"must select at least 2 items\")\n\ndef checkLocked(item):\n    channels=[\".translateX\", \".translateY\", \".translateZ\", \".rotateX\", \".rotateY\", \".rotateZ\"]\n    for channel in channels:\n        if not cmds.getAttr(item+channel, settable=1):\n            # item is locked\n            return True\n    return False\n\nmainCon = selItems[-1]\nmainConExtraGrp = cmds.listRelatives(mainCon, parent=1)[0]\n\nif checkLocked(mainConExtraGrp):\n    # offset group can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\n    raise Exception(\"The \"+mainConExtraGrp+\" group is locked. Please unlocked it first (in the original rig) or create a new offset group. Offset groups can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\")\n\nfor item in selItems:\n    if item == mainCon:\n        pass\n    else:\n        namespace = checkNamespace(item)\n        if namespace:\n            itemRaw = namespace[1]\n        else:\n            itemRaw = item\n        # if matching attribute name, use the existing attribute\n        if not cmds.attributeQuery(itemRaw.replace('_CTRL','')+\"_Space\", n=mainCon, exists=1):\n            cmds.addAttr(mainCon, ln=itemRaw.replace('_CTRL','')+\"_Space\", at=\"bool\")\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", e=1, keyable=1)\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", 0)\n        # find if there is existing parent constraint\n        existConsts = cmds.listRelatives(mainConExtraGrp, children=1, type=\"parentConstraint\")\n        # if there is an existing parent constraint, check if the constraint is already done or not\n        if existConsts and itemRaw in cmds.parentConstraint(existConsts[0], q=True, tl=True):\n            const = existConsts[0]\n        else:\n            const=cmds.parentConstraint(item, mainConExtraGrp, maintainOffset=1, weight=0)[0]\n\n        # cannot query the constraint target name, so I have to do it this way (inbox me if you have a better way)\n        constTargetList=cmds.parentConstraint(const, weightAliasList=1, q=1)\n        for constTarget in constTargetList:\n            if constTarget.startswith(itemRaw):\n                constTargetName = constTarget\n                break\n\n        if not cmds.listConnections(const+\".\"+constTargetName,d=0):\n            cmds.connectAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", const+\".\"+constTargetName)\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "'''\nINSTRUCTIONS:\nSelect all controls you want to add as space s..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "spaceSwitch" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "closeGeom.png" 
+        -image1 "closeGeom.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "'''\nINSTRUCTIONS:\nSelect all controls you want to add as space switches\nThe last control is the one that the space switches will be added on to\nRun the script and attributes will be created for space switches between those controls!\n\nAdapted from Truong Cg Artist\n'''\n\nimport maya.cmds as cmds\n\n# find current namespace\ndef checkNamespace(con):\n    if \":\" in con:\n        nameSpace = con.rpartition(':')[0]+\":\"\n        conRawName = con.rpartition(':')[2]\n        return [nameSpace,conRawName]\n    else:\n        return \"\"\n\nselItems = cmds.ls(sl=1)\nif not selItems or len(selItems)<2:\n    raise Exception(\"must select at least 2 items\")\n\ndef checkLocked(item):\n    channels=[\".translateX\", \".translateY\", \".translateZ\", \".rotateX\", \".rotateY\", \".rotateZ\"]\n    for channel in channels:\n        if not cmds.getAttr(item+channel, settable=1):\n            # item is locked\n            return True\n    return False\n\nmainCon = selItems[-1]\nmainConExtraGrp = cmds.listRelatives(mainCon, parent=1)[0]\n\nif checkLocked(mainConExtraGrp):\n    # offset group can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\n    raise Exception(\"The \"+mainConExtraGrp+\" group is locked. Please unlocked it first (in the original rig) or create a new offset group. Offset groups can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\")\n\nfor item in selItems:\n    if item == mainCon:\n        pass\n    else:\n        namespace = checkNamespace(item)\n        if namespace:\n            itemRaw = namespace[1]\n        else:\n            itemRaw = item\n        # if matching attribute name, use the existing attribute\n        if not cmds.attributeQuery(itemRaw.replace('_CTRL','')+\"_Space\", n=mainCon, exists=1):\n            cmds.addAttr(mainCon, ln=itemRaw.replace('_CTRL','')+\"_Space\", at=\"bool\")\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", e=1, keyable=1)\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", 0)\n        # find if there is existing parent constraint\n        existConsts = cmds.listRelatives(mainConExtraGrp, children=1, type=\"parentConstraint\")\n        # if there is an existing parent constraint, check if the constraint is already done or not\n        if existConsts and itemRaw in cmds.parentConstraint(existConsts[0], q=True, tl=True):\n            const = existConsts[0]\n        else:\n            const=cmds.parentConstraint(item, mainConExtraGrp, maintainOffset=1, weight=0)[0]\n\n        # cannot query the constraint target name, so I have to do it this way (inbox me if you have a better way)\n        constTargetList=cmds.parentConstraint(const, weightAliasList=1, q=1)\n        for constTarget in constTargetList:\n            if constTarget.startswith(itemRaw):\n                constTargetName = constTarget\n                break\n\n        if not cmds.listConnections(const+\".\"+constTargetName,d=0):\n            cmds.connectAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", const+\".\"+constTargetName)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import maya.cmds as mc\nimport math\n\n# get selected object\nobject_name = mc.ls(sl=True)[0]\n\n# get current frame value and object location on that frame\ncurTime = mc.currentTime(q=True)\ncurLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame before the current frame\nmc.currentTime(curTime-1)\nbefLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame after the current frame\nmc.currentTime(curTime+1)\naftLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\ndef distance_between_vectors(v1, v2):\n    squared_distance = sum((a - b) ** 2 for a, b in zip(v1, v2))\n    distance = math.sqrt(squared_distance)\n    return distance\n\n#get distance between object on frames before and after\nbefDist = distance_between_vectors(befLoc, curLoc)\naftDist = distance_between_vectors(curLoc, aftLoc)\n\n# 160900 cm = 1 Mile\nbefDistM = befDist / 160900\naftDistM = aftDist / 160900\n\nhoursInOneFrame = 1/86400\n\n# get MPH before and after current frame\nbefObjMph = befDistM / hoursInOneFrame\naftObjMph = aftDistM / hoursInOneFrame\n\n# average before and after MPH to get approximate current frame MPH\nobjMph = (befObjMph + aftObjMph)/2\n\nmc.currentTime(curTime)\n\nprint('')\nprint('')\nprint('')\nprint('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')\n\nmc.warning('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import maya.cmds as mc\nimport math\n\n# get selected object\nobject..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "MPHfromSelected" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "animateSnapshot.png" 
+        -image1 "animateSnapshot.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import maya.cmds as mc\nimport math\n\n# get selected object\nobject_name = mc.ls(sl=True)[0]\n\n# get current frame value and object location on that frame\ncurTime = mc.currentTime(q=True)\ncurLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame before the current frame\nmc.currentTime(curTime-1)\nbefLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame after the current frame\nmc.currentTime(curTime+1)\naftLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\ndef distance_between_vectors(v1, v2):\n    squared_distance = sum((a - b) ** 2 for a, b in zip(v1, v2))\n    distance = math.sqrt(squared_distance)\n    return distance\n\n#get distance between object on frames before and after\nbefDist = distance_between_vectors(befLoc, curLoc)\naftDist = distance_between_vectors(curLoc, aftLoc)\n\n# 160900 cm = 1 Mile\nbefDistM = befDist / 160900\naftDistM = aftDist / 160900\n\nhoursInOneFrame = 1/86400\n\n# get MPH before and after current frame\nbefObjMph = befDistM / hoursInOneFrame\naftObjMph = aftDistM / hoursInOneFrame\n\n# average before and after MPH to get approximate current frame MPH\nobjMph = (befObjMph + aftObjMph)/2\n\nmc.currentTime(curTime)\n\nprint('')\nprint('')\nprint('')\nprint('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')\n\nmc.warning('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 
