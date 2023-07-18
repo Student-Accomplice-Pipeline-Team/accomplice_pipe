@@ -19,8 +19,8 @@ from typing import Mapping, Any, MutableSet
 
 from baseclass import SimplePipe
 
-from .sg_config import SG_CONFIG
-from database.ShotGridDatabase import ShotGridDatabase
+#from .sg_config import SG_CONFIG
+#from database.ShotGridDatabase import ShotGridDatabase
 
 from . import software
 from .software.interface import SoftwareProxyInterface
@@ -225,12 +225,12 @@ class AccomplicePipe(SimplePipe):
 
     _data_root = "/groups/accomplice/pipeline/production"
 
-    _database = ShotGridDatabase(
-        SG_CONFIG['SITE_NAME'],
-        SG_CONFIG['SCRIPT_NAME'],
-        SG_CONFIG['SCRIPT_KEY'],
-        SG_CONFIG['ACCOMPLICE_ID']
-    )
+#    _database = ShotGridDatabase(
+#        SG_CONFIG['SITE_NAME'],
+#        SG_CONFIG['SCRIPT_NAME'],
+#        SG_CONFIG['SCRIPT_KEY'],
+#        SG_CONFIG['ACCOMPLICE_ID']
+#    )
 
     @property
     def port(self) -> int:
