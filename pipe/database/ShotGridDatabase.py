@@ -33,7 +33,7 @@ class ShotGridDatabase(Database):
             'sg_path',
         ]
 
-        asset = self.sg.find_one('Asset', fields, filters)
+        asset = self.sg.find_one('Asset', filters, fields)
 
         return Asset(asset['code'], path = asset['sg_path'])
 
