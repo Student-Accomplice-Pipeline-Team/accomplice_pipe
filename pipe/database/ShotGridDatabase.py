@@ -10,6 +10,14 @@ from pprint import pprint
 
 class ShotGridDatabase(Database):
     
+    _untracked_asset_types = [ 
+                        'Character', 
+                        'FX', 
+                        'Graphic', 
+                        'Matte Painting', 
+                        'Tool', 
+                        'Font'
+                    ]
     
     def __init__(self,
                  shotgun_server: str,
@@ -25,7 +33,14 @@ class ShotGridDatabase(Database):
     def get_asset(self, name: str) -> Asset:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
             [ 'code', 'is', name ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
         ]
 
         fields = [
@@ -40,11 +55,18 @@ class ShotGridDatabase(Database):
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
             {
                 'filter_operator': 'any',
                 'filters': [
                     ['code', 'is', name] for name in names
                 ],
+            },
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
             },
         ]
 
@@ -60,6 +82,13 @@ class ShotGridDatabase(Database):
     def get_asset_list(self) -> Sequence[str]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
         ]
         # fields = [
         #     'code',
