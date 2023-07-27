@@ -26,6 +26,13 @@ class JsonSerializable():
     def to_json(self):
         return json.dumps(vars(self), default=lambda o: o.__dict__, indent=4)
 
+class Effect(JsonSerializable):
+    name = None
+    path = None
+        
+    def __init__(self, name: str, path: Optional[str] = None) -> None:
+        self.name = name
+        self.path = path
 
 class Asset(JsonSerializable):
     name = None

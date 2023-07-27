@@ -39,5 +39,75 @@ global proc shelf_SA_Rigging () {
         -commandRepeatable 1
         -flat 1
     ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import sys\n\nsys.path.append(r'/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts/RigCheckerUi/')\n\nfrom importlib import reload\n\nimport rigCheckerConnect\n\nreload(rigCheckerConnect)\n#rigCheckerConnect.openWindow()" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import sys\n\nsys.path.append(r'/groups/accomplice/characterTeam/I..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "rigCheck" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "checkboxOn.png" 
+        -image1 "checkboxOn.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import sys\n\nsys.path.append(r'/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts/RigCheckerUi/')\n\nfrom importlib import reload\n\nimport rigCheckerConnect\n\nreload(rigCheckerConnect)\n#rigCheckerConnect.openWindow()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "#---------------------------------------------------------------------------------------------------------\n'''\nINSTRUCTIONS:\nPut this at the beginning of your script to get access to all the functions we have saved in the OurRiggingFunctions folder\nIt'll import all the functions in that folder that end with .py\n\ne.g. createCube.py is a file in the OurRiggingFunctions folder and will be imported\nas createCube and it has a function inside the file called createCube()\nThus to use that function you just have to write (after running the import code after these instructions):\n\ncreateCube()\n\nand it'll make a simple cube!\n'''\n\nimport os\nimport sys\n\n# get path to OurRiggingFunctions folder depending on Linux or Windows\nif sys.platform == 'linux':\n\tOurRiggingFunctions_Directory = r'/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts/OurRiggingFunctions'\nelse:\n\tOurRiggingFunctions_Directory = r'G:\\accomplice\\characterTeam\\InTeamFiles\\RiggingScripts\\OurRiggingFunctions'\n\ndef list_full_paths(directory):\n    return [os.path.join(directory, file) for file in os.listdir(directory)]\n\nfile_list = list_full_paths(OurRiggingFunctions_Directory)\npythonFiles = []\n\n# get files ending with .py\nfor myFile in file_list:\n\tif myFile.endswith('.py'):\n\t\tpythonFiles.append(myFile)\n\n# run each .py file (thus importing the functions inside those files)\nfor pyFile in pythonFiles:\n\twith open(pyFile) as myFunction:\n\t\texec(myFunction.read())\n#---------------------------------------------------------------------------------------------------------\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "#---------------------------------------------------------------..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "importFunctions" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "inArrow.png" 
+        -image1 "inArrow.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "#---------------------------------------------------------------------------------------------------------\n'''\nINSTRUCTIONS:\nPut this at the beginning of your script to get access to all the functions we have saved in the OurRiggingFunctions folder\nIt'll import all the functions in that folder that end with .py\n\ne.g. createCube.py is a file in the OurRiggingFunctions folder and will be imported\nas createCube and it has a function inside the file called createCube()\nThus to use that function you just have to write (after running the import code after these instructions):\n\ncreateCube()\n\nand it'll make a simple cube!\n'''\n\nimport os\nimport sys\n\n# get path to OurRiggingFunctions folder depending on Linux or Windows\nif sys.platform == 'linux':\n\tOurRiggingFunctions_Directory = r'/groups/accomplice/characterTeam/InTeamFiles/RiggingScripts/OurRiggingFunctions'\nelse:\n\tOurRiggingFunctions_Directory = r'G:\\accomplice\\characterTeam\\InTeamFiles\\RiggingScripts\\OurRiggingFunctions'\n\ndef list_full_paths(directory):\n    return [os.path.join(directory, file) for file in os.listdir(directory)]\n\nfile_list = list_full_paths(OurRiggingFunctions_Directory)\npythonFiles = []\n\n# get files ending with .py\nfor myFile in file_list:\n\tif myFile.endswith('.py'):\n\t\tpythonFiles.append(myFile)\n\n# run each .py file (thus importing the functions inside those files)\nfor pyFile in pythonFiles:\n\twith open(pyFile) as myFunction:\n\t\texec(myFunction.read())\n#---------------------------------------------------------------------------------------------------------\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
 
 } 

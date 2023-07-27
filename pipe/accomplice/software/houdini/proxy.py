@@ -29,7 +29,7 @@ class HoudiniProxy(HTTPSoftwareProxy):
 
     def __init__(self,
                  pipe_port: int,
-                 command: str = '/opt/hfs19.5.569/bin/houdinifx',
+                 command: str = '/opt/hfs19.5/bin/houdinifx',
                  #command: str = 'D:\\Program Files\\Side Effects Software\\Houdini 19.0.589\\bin\\houdinifx.exe',
                  args: Optional[Sequence[str]] = ["-foreground"],
                  env_vars: Mapping[str, Optional[str]] = houdini_env_vars,
