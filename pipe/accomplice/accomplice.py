@@ -146,7 +146,8 @@ class AccomplicePipe(SimplePipe):
         'policestation':    '/environment/buildings/hero/policestation',
 
         # Buildings: Generic
-        'chickenshop':       '/environment/buildings/generic/chickenshop',
+        'bookshop':         '/environment/buildings/generic/bookshop',
+        'chickenshop':      '/environment/buildings/generic/chickenshop',
         'coffeeshop':       '/environment/buildings/generic/coffeeshop',
         'flowershop':       '/environment/buildings/generic/flowershop',
         'movietheatre':     '/environment/buildings/generic/movietheatre',
