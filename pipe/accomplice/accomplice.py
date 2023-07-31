@@ -181,6 +181,7 @@ class AccomplicePipe(SimplePipe):
         
         # Setdressing
         'bench':            '/environments/setdressing/bench',
+        'bicyclerack':      '/environments/setdressing/bicyclerack',
         'cinderblock':      '/environments/setdressing/cinderblock',
         'dumpster':         '/environments/setdressing/dumpster',
         'firehydrant':      '/environments/setdressing/firehydrant',
