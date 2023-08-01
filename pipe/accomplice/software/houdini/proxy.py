@@ -21,7 +21,7 @@ class HoudiniProxy(HTTPSoftwareProxy):
         'HOUDINI_BACKUP_DIR': './.backup',                              # Backup directory
         'HOUDINI_MAX_BACKUP_FILES': 20,                                 # Max backup files
         'OCIO': '/opt/pixar/RenderManProServer-25.2/lib/ocio/ACES-1.2/config.ocio',
-        'HOUDINI_ASSETGALLERY_DB_FILE': '/groups/accomplice/pipeline/production/asset/database_test/test.db',   # Asset Gallery
+        'HOUDINI_ASSETGALLERY_DB_FILE': '/groups/accomplice/pipeline/production/asset/assets.db',   # Asset Gallery
         #'HOUDINI_TOOLBAR_PATH': str(houdini_pipe_dir.joinpath('pipe', 'shelves')),
         #'HOUDINI_SPLASH_MESSAGE': <insert custom message>
         #'HOUDINI_SPLASH_FILE': <insert custom splash>
