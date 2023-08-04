@@ -13,6 +13,7 @@
     <memberToolshelf name="characters"/>
     <memberToolshelf name="hairtools"/>
     <memberToolshelf name="guidemodify"/>
+    <memberToolshelf name="groomtools"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">

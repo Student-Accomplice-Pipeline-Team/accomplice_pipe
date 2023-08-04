@@ -7,6 +7,5 @@
 
   <toolshelf name="asset" label="Asset">
     <memberTool name="open_asset_file"/>
-    <memberTool name="open_layout_file"/>
   </toolshelf>
 </shelfDocument>
