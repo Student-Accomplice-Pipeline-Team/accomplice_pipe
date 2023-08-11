@@ -6,7 +6,7 @@
  a single file. -->
 
   <shelfSet name="accomplice_1" label="Accomplice Geometry">
-    <memberToolshelf name="asset"/>
+    <memberToolshelf name="files"/>
     <memberToolshelf name="test_geometry"/>
     <memberToolshelf name="RenderManRIS"/>
     <memberToolshelf name="RenderMan25"/>
