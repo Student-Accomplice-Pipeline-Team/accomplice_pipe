@@ -135,16 +135,16 @@ class _PipeProxy(PipeProxyInterface):
         self._check_response_status(response)
         return self._parse_response_content(response, item_type)
 
-    def get_asset_list(self) -> Iterable[str]:
-        """Get a list of all assets from the pipe."""
-        return self._get_data('/assets?list=name', str).split(',')
-
     def get_asset(self, name: str) -> Asset:
         """Get an asset's data from the pipe."""
         asset = Asset(name)
         asset.path = '/groups/accomplice/pipeline/production/asset' + self._get_data(f'/assets?name={name}', Asset).strip()
         return asset
         #return self._get_data(f'/assets?name={name}', Asset)
+
+    def get_asset_list(self) -> Iterable[str]:
+        """Get a list of all assets from the pipe."""
+        return self._get_data('/assets?list=name', str).split(',')
 
     def get_assets(self, *names) -> Iterable[Asset]:
         """Get asset data from the pipe. NOT FULLY IMPLEMENTED."""
@@ -160,6 +160,10 @@ class _PipeProxy(PipeProxyInterface):
     def get_shot(self, name: str) -> Shot:
         """Get a shot's data from the pipe."""
         return self._get_data(f'/shots?name={name}', Shot)
+
+    def get_shot_list(self) -> Iterable[str]:
+        """Get a list of all assets from the pipe."""
+        return self._get_data('/shots?list=name', str).split(',')
     
     def shot_update(self, name: str):
         pass

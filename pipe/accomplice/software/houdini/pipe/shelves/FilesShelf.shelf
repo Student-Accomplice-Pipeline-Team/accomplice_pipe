@@ -7,5 +7,6 @@
 
   <toolshelf name="files" label="Files">
     <memberTool name="open_asset_file"/>
+    <memberTool name="open_shot_file"/>
   </toolshelf>
 </shelfDocument>

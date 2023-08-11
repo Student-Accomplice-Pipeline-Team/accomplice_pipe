@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="open_shot_file" label="Open Shot File" icon="PLASMA_App">
+    <helpText><![CDATA[Open shot file.]]></helpText>
+    <script scriptType="python"><![CDATA[import os
+import pipe
+
+
+def open_shot_file():
+    if hou.hipFile.hasUnsavedChanges():
+        warning_response = hou.ui.displayMessage(
+            "The current file has not been saved. Continue anyways?",
+            buttons=("Continue", "Cancel"),
+            severity=hou.severityType.ImportantMessage,
+            default_choice=1
+        )
+        if warning_response == 1:
+            return
+    
+    shot_file_names = pipe.server.get_shot_list()
+
+
+open_shot_file()
+]]></script>
+  </tool>
+</shelfDocument>
