@@ -159,7 +159,9 @@ class _PipeProxy(PipeProxyInterface):
 
     def get_shot(self, name: str) -> Shot:
         """Get a shot's data from the pipe."""
-        return self._get_data(f'/shots?name={name}', Shot)
+        shot = Shot(name)
+        shot.path = '/groups/accomplice/pipeline/production/sequences' + self._get_data(f'/shots?name={name}', Shot).strip()
+        return shot
 
     def get_shot_list(self) -> Iterable[str]:
         """Get a list of all shots from the pipe."""

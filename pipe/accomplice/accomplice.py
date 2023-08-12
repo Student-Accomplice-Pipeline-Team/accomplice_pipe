@@ -12,10 +12,10 @@ import os
 import time
 import glob
 from enum import Enum
-from http.server import HTTPServer
+from http.server import HTTPServer, HTTPStatus
 from queue import Queue
 from threading import Thread
-from typing import Mapping, Any, MutableSet
+from typing import Mapping, Any, MutableSet, MutableSequence
 
 from baseclass import SimplePipe
 
@@ -89,21 +89,41 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         log.info(f"Handling GET request with path {self.path}")
 
-        url = urlparse(self.path)
+        try:
+            url = urlparse(self.path)
 
-        if url.path == '/assets':
-            assets = self.pipe.get_assets(parse_qs(url.query))
-            self.send_response(HTTPStatus.OK)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
+            if url.path == '/assets':
+                assets = self.pipe.get_assets(parse_qs(url.query))
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
 
-            asset_data = ''
-            for asset in assets:
-                asset_data += asset + ','
-            if asset_data.endswith(','):
-                asset_data = asset_data[:-1]
+                asset_data = ''
+                for asset in assets:
+                    asset_data += asset + ','
+                if asset_data.endswith(','):
+                    asset_data = asset_data[:-1]
 
-            self.wfile.write(asset_data.encode('utf-8'))
+                self.wfile.write(asset_data.encode('utf-8'))
+            elif url.path == '/shots':
+                shots = self.pipe.get_shots(parse_qs(url.query))
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+
+                shot_data = ''
+                for shot in shots:
+                    shot_data += shot + ','
+                if shot_data.endswith(','):
+                    shot_data = shot_data[:-1]
+
+                self.wfile.write(shot_data.encode('utf-8'))
+            else:
+                self.send_response(HTTPStatus.NOT_IMPLEMENTED)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+        except Exception as ex:
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, message=ex.__str__)
             
 
         # Get the request content, if any
@@ -207,6 +227,33 @@ class AccomplicePipe(SimplePipe):
         'licenseplate':     '/vehicles/licenseplate',
         'policecar':        '/vehicles/policecar',
         'studentcar':       '/vehicles/studentcar',
+    }
+
+    shot_lookup = {
+        'A_010': '/A/shots/010',
+        'A_020': '/A/shots/020',
+        'A_030': '/A/shots/030',
+        'A_040': '/A/shots/040',
+        'A_050': '/A/shots/050',
+        'A_060': '/A/shots/060',
+        'A_070': '/A/shots/070',
+        'A_080': '/A/shots/080',
+        'A_090': '/A/shots/090',
+        'A_100': '/A/shots/100',
+        'A_110': '/A/shots/110',
+        'A_120': '/A/shots/120',
+        'A_130': '/A/shots/130',
+        'A_140': '/A/shots/140',
+        'A_150': '/A/shots/150',
+        'A_160': '/A/shots/160',
+        'A_170': '/A/shots/170',
+        'A_180': '/A/shots/180',
+        'B_010': '/B/shots/010',
+        'C_010': '/C/shots/010',
+        'D_010': '/D/shots/010',
+        'E_010': '/E/shots/010',
+        'F_010': '/F/shots/010',
+        'G_010': '/G/shots/010',
     }
 
     ### Temp script for creating paths:
@@ -324,6 +371,21 @@ class AccomplicePipe(SimplePipe):
             #return set(self._database.get_assets(query.get('name')))
         
         return self.asset_lookup
+    
+    def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
+        # Get the key for all shots
+        if 'list' in query:
+            list_type = query.get('list')
+            if 'name' in list_type:
+                return self.shot_lookup.keys()
+                #return self._database.get_shot_list()
+
+        # Get the specified shots
+        if 'name' in query:
+            return set([self.shot_lookup.get(shot) for shot in query.get('name')])
+            #return set(self._database.get_assets(query.get('name')))
+        
+        return self.shot_lookup
 
     def get_asset_dir(self, asset, category, hero: bool = False):
         """Get the filepath to the specified asset."""
