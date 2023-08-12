@@ -1,4 +1,7 @@
 import json
+import os
+import re
+from pathlib import Path
 from typing import Type, Union, Iterable, Optional
 from enum import Enum
 
@@ -47,10 +50,74 @@ class Asset(JsonSerializable):
 
     def get_geo_path(self):
         return f"{self.path}/geo/"
-
-    def get_material_path(self):
-        return f"{self.path}/mats/materials.usd" if self.path else None
     
+    def get_metadata_path(self):
+        meta_path = f"{self.path}/textures/meta.json"
+
+        if os.name == "nt":
+            meta_path = meta_path.replace('/groups/', 'G:\\')
+
+        return meta_path
+    
+    def get_metadata(self):
+        meta_path = self.get_metadata_path()
+
+        if os.path.isfile(meta_path):
+            with open(meta_path, 'r') as f:
+                data = AssetMaterials.from_string(f.read())
+
+            return data
+            
+        return None
+    
+    def create_metadata(self):
+        meta_path = self.get_metadata_path()
+        data = AssetMaterials(self.name)
+        geovars = self.get_geo_variants()
+
+        hierarchy = {}
+            
+        for geovar in geovars:
+            hierarchy[geovar] = {}
+        
+        data.hierarchy = hierarchy
+    
+        with open(meta_path, 'w') as outfile:
+            outfile.write(data.to_json())
+
+    def get_geo_variants(self):
+        if os.name == "nt":
+            path = Path(self.get_geo_path().replace('/groups/', 'G:\\'))
+        else:
+            path = Path(self.get_geo_path())
+
+        geo_variants = []
+        if os.path.isdir(path):
+            
+
+            path, _, files = next(os.walk(path))
+
+            if files:
+                for file in files:
+                    geo_variants.append(file.split('.')[0])
+
+        return geo_variants
+
+    def get_mat_variants(self, geo_variant):
+        if os.name == "nt":
+            path = Path(self.get_geo_path().replace('/groups/', 'G:\\'))
+        else:
+            path = Path(self.get_geo_path())
+        path = path / 'textures'
+        mat_variants = []
+
+        if path.exists():
+            files = path.glob('*_DiffuseColor*1001.png.tex')
+
+            for file in files:
+                mat_variants.append(re.search('(.*_).*(_DiffuseColor_.*1001.*\.tex)', str(file)).group())
+        return mat_variants
+
     def get_textures_path(self):
         pass
 
@@ -78,25 +145,55 @@ class Material(JsonSerializable):
         self.isPxr = isPxr
         self.matType = matType
 
-class MaterialsAsset(JsonSerializable):
-    textureSets = None
+class AssetMaterials(JsonSerializable):
+    hierarchy = {}
     name = None
 
-    def __init__(self, name: str, textureSets=[]) -> None:
+    def __init__(self, name: str, hierarchy = {}) -> None:
         super().__init__()
         self.name = name
-        self.textureSets = textureSets
+        self.hierarchy = hierarchy
+
+    @staticmethod
+    def from_string(in_str):
+        dct = json.loads(in_str)
+        hier = {}
+        for geovar in dct['hierarchy']:
+          variants = {}
+          for matvar in dct['hierarchy'][geovar]:
+            materials = {}
+            for material in dct['hierarchy'][geovar][matvar]['materials']:
+              mat = Material(material['name'], material['hasUDIMs'],
+                            material['isPxr'], material['matType'])
+              materials[material['name']] = mat
+
+
+            variants[matvar] = MaterialVariant(matvar, materials)
+
+
+          hier[geovar] = variants
+
+        return AssetMaterials(dct['name'], hier)
+
+class MaterialVariant(JsonSerializable):
+    materials = None
+    name = None
+
+    def __init__(self, name: str, materials=[]) -> None:
+        super().__init__()
+        self.name = name
+        self.materials = materials
 
     @staticmethod
     def from_string(json_str):
         json_dct = json.loads(json_str)
-        textureSets = []
-        for textureSet in json_dct['textureSets']:
-            mat = Material(textureSet['name'], textureSet['hasUDIMs'],
-                            textureSet['isPxr'], textureSet['matType'])
-            textureSets.append(mat)
+        materials = {}
+        for material in json_dct['materials']:
+            mat = Material(material['name'], material['hasUDIMs'],
+                            material['isPxr'], material['matType'])
+            materials[material['name']] = mat
 
-        obj = MaterialsAsset(json_dct['name'], textureSets)
+        obj = MaterialVariant(json_dct['name'], materials)
         return obj
 
 

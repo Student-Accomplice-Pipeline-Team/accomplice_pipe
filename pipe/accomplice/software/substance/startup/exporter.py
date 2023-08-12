@@ -21,7 +21,6 @@ from PySide2.QtWidgets import QApplication, QWidget, QRadioButton, QComboBox, QL
 
 plugin_widgets = []
 
-
 def start_plugin():
 
 	# Create a text widget for a menu
@@ -153,6 +152,11 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         
         self.setup_UI()
 
+    #store metadata here
+    asset = None
+    geo_variant = None
+    meta = None
+
     def setup_UI(self):
         self.setWindowTitle("Exporter")
         self.resize(400, 300)
@@ -182,20 +186,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         self.title.setFont(font)
         self.mainLayout.addWidget(self.title, 0)
 
-        #######Asset List#######
-        self.comboBox = QComboBox()
-        self.comboBox.setInsertPolicy(QComboBox.InsertAlphabetically)
-        self.comboBox.currentIndexChanged.connect(self.on_change)
-
-        assets = sorted(pipe.server.get_asset_list())
-        self.comboBox.addItems(assets)
-
-        #self.comboBox2 = QComboBox()
-        #self.comboBox2.setEnabled(False)
-
-        self.mainLayout.addWidget(self.comboBox, 1)
-        #self.mainLayout.addWidget(self.comboBox2)
-
         ##########Buttons##########
         buttonSizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
@@ -224,13 +214,37 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
     #Called when the asset combo box changes
     def on_change(self, newIndex):
+        global asset
+        global meta
+
         self.comboBox2.setEnabled(True)
         self.comboBox2.clear()
         asset = pipe.server.get_asset(self.comboBox.currentText())
     
-        variants = asset.variants
+        meta = asset.get_metadata()
+        if not meta:
+            asset.create_metadata()
+            meta = asset.get_metadata()
 
-        self.comboBox2.addItems(sorted(variants))
+        variants = meta.hierarchy.keys()
+
+        if variants:
+            self.comboBox2.addItems(sorted(variants))
+
+    def on_change_variant(self, newIndex):
+        global asset
+        global geo_variant
+        global meta
+
+        self.comboBox3.setEnabled(True)
+        self.comboBox3.clear()
+        geo_variant = meta.hierarchy[self.comboBox2.currentText()]
+
+        variants = geo_variant.keys()
+
+        if variants:
+            self.comboBox3.addItems(sorted(variants))
+
 
     #called every time on of the radio buttons is clicked. Enables export button when all filled.
     def radio_checked(self):
@@ -249,28 +263,33 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
     def do_export(self):
 
         #repath for windows
-        asset = pipe.server.get_asset(self.comboBox.currentText())
+        global asset
+        global geo_variant
+        global meta
+
         asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
 
-        materials = []
+        material_variant = geo_variant[self.comboBox3.currentText()]
+
+        materials = {}
 
         print(asset.name)
         print(asset_path)
 
         resource_dir = pathlib.Path().cwd() / 'resources'
 
-        export_path = asset_path / 'mats' / 'textures'
+        export_path = asset_path / 'textures' / geo_variant.name / material_variant
   
         if not os.path.exists(str(export_path)):
             os.makedirs(str(export_path))
         
-        metadata_path = asset_path / 'mats' / 'metadata'
+        metadata_path = asset.get_metadata_path()
 
         if not os.path.exists(str(metadata_path)):
             os.makedirs(str(metadata_path))
 
         #Define export preset
-        RMAN_preset = substance_painter.resource.import_project_resource(str(resource_dir / 'RMAN.spexp'),
+        RMAN_preset = substance_painter.resource.import_project_resource(str(resource_dir / 'Renderman-Accomplice.spexp'),
             substance_painter.resource.Usage.EXPORT)
         
         #export each texture set
@@ -286,7 +305,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 isPxr=True,
                 matType=widget.get_type().value)
 
-            materials.append(mat)
+            materials[texture_set.name()] = mat
             
             
             #write out metadata
@@ -329,14 +348,10 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
                 return
             
-        #write out materials asset json file
-        #texture_sets = [tex_set.name() for tex_set in self.texture_sets_dict]
-        texture_sets = materials
-        materials_asset = object.MaterialsAsset(name=asset.name, textureSets=texture_sets)
-        #print(materials_asset)
+        meta.hierarchy[geo_variant.name][material_variant.name].materials = materials
 
-        with open(str(pathlib.Path.joinpath(metadata_path, asset.name + '_meta.json')), 'w') as outfile:
-            toFile = materials_asset.to_json()
+        with open(metadata_path, 'w') as outfile:
+            toFile = meta.to_json()
             outfile.write(toFile)
 
         QtWidgets.QMessageBox.information(self, "Export complete", "Textures exported successfully.")
