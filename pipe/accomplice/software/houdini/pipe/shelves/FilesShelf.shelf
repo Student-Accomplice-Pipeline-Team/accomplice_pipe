@@ -5,7 +5,7 @@
  Note, that two definitions of the same element are not allowed in
  a single file. -->
 
-  <toolshelf name="files" label="Files">
+  <toolshelf name="accomp_files" label="Accomplice Files">
     <memberTool name="open_asset_file"/>
     <memberTool name="open_shot_file"/>
   </toolshelf>

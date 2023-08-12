@@ -12,12 +12,6 @@ import pipe
 
 
 def open_shot_file():
-    hou.ui.displayMessage(
-        "This button is not currently implemented.",
-        severity=hou.severityType.ImportantMessage,
-    )
-    return
-
     if hou.hipFile.hasUnsavedChanges():
         warning_response = hou.ui.displayMessage(
             "The current file has not been saved. Continue anyways?",
@@ -50,9 +44,7 @@ def open_shot_file():
             hou.hipFile.save(file_path)
             
             stage = hou.node("stage")
-            
-            # Create default nodes
-            
+            layout_node = stage.createNode("accomp_import_layout")
             stage.layoutChildren()
             
             hou.hipFile.save(file_path)
