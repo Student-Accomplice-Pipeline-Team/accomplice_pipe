@@ -12,6 +12,12 @@ import pipe
 
 
 def open_shot_file():
+    hou.ui.displayMessage(
+        "This button is not currently implemented.",
+        severity=hou.severityType.ImportantMessage,
+    )
+    return
+
     if hou.hipFile.hasUnsavedChanges():
         warning_response = hou.ui.displayMessage(
             "The current file has not been saved. Continue anyways?",
@@ -22,7 +28,34 @@ def open_shot_file():
         if warning_response == 1:
             return
     
-    shot_file_names = pipe.server.get_shot_list()
+    shot_names = pipe.server.get_shot_list()
+    
+    shot_response = hou.ui.selectFromList(
+        shot_names,
+        exclusive=True,
+        message="Select the Shot File that you'd like to open.",
+        title="Open Shot File",
+        column_header="Assets"
+    )
+    
+    if shot_response:
+        shot_name = shot_names[shot_response[0]]
+        shot = pipe.server.get_shot(shot_name)
+        file_path = os.path.join(shot.path, shot.name + ".hipnc")
+        
+        if os.path.isfile(file_path):
+            hou.hipFile.load(file_path, suppress_save_prompt=True)
+        else:
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(file_path)
+            
+            stage = hou.node("stage")
+            
+            # Create default nodes
+            
+            stage.layoutChildren()
+            
+            hou.hipFile.save(file_path)
 
 
 open_shot_file()
