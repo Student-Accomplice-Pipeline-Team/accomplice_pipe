@@ -162,7 +162,7 @@ class _PipeProxy(PipeProxyInterface):
         return self._get_data(f'/shots?name={name}', Shot)
 
     def get_shot_list(self) -> Iterable[str]:
-        """Get a list of all assets from the pipe."""
+        """Get a list of all shots from the pipe."""
         return self._get_data('/shots?list=name', str).split(',')
     
     def shot_update(self, name: str):
