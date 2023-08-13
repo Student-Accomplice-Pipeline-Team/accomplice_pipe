@@ -28,6 +28,7 @@ root {
                 pane panetab1 -a 0 -l 10 -H /stage/ -T LOP -m parmeditor
                 pane panetab3 -a 1 -l 10 -H /stage/ -T LOP -m pythonpanel
                 pane panetab4 -a 0 -l 0 -H /stage/ -T LOP -m perfmon
+                pane panetab11 -a 0 -l 10 -H /stage/ -T LOP -m pythonpanel
             }
             tabs 0 1 {
                 pane panetab2 -a 0 -l 10 -H /stage/ -T LOP -m neteditor

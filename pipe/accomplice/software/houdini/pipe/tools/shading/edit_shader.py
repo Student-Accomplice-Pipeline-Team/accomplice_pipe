@@ -8,6 +8,7 @@ from pathlib import *
 
 
 MATLIB_NAME = "Material_Library"
+COMPONENT_MAT_NAME = "Component_Material"
 
 class EditShader():
 
@@ -16,40 +17,44 @@ class EditShader():
 
         self.asset = None
         self.materials = {}
-        self.materialsAsset = None
+        self.materialVariant = None
+        self.geo_variant_name = None
+        self.texturesPath = None
         self.nodes_path = None
  
     def matLib(self):
         return hou.node('./' + MATLIB_NAME)
 
     #Called when asset is chosen on HDA
-    def set_asset(self, asset_name):
+    def set_asset(self, asset_name, geo_variant_name, mat_var_name):
 
         if asset_name == None:
             self.asset = None
             self.materials = {}
-            self.materialsAsset = None
+            self.materialVariant = None
             self.nodes_path = None
             return
 
         self.asset = pipe.server.get_asset(asset_name)
-        self.nodes_path = Path(self.asset.path) / 'mats' / 'metadata' / 'nodes.uti'
+        
+        metadata = self.asset.get_metadata()
 
-        if self.nodes_path.is_file():
-            hou.node('.').parm('load_usd').hide(False)
+        self.materialVariant = metadata.hierarchy[geo_variant_name][mat_var_name]
+        self.geo_variant_name = geo_variant_name
+        self.texturesPath = self.asset.get_textures_path(geo_variant_name, mat_var_name)
+        print(self.texturesPath)
 
-        try:
-            with open(self.asset.path + '/mats/metadata/' + self.asset.name + '_meta.json', 'r') as f:
-                print('successfully opened file')
-                self.materialsAsset = MaterialsAsset.from_string(f.read())
-
-                for material in self.materialsAsset.textureSets:
+        for _, material in self.materialVariant.materials.items():
                     self.materials[material] = {}
 
-        except FileNotFoundError:
-            print('this file does not exist yet. Export from Substance Painter first')
+
+        #self.nodes_path = Path(self.asset.path) / 'maps' / 'metadata' / 'nodes.uti'
+
+        #if self.nodes_path.is_file():
+        #    hou.node('.').parm('load_usd').hide(False)
 
     #Load button, loads uti file stored on disk
+    #####NO LONGER USED########
     def load_materials(self, kwargs):
         print("loading")
 
@@ -63,7 +68,7 @@ class EditShader():
     def publish_materials(self):
         print('publishing')
 
-        for material in self.materials.keys():
+        '''for material in self.materials.keys():
             controls = self.matLib().node('controls_' + material.name)
 
             #evaluate parameters in place to preserve values
@@ -77,11 +82,11 @@ class EditShader():
                     parm.set(val)
 
 
-        self.matLib().saveItemsToFile(self.matLib().allItems(), str(self.nodes_path))
+        self.matLib().saveItemsToFile(self.matLib().allItems(), str(self.nodes_path))'''
 
         rop = hou.node('./usd_out')
 
-        path = Path(self.asset.path) / 'mats' / 'mats.usd'
+        path = Path(self.asset.path) / 'mtl.usd'
 
         rop.parm('lopoutput').set(str(path))
         rop.parm('execute').pressButton()
@@ -192,36 +197,36 @@ class EditShader():
 
         nodes = self.materials[material]
 
-        channels = ['DiffuseColor', 'SpecularFaceColor', 'SpecularRoughness', 'Normal', 'Presence', 'Displacement']
-        tex_folder_path = Path(self.asset.path) / 'mats' / 'textures' / 'RMAN'
+        channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
+        tex_folder_path = Path(self.texturesPath + '/')
+        print(tex_folder_path)
+
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png.tex')
+        print(next(files))
+
+        for file in files:
+            path = str(file).replace('1001', '<UDIM>')
+            if 'DiffuseColor' in path:
+                channels['DiffuseColor'] = path
+            if 'SpecularFaceColor' in path:
+                channels['SpecularFaceColor'] = path
+            if 'SpecularRoughness' in path:
+                channels['SpecularRoughness'] = path
+            if 'Normal' in path:
+                channels['Normal'] = path
+            if 'Presence' in path:
+                channels['Presence'] = path
+            if 'Displacement' in path:
+                channels['Displacement'] = path
 
         for channel in channels:
 
-            print(nodes[channel].parm('filename'))
-            channel_path = ""
-
-            if material.hasUDIMs:
-                channel_path = str(tex_folder_path) + '/' + material.name + '_' + channel + '_srgbtex_acescg.<UDIM>.png.tex'
-            else:
-                channel_path = str(tex_folder_path) + '/' + material.name + '_' + channel + '_srgbtex_acescg.png.tex'
-            
-            #hacky fix for roughness. ugh... ignore me while I poop all over the place
-            if channel == 'SpecularRoughness' or channel == 'Normal':
-                print('spec')
-                channel_path = channel_path.replace('srgbtex', 'data')
-
-            nodes[channel].parm('filename').set(str(channel_path))
+            nodes[channel].parm('filename').set(channels[channel])
 
             #setup previs color shader
             if channel == 'DiffuseColor':
-                channel_path = ""
-
-                if material.hasUDIMs:
-                    channel_path = str(tex_folder_path) + '/' + material.name + '_' + channel + '.<UDIM>.png'
-                else:
-                    channel_path = str(tex_folder_path) + '/' + material.name + '_' + channel + '.png'
                 
-                self.matLib().node('preview_diffuse_color_' + material.name).parm('file').set(channel_path)
+                self.matLib().node('preview_diffuse_color_' + material.name).parm('file').set(channels[channel])
             
     #assign each material to its corresponding named primitive
     def assign_materials(self, value):
@@ -231,6 +236,9 @@ class EditShader():
 
             component_mat = hou.node('./' + COMPONENT_MAT_NAME)
             component_mat.parm('nummaterials').set(len(self.materials) * 2)
+
+            if self.materialVariant != None:
+                component_mat.parm('variantname').set(self.materialVariant.name)
 
             #geo subsets
             input = hou.node('./INPUT_GEO')

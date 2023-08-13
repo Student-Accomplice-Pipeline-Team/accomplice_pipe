@@ -152,11 +152,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         
         self.setup_UI()
 
-    #store metadata here
-    asset = None
-    geo_variant = None
-    meta = None
-
     def setup_UI(self):
         self.setWindowTitle("Exporter")
         self.resize(400, 300)
@@ -212,39 +207,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         ButtonsLayout.addWidget(self.cancelButton)
         ButtonsLayout.addWidget(self.exportButton)
 
-    #Called when the asset combo box changes
-    def on_change(self, newIndex):
-        global asset
-        global meta
-
-        self.comboBox2.setEnabled(True)
-        self.comboBox2.clear()
-        asset = pipe.server.get_asset(self.comboBox.currentText())
-    
-        meta = asset.get_metadata()
-        if not meta:
-            asset.create_metadata()
-            meta = asset.get_metadata()
-
-        variants = meta.hierarchy.keys()
-
-        if variants:
-            self.comboBox2.addItems(sorted(variants))
-
-    def on_change_variant(self, newIndex):
-        global asset
-        global geo_variant
-        global meta
-
-        self.comboBox3.setEnabled(True)
-        self.comboBox3.clear()
-        geo_variant = meta.hierarchy[self.comboBox2.currentText()]
-
-        variants = geo_variant.keys()
-
-        if variants:
-            self.comboBox3.addItems(sorted(variants))
-
 
     #called every time on of the radio buttons is clicked. Enables export button when all filled.
     def radio_checked(self):
@@ -262,14 +224,13 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
     def do_export(self):
 
-        #repath for windows
-        global asset
-        global geo_variant
-        global meta
+        data = substance_painter.project.Metadata('accomplice')
+        asset = pipe.server.get_asset(data.get('asset'))
+        geo_variant = data.get('geo_variant')
 
         asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
 
-        material_variant = geo_variant[self.comboBox3.currentText()]
+        material_variant = data.get('material_variant')
 
         materials = {}
 
@@ -278,18 +239,19 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
         resource_dir = pathlib.Path().cwd() / 'resources'
 
-        export_path = asset_path / 'textures' / geo_variant.name / material_variant
+        export_path = asset_path / 'textures' / geo_variant / material_variant
   
         if not os.path.exists(str(export_path)):
             os.makedirs(str(export_path))
         
+        meta = asset.get_metadata()
         metadata_path = asset.get_metadata_path()
 
         if not os.path.exists(str(metadata_path)):
             os.makedirs(str(metadata_path))
 
         #Define export preset
-        RMAN_preset = substance_painter.resource.import_project_resource(str(resource_dir / 'Renderman-Accomplice.spexp'),
+        RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
             substance_painter.resource.Usage.EXPORT)
         
         #export each texture set
@@ -348,7 +310,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
                 return
             
-        meta.hierarchy[geo_variant.name][material_variant.name].materials = materials
+        meta.hierarchy[geo_variant][material_variant].materials = materials
 
         with open(metadata_path, 'w') as outfile:
             toFile = meta.to_json()

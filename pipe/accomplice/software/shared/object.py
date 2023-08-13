@@ -51,6 +51,24 @@ class Asset(JsonSerializable):
     def get_geo_path(self):
         return f"{self.path}/geo/"
     
+    def get_shader_geo_path(self, geo_variant):
+        path = f"{self.path}/geo/"
+        if os.name == "nt":
+            path = path.replace('/groups/', 'G:\\')
+
+        path = path.replace('/pipeline/production/', '/shading/')
+        path = path + self.name + '_' + geo_variant + '.fbx'
+        return path
+        
+    def get_shading_path(self):
+        path = f"{self.path}"
+        if os.name == "nt":
+            path = path.replace('/groups/', 'G:\\')
+
+        path = path.replace('/pipeline/production/', '/shading/')
+        return path
+
+    
     def get_metadata_path(self):
         meta_path = f"{self.path}/textures/meta.json"
 
@@ -118,8 +136,15 @@ class Asset(JsonSerializable):
                 mat_variants.append(re.search('(.*_).*(_DiffuseColor_.*1001.*\.tex)', str(file)).group())
         return mat_variants
 
-    def get_textures_path(self):
-        pass
+    def get_textures_path(self, geo_variant, material_variant):
+        if os.name == "nt":
+            path = Path(self.path.replace('/groups/', 'G:\\'))
+        else:
+            path = Path(self.path)
+
+        path = path / 'textures' / geo_variant / material_variant
+
+        return str(path)
 
 class MaterialType(Enum):
         BASIC = 1
@@ -162,10 +187,10 @@ class AssetMaterials(JsonSerializable):
           variants = {}
           for matvar in dct['hierarchy'][geovar]:
             materials = {}
-            for material in dct['hierarchy'][geovar][matvar]['materials']:
-              mat = Material(material['name'], material['hasUDIMs'],
-                            material['isPxr'], material['matType'])
-              materials[material['name']] = mat
+            for material, data in dct['hierarchy'][geovar][matvar]['materials'].items():
+              mat = Material(material, data['hasUDIMs'],
+                            data['isPxr'], data['matType'])
+              materials[material] = mat
 
 
             variants[matvar] = MaterialVariant(matvar, materials)
