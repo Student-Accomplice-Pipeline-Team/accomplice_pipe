@@ -35,7 +35,7 @@ def open_shot_file():
     if shot_response:
         shot_name = shot_names[shot_response[0]]
         shot = pipe.server.get_shot(shot_name)
-        file_path = os.path.join(shot.path, shot.name + ".hipnc")
+        file_path = shot.get_shotfile(type="main")
         
         if os.path.isfile(file_path):
             hou.hipFile.load(file_path, suppress_save_prompt=True)
