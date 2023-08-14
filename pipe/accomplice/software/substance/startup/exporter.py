@@ -4,6 +4,7 @@ import importlib
 import pathlib
 import json
 import subprocess
+import shutil
 
 #pipe modules
 import pipe
@@ -299,12 +300,15 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             error = False
 
             try:
+                create_version(str(export_path))
                 substance_painter.export.export_project_textures(RMAN_config)
+
+
             except Exception as e:
                 error = True
                 print(e)
                 QtWidgets.QMessageBox.warning(self, "Error",
-                                            "YOu screwed up....... Maaaaaan")
+                                            "You screwed up maaaaaan")
             
             if error:
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
@@ -320,5 +324,36 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
         self.close()
 
-def create_material():
-    pass
+def create_version(path):
+    print(path)
+    if os.path.exists(path):
+
+        files = os.listdir(path)
+
+        if 'versions' in files:
+            print('cleaning files')
+            files.remove('versions')
+
+        if files:
+            if not os.path.exists(path + '/versions'):
+                print('making folder')
+                os.mkdir(path + '/versions')
+
+            max_ver = 0
+
+            for file in os.listdir(path + '/versions'):
+                if int(file) > max_ver:
+                        max_ver = int(file)
+
+            for file in files:
+
+                print(file)
+                
+                old_path = path + '/' + str(file)
+                new_path = path + '/versions/' + str(max_ver + 1).zfill(3) + '/'
+
+                if not os.path.exists(new_path):
+                    print('making folder')
+                    os.mkdir(new_path)
+                    
+                shutil.move(old_path, new_path + str(file))
