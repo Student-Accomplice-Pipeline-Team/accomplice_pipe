@@ -242,4 +242,4 @@ class Shot(JsonSerializable):
             return os.path.join(self.path, type, f'{self.name}_{type}.hipnc')
     
     def get_layout_path(self):
-        return os.path.join(self.path, 'layout', f'{self.name}_layout.usdc')
+        return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
