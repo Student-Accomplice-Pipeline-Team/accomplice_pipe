@@ -29,13 +29,24 @@ def open_shot_file():
         exclusive=True,
         message="Select the Shot File that you'd like to open.",
         title="Open Shot File",
-        column_header="Assets"
+        column_header="Shots"
     )
     
     if shot_response:
         shot_name = shot_names[shot_response[0]]
         shot = pipe.server.get_shot(shot_name)
-        file_path = shot.get_shotfile(type="main")
+        
+        subfile_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
+        subfile_response = hou.ui.selectFromList(
+            subfile_types,
+            exclusive=True,
+            message="Select the Shot Subfile that you'd like to open.",
+            title="Open Shot Subfile",
+            column_header="Shot Subfiles"
+        )
+        
+        subfile_type = subfile_types[subfile_response[0]]
+        file_path = shot.get_shotfile(type=subfile_type)
         
         if os.path.isfile(file_path):
             hou.hipFile.load(file_path, suppress_save_prompt=True)
@@ -43,9 +54,9 @@ def open_shot_file():
             hou.hipFile.clear(suppress_save_prompt=True)
             hou.hipFile.save(file_path)
             
-            stage = hou.node("stage")
-            layout_node = stage.createNode("accomp_import_layout")
-            stage.layoutChildren()
+            # stage = hou.node("stage")
+            # layout_node = stage.createNode("accomp_import_layout")
+            # stage.layoutChildren()
             
             hou.hipFile.save(file_path)
 
