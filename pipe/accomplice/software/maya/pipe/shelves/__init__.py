@@ -3,7 +3,7 @@ from pathlib import Path
 
 import maya.cmds as cmds
 import maya.mel as mel
-import pymel.core as pymelc  # TODO: Nathan commented this out because it was causing an error.
+import pymel.core as pymelc
 
 shelf_file_prefix = 'shelf_'
 shelf_file_ext = '.mel'
