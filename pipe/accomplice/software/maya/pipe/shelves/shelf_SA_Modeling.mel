@@ -19,14 +19,14 @@ global proc shelf_SA_Modeling () {
         -backgroundColor 0 0 0 
         -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
-        -label "Publish Asset" 
+        -label "Publish" 
         -labelOffset 0
         -rotation 0
         -flipX 0
         -flipY 0
         -useAlpha 1
         -font "plainLabelFont" 
-        -imageOverlayLabel "Publish" 
+        -imageOverlayLabel "Publish Asset" 
         -overlayLabelColor 2.624876 0.801436 0.012446 
         -overlayLabelBackColor 0.227129 0.227129 0.227129 0.5 
         -image "createContainer.png" 
@@ -34,7 +34,43 @@ global proc shelf_SA_Modeling () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "from pipe.asset.geo import publish; publish();"
+        -command "from pipe.asset import publish; publish();"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Import a layout file into the scene" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Import Layout" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Layout" 
+        -overlayLabelColor 2.624876 0.801436 0.012446 
+        -overlayLabelBackColor 0.227129 0.227129 0.227129 0.5 
+        -image "createContainer.png" 
+        -image1 "createContainer.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.asset import import_layout; import_layout();"
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

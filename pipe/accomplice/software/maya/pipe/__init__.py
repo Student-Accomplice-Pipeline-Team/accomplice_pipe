@@ -7,8 +7,12 @@ from typing import Optional, Union
 from urllib.parse import urljoin
 
 import maya.cmds as cmds
+from pxr import Usd
 
+from . import animation
+from . import camera
 from . import shelves
+
 from .shared import env, get_proxy, reload
 from .shared.object import Asset, Shot
 

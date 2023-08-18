@@ -4,6 +4,7 @@ import sys
 
 from . import env
 from .proxy import get_proxy
+from .object import Asset
 
 log = logging.getLogger(__name__)
 

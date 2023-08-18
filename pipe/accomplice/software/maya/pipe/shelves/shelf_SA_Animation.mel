@@ -14,7 +14,7 @@ global proc shelf_SA_Animation () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "packedAutoReloadRigRefs = '''def accompliceAutoReloadRigRefs():\n    \n    import maya.cmds as mc\n    import os\n    \n    # get reference node for each character rig\n    refNodes = mc.ls(references=True)\n    \n    lettyRef = ''\n    vaughnRef = ''\n    edRef = ''\n    heroCarRef = ''\n    \n    for ref in refNodes:\n        if \"etty_\" in ref:\n            print(\"LETTY!\")\n            lettyRef = ref\n        elif \"aughn\" in ref:\n            print(\"VAUGHN!\")\n            vaughnRef = ref\n        elif \"Ed_\" in ref:\n            print(\"ED!\")\n            edRef = ref\n        elif \"eroCar_\" in ref:\n            print(\"HERO CAR!\")\n            heroCarRef = ref\n    \n    # rigsDir depending if user is on linux or windows\n    if os.path.exists(r\"G:/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"G:/accomplice/characterTeam/Rigs/\"\n    elif os.path.exists(r\"/groups/accomplice/characterTeam/Rigs/\"):\n        rigsDir = r\"/groups/accomplice/characterTeam/Rigs/\"\n    else:\n        rigsDir = r\"C:/Users/natha/Desktop/RigsTest/\"\n    \n    # sort the rigsDir files into lists based on what character they belong to\n    lettyRigs = []\n    vaughnRigs = []\n    edRigs = []\n    heroCarRigs = []\n    \n    rigsDirList = os.listdir(rigsDir)\n    for myFile in rigsDirList:\n        if \"etty\" in myFile:\n            lettyRigs.append(myFile)\n        elif \"aughn\" in myFile:\n            vaughnRigs.append(myFile)\n        elif \"Ed_\" in myFile:\n            edRigs.append(myFile)\n        elif \"eroCar_\" in myFile:\n            heroCarRigs.append(myFile)\n    \n    # get the most recent rig for each\n    rigsDirListLong = [os.path.join(rigsDir, f) for f in os.listdir(rigsDir) if os.path.isfile(os.path.join(rigsDir, f))]\n    rigsDirListLong.sort(key=lambda x: os.path.getmtime(x))\n    \n    for myFile in rigsDirListLong:\n        if \"etty\" in myFile:\n            mostRecentLettyRig = myFile\n        elif \"aughn\" in myFile:\n            mostRecentVaughnRig = myFile\n        elif \"Ed_\" in myFile:\n            mostRecentEdRig = myFile\n        elif \"eroCar_\" in myFile:\n            mostRecentHeroCarRig = myFile\n    \n    count = 0\n    if lettyRef != '':\n        if mc.referenceQuery(lettyRef, filename = True) != mostRecentLettyRig:\n            mc.file(mostRecentLettyRig, loadReference=lettyRef)\n            count += 1\n    if vaughnRef != '':\n        if mc.referenceQuery(vaughnRef, filename = True) != mostRecentVaughnRig:\n            mc.file(mostRecentVaughnRig, loadReference=vaughnRef)\n            count += 1\n    if edRef != '':\n        if mc.referenceQuery(edRef, filename = True) != mostRecentEdRig:\n            mc.file(mostRecentEdRig, loadReference=edRef)\n            count += 1\n    if heroCarRef != '':\n        if mc.referenceQuery(heroCarRef, filename = True) != mostRecentHeroCarRig:\n            mc.file(mostRecentHeroCarRig, loadReference=heroCarRef)\n            count += 1\n    \n    return count\n    #mc.file(rigsDir + \"Letty_Rig_1.05_JUN_16.mb\", loadReference=\"Letty_Rig_1_05_JUN_16RN\")\n    \n#mc.warning(str(count) + \" Rigs Were Reloaded\")\n\ncount = accompliceAutoReloadRigRefs()\nmc.confirmDialog(\n            title = ' Rigs Successfully Updated',\n            message = str(count) + ' Rig References were Automatically Updated',\n            button = 'Ok',\n        )\n'''\nimport maya.cmds as mc\n\n# delete script node if it already exists\neverything = mc.ls()\nif \"accompliceAutoReloadRigRefs\" in str(everything):\n    mc.delete(\"accompliceAutoReloadRigRefs\")\n\n# bake the above auto-reload-refs function into this scene's file\nmc.scriptNode(st=2, n='accompliceAutoReloadRigRefs', stp='python', bs=packedAutoReloadRigRefs)\n" 
+        -annotation ""
         -enableBackground 0
         -backgroundColor 0 0 0 
         -highlightColor 0.321569 0.521569 0.65098 
@@ -38,6 +38,41 @@ global proc shelf_SA_Animation () {
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
+    ;
+    shelfButton
+            -enableCommandRepeat 1
+            -flexibleWidthType 3
+            -flexibleWidthValue 32
+            -enable 1
+            -width 35
+            -height 34
+            -manage 1
+            -visible 1
+            -preventOverride 0
+            -annotation "'''\nINSTRUCTIONS:\nExport Alembics... Duh..." 
+            -enableBackground 0
+            -backgroundColor 0 0 0 
+            -highlightColor 0.321569 0.521569 0.65098 
+            -align "center" 
+            -label "Alembic Exporter" 
+            -labelOffset 0
+            -rotation 0
+            -flipX 0
+            -flipY 0
+            -useAlpha 1
+            -font "plainLabelFont" 
+            -imageOverlayLabel "Alembic Exporter" 
+            -overlayLabelColor 0.8 0.8 0.8 
+            -overlayLabelBackColor 0 0 0 0.5 
+            -image "exportCache.png" 
+            -image1 "exportCache.png" 
+            -style "iconOnly" 
+            -marginWidth 0
+            -marginHeight 1
+            -command "from pipe.animation import Exporter\n\nexp = Exporter()\n\nexp.run()" 
+            -sourceType "python" 
+            -commandRepeatable 1
+            -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -223,6 +258,41 @@ global proc shelf_SA_Animation () {
         -marginWidth 0
         -marginHeight 1
         -command "'''\nINSTRUCTIONS:\nSelect all controls you want to add as space switches\nThe last control is the one that the space switches will be added on to\nRun the script and attributes will be created for space switches between those controls!\n\nAdapted from Truong Cg Artist\n'''\n\nimport maya.cmds as cmds\n\n# find current namespace\ndef checkNamespace(con):\n    if \":\" in con:\n        nameSpace = con.rpartition(':')[0]+\":\"\n        conRawName = con.rpartition(':')[2]\n        return [nameSpace,conRawName]\n    else:\n        return \"\"\n\nselItems = cmds.ls(sl=1)\nif not selItems or len(selItems)<2:\n    raise Exception(\"must select at least 2 items\")\n\ndef checkLocked(item):\n    channels=[\".translateX\", \".translateY\", \".translateZ\", \".rotateX\", \".rotateY\", \".rotateZ\"]\n    for channel in channels:\n        if not cmds.getAttr(item+channel, settable=1):\n            # item is locked\n            return True\n    return False\n\nmainCon = selItems[-1]\nmainConExtraGrp = cmds.listRelatives(mainCon, parent=1)[0]\n\nif checkLocked(mainConExtraGrp):\n    # offset group can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\n    raise Exception(\"The \"+mainConExtraGrp+\" group is locked. Please unlocked it first (in the original rig) or create a new offset group. Offset groups can be done by using Comet tool: Comet > Joints/Hierarchy > zeroOut\")\n\nfor item in selItems:\n    if item == mainCon:\n        pass\n    else:\n        namespace = checkNamespace(item)\n        if namespace:\n            itemRaw = namespace[1]\n        else:\n            itemRaw = item\n        # if matching attribute name, use the existing attribute\n        if not cmds.attributeQuery(itemRaw.replace('_CTRL','')+\"_Space\", n=mainCon, exists=1):\n            cmds.addAttr(mainCon, ln=itemRaw.replace('_CTRL','')+\"_Space\", at=\"bool\")\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", e=1, keyable=1)\n            cmds.setAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", 0)\n        # find if there is existing parent constraint\n        existConsts = cmds.listRelatives(mainConExtraGrp, children=1, type=\"parentConstraint\")\n        # if there is an existing parent constraint, check if the constraint is already done or not\n        if existConsts and itemRaw in cmds.parentConstraint(existConsts[0], q=True, tl=True):\n            const = existConsts[0]\n        else:\n            const=cmds.parentConstraint(item, mainConExtraGrp, maintainOffset=1, weight=0)[0]\n\n        # cannot query the constraint target name, so I have to do it this way (inbox me if you have a better way)\n        constTargetList=cmds.parentConstraint(const, weightAliasList=1, q=1)\n        for constTarget in constTargetList:\n            if constTarget.startswith(itemRaw):\n                constTargetName = constTarget\n                break\n\n        if not cmds.listConnections(const+\".\"+constTargetName,d=0):\n            cmds.connectAttr(mainCon+\".\"+itemRaw.replace('_CTRL','')+\"_Space\", const+\".\"+constTargetName)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "AnimPicker"
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "AnimPicker" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "AnimPicker" 
+        -overlayLabelColor 0 0 0 
+        -overlayLabelBackColor 1 1 1 0.5 
+        -image "pickHierarchy.png" 
+        -image1 "pickHierarchy.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import dwpicker; dwpicker.show()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

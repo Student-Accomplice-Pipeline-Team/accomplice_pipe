@@ -1,13 +1,16 @@
-import maya.cmds as cmds
+from maya import cmds
 from pipe.asset.modelChecker import modelChecker_UI
 
 
 def publish():
-    print(f"Hello from {__file__}! You've asked to publish something.")
+    cmds.confirmDialog(
+        title="Not Implemented",
+        message=f"This button has not yet been implemented. Script location: {__file__}",
+        button=["OK"],
+        defaultButton="OK"
+    )
 
-    modelChecker_UI.UI.show_UI()
-
-
+    # modelChecker_UI.UI.show_UI()
 
     # Get list of all assets and display them to a window
 

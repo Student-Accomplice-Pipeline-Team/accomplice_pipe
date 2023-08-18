@@ -8,6 +8,7 @@ from . import shared
 from . import asset
 
 from .shared import reload
+from .shared import Asset
 
 server = shared.get_proxy()
 
