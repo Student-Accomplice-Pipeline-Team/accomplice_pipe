@@ -1,4 +1,4 @@
-import os
+import sys
 from os import path
 from pathlib import Path
 from typing import Mapping, Optional, Sequence, Union
@@ -30,11 +30,9 @@ class HoudiniProxy(HTTPSoftwareProxy):
 
     def __init__(self,
                  pipe_port: int,
-                 command: str = '/opt/hfs19.5/bin/houdinifx',
-                 #command: str = 'D:\\Program Files\\Side Effects Software\\Houdini 19.0.589\\bin\\houdinifx.exe',
+                 command: str = ('/opt/hfs19.5/bin/houdinifx' if sys.platform.startswith('linux') else 'C:\\Program Files\\Side Effects Software\\Houdini 19.5.640\\bin\\houdinifx.exe'),
                  args: Optional[Sequence[str]] = ["-foreground"],
                  env_vars: Mapping[str, Optional[str]] = houdini_env_vars,
                  ) -> None:
         super().__init__(pipe_port, command, args, env_vars)
         pass
-    

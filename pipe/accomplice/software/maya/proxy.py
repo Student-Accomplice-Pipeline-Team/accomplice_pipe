@@ -1,6 +1,7 @@
 """Define a software proxy for Maya."""
 
 import logging
+import sys
 from pathlib import Path
 from typing import Mapping, Optional, Sequence, Union
 
@@ -28,7 +29,7 @@ class MayaProxy(HTTPSoftwareProxy):
     def __init__(
         self,
         pipe_port: int,
-        command: str = '/usr/local/bin/maya',
+        command: str = ('/usr/local/bin/maya' if sys.platform.startswith('linux') else 'C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe'),
         args: Optional[Sequence[str]] = None,
         env_vars: Mapping[str, Optional[Union[str, int]]] = maya_env_vars,
     ) -> None:
