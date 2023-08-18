@@ -167,20 +167,20 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.central_widget.setLayout(self.mainLayout)
 
-        self.title = QtWidgets.QLabel("EXPORTER OOOOO AAAA")
+        self.title = QtWidgets.QLabel("Publish Textures")
         self.title.setAlignment(QtCore.Qt.AlignCenter)
         font = self.title.font()
         font.setPointSize(30)
         self.title.setFont(font)
         self.mainLayout.addWidget(self.title, 0)
 
-        ####Title####
+        '''####Title####
         self.title = QtWidgets.QLabel("Choose an asset to publish")
         self.title.setAlignment(QtCore.Qt.AlignCenter)
         font = self.title.font()
         font.setPointSize(30)
         self.title.setFont(font)
-        self.mainLayout.addWidget(self.title, 0)
+        self.mainLayout.addWidget(self.title, 0)'''
 
         ##########Buttons##########
         buttonSizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -254,6 +254,8 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         #Define export preset
         RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
             substance_painter.resource.Usage.EXPORT)
+
+        create_version(str(export_path))
         
         #export each texture set
         for texture_set in self.texture_sets_dict:
@@ -300,7 +302,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             error = False
 
             try:
-                create_version(str(export_path))
                 substance_painter.export.export_project_textures(RMAN_config)
 
 
@@ -325,18 +326,18 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         self.close()
 
 def create_version(path):
-    print(path)
+    #print(path)
     if os.path.exists(path):
 
         files = os.listdir(path)
 
         if 'versions' in files:
-            print('cleaning files')
+            #print('cleaning files')
             files.remove('versions')
 
         if files:
             if not os.path.exists(path + '/versions'):
-                print('making folder')
+                #print('making folder')
                 os.mkdir(path + '/versions')
 
             max_ver = 0
@@ -347,13 +348,13 @@ def create_version(path):
 
             for file in files:
 
-                print(file)
+                #print(file)
                 
                 old_path = path + '/' + str(file)
                 new_path = path + '/versions/' + str(max_ver + 1).zfill(3) + '/'
 
                 if not os.path.exists(new_path):
-                    print('making folder')
+                    #print('making folder')
                     os.mkdir(new_path)
                     
                 shutil.move(old_path, new_path + str(file))
