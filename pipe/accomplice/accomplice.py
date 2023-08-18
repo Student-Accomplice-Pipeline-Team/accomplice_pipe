@@ -186,15 +186,16 @@ class AccomplicePipe(SimplePipe):
         'window':           '/environment/buildings/components/window',
 
         # Buildings: Ornaments
-        'acroofbox':        '/environment/buildings/ornaments/acroofbox',
-        'acwindowbox':      '/environment/buildings/ornaments/acwindowbox',
-        'chimney':          '/environment/buildings/ornaments/chimney',
-        'electricalbox':    '/environment/buildings/ornaments/electricalbox',
-        'sign':             '/environment/buildings/ornaments/sign',
-        'stormdrain':       '/environment/buildings/ornaments/stormdrain',
-        'tvantenna':        '/environment/buildings/ornaments/tvantenna',
-        'tvdish':           '/environment/buildings/ornaments/tvdish',
-        'windowbase':       '/environment/buildings/ornaments/windowbase',
+        'acroofbox':            '/environment/buildings/ornaments/acroofbox',
+        'acwindowbox':          '/environment/buildings/ornaments/acwindowbox',
+        'chimney':              '/environment/buildings/ornaments/chimney',
+        'electricalbox':        '/environment/buildings/ornaments/electricalbox',
+        'sign':                 '/environment/buildings/ornaments/sign',
+        'stormdrain':           '/environment/buildings/ornaments/stormdrain',
+        'tvantenna':            '/environment/buildings/ornaments/tvantenna',
+        'tvdish':               '/environment/buildings/ornaments/tvdish',
+        'windowbase':           '/environment/buildings/ornaments/windowbase',
+        'windowdecoration':     '/environment/buildings/ornaments/windowdecoration',
 
         # Ground: Components
         'sewergrate':       '/environment/ground/components/sewergrate',
