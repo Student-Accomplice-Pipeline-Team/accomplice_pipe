@@ -48,6 +48,9 @@ class Asset(JsonSerializable):
         self.name = name
         self.path = path
 
+    def get_usd_path(self):
+        return os.path.join(self.path, f"{self.name}.usd")
+
     def get_geo_path(self):
         return f"{self.path}/geo/"
     
