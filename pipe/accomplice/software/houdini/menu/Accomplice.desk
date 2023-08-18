@@ -18,6 +18,7 @@ root {
                     pane panetab6 -a 0 -l 10 -H /stage/ -T LOP -m scenegraphtree
                 }
                 tabs 0 1 {
+                    pane panetab12 -a 1 -l 10 -H /stage/ -T LOP -m pythonpanel
                     pane panetab7 -a 0 -l 10 -H /stage/ -T LOP -m pythonpanel
                     pane panetab8 -a 0 -l 10 -H /stage/ -T LOP -m pythonpanel
                 }
@@ -28,7 +29,7 @@ root {
                 pane panetab1 -a 0 -l 10 -H /stage/ -T LOP -m parmeditor
                 pane panetab3 -a 1 -l 10 -H /stage/ -T LOP -m pythonpanel
                 pane panetab4 -a 0 -l 0 -H /stage/ -T LOP -m perfmon
-                pane panetab11 -a 0 -l 10 -H /stage/ -T LOP -m pythonpanel
+                pane panetab11 -a 0 -l 0 -H /stage/ -T LOP -m python
             }
             tabs 0 1 {
                 pane panetab2 -a 0 -l 10 -H /stage/ -T LOP -m neteditor
@@ -232,6 +233,7 @@ viewtype -t ortho_front ${DESKNAME}.pane1.solaris.`vpname("${DESKNAME}.pane1.sol
 viewtype -t ortho_top ${DESKNAME}.pane1.solaris.`vpname("${DESKNAME}.pane1.solaris",1)`
 viewtype -t perspective ${DESKNAME}.pane1.solaris.`vpname("${DESKNAME}.pane1.solaris",2)`
 scenegraphtree -S 0.25 -m 2 -p "/collections /lights" -c  -i  -o  -x 1 -s 1 -M 0 -C primtype,descendants,variants,kind,drawmode,populated,loaded,activation,visibility,solo  panetab6
+pythonpanel -s on -t off -n layout_asset_gallery panetab12
 pythonpanel -s on -t off -n SceneGraphDetails panetab7
 pythonpanel -s on -t off -n SceneGraphLayersPanel panetab8
 parmeditor -T 0.25 -w 0 panetab1
