@@ -20,6 +20,7 @@
 **/__private/
 *.pyc
 *.swp
+*.bak
 
 # Ignore large binary files
 *.hdanc
