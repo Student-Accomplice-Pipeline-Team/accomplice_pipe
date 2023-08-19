@@ -1,17 +1,37 @@
+import os
 import pipe
 from maya import cmds
 
 
 def import_layout():
-    shot_names = pipe.server.get_shot_list()
-
     window_tag = "import_layout"
     if cmds.window(window_tag, exists=True):
         cmds.deleteUI(window_tag, window=True)
-    
     window = cmds.window(window_tag, title="Import Layout")
-    layout = cmds.columnLayout(adjustableColumn=False)
-    layout_list = cmds.textScrollList(allowMultiSelection=False, numberOfRows=20, append=shot_names)
+    
+    shot_names = pipe.server.get_shot_list()
+    layout_names = []
+    for shot_name in shot_names:
+        shot = pipe.server.get_shot(shot_name)
+        layout_path = shot.get_layout_path()
+        if os.path.isfile(layout_path):
+            layout_names.append(shot_name)
+
+    layout = cmds.columnLayout(adjustableColumn=True)
+    layout_list = cmds.textScrollList(allowMultiSelection=False, numberOfRows=30, append=layout_names)
+    
+    def _import(*args):
+        selection = cmds.textScrollList(layout_list, q=1, si=1)
+
+        if selection and selection[0]:
+            shot_name = selection[0]
+            shot = pipe.server.get_shot(shot_name)
+            layout_path = shot.get_layout_path()
+
+            cmds.file(layout_path, i=True)
+        
+        cmds.deleteUI(window_tag, window=True)
+    
     import_button = cmds.button(label="Import", command=_import)
 
     cmds.showWindow(window)
@@ -27,10 +47,3 @@ def import_layout():
     #     button=["OK"],
     #     defaultButton="OK"
     # )
-
-
-def _import(*args):
-    window_tag = "import_layout"
-    cmds.deleteUI(window_tag, window=True)
-    print("Hi!")
-    # shot_name = cmds.textScrollList()
