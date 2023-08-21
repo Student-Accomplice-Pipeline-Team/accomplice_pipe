@@ -1,14 +1,13 @@
+# Imports
 import hou
 import os, functools
 import glob
-# from pipe import Asset # This is producing this error: ImportError: cannot import name 'Asset' from 'pipe' (/groups/accomplice/pipeline/pipe/accomplice/software/houdini/pipe/__init__.py)
 from pipe.shared.object import Asset
 
+# Constants
 ANIM_SUBDIRECTORY = 'anim'
 
-# NOTE: to be more cross platform, the code could use os.path.sep instead of '/', which is Linux specific.
-# TODO: Get rid of all the old code
-
+# Functions
 def get_asset(name: str) -> Asset:
     return pipe.server.get_asset(name)
 
@@ -28,14 +27,16 @@ def get_character_options_list():
     for file in glob.iglob(path_to_check, recursive=True): # For each file in the anim directory
         if not 'anim_backup' in file:
             # Get the file name, not the full path
-            split_file = file.split('/')
+            split_file = file.split('/') # NOTE: to be more cross platform, the code could use os.path.sep instead of '/', which is Linux specific.
             anim = '/'.join(split_file[split_file.index(ANIM_SUBDIRECTORY)+1:])
             display_list.append(anim)
             display_list.append(anim[:-len('.abc')])
 
     return display_list
 
-""" END CHARACTER NAME PARAMETER MENU SCRIPT """
+def is_character(name: str) -> bool:
+    lower_name = name.lower()
+    return lower_name in ['letty', 'ed', 'vaughn']
 
 def get_anim_name(node):
     return node.parm('./anim_name').eval()
@@ -53,22 +54,16 @@ def publish_usd(node):
     usd_rop = node.node('USD_VBLUR_EXPORT')
     usd_rop.parm('execute').pressButton()
 
-def test_button(node):
-    print("This is the test button!!!", node.path())
-
-
-# gets called when a new character/object name is selected
-def animUpdate(node):
-    anim_path = node.parm('./anim_filename').eval()
+# Called when a new character/object name is selected
+def animation_name_update(node):
+    anim_path = node.parm('./anim_filename').eval() # Get path to file
     print("anim path: ", anim_path)
 
-    anim_name = (anim_path.split('/')[-1])[0:-len('.abc')]
-    anim_description = anim_name[anim_name.find('_')+1:]
-    has_descr = anim_description.find('_') != -1
-    if has_descr:
+    anim_name = (anim_path.split('/')[-1])[:-len('.abc')] # Get just the name of the file, excluding extension
+    underscore_location = anim_name.find('_')
+    if underscore_location != -1:
+        anim_description = anim_name[anim_name.find('_')+1:] # The anim description is everything after the underscore
         asset_name = anim_description[:anim_description.find('_')]
-    else:
-        asset_name = anim_description
     print("anim name ", anim_name)
     print("asset name: ", asset_name)
 
@@ -77,9 +72,8 @@ def animUpdate(node):
     node.parm('./anim_descr').set(anim_description)
 
     node.allowEditingOfContents()
-    setAnimType(node)
-    charMatUpdate(node)
-    # hairPrune(node)
+    set_anim_type(node)
+    character_material_update(node)
 
 def get_path_to_materials(node):
     asset_name = get_asset_name(node)
@@ -89,8 +83,7 @@ def get_path_to_materials(node):
         return None
     return os.path.join(asset_dir, "materials")
 
-
-def charMatUpdate(node):
+def character_material_update(node):
     mat_sublayer = node.node('materials')
     path_to_materials = get_path_to_materials(node)
     if path_to_materials is None:
@@ -104,52 +97,34 @@ def charMatUpdate(node):
     mat.parm('primpattern1').set('/anim/`chs("../asset_name")`/geo')
     mat.parm('matspecpath1').set('/anim/`chs("../asset_name")`/materials/`chs("../asset_name")`_shader')
 
-def setAnimType(node):
+def set_anim_type(node):
     anim_type = node.parm('anim_type')
     asset_name = get_asset_name(node)
-    fx_bool = node.parm('fx_bool')
-    if (asset_name.lower() == 'letty') or (asset_name.lower() == 'ed'):
+    fx_enabled = node.parm('fx_enabled')
+    if is_character(asset_name):
         anim_type.set('human')
+        fx_enabled.set(1)
     else:
         anim_type.set('object')
-
-    if (asset_name.lower() == 'letty') or (asset_name.lower() == 'ed'):
-        fx_bool.set(1)
-    else:
-        fx_bool.set(0)
-        
-    # print(anim_type.eval())
-    # print(str(fx_bool.eval()))
+        fx_enabled.set(0)
 
 def prune(node):
-    #make prim path list
-    primPathList = []
+    # Make prim path list
+    primive_paths = []
     if (node.parm('hidetemphair').eval() == 1):
         if (node.parm('anim_type').eval() == 'human'):
-            primPathList.append('/anim/`chs("../asset_name")`/geo/temp_hair')
+            primive_paths.append('/anim/`chs("../asset_name")`/geo/temp_hair')
             
     if (node.parm('hidetempcloth').eval() == 1) and (node.parm('anim_type').eval() == 'human'):
-        primPathList.append('/anim/`chs("../asset_name")`/geo/temp_clothing')
+        primive_paths.append('/anim/`chs("../asset_name")`/geo/temp_clothing')
         
-    if (node.parm('hidefxgeo').eval() == 1) and (node.parm('fx_bool').eval() == 1):
-        primPathList.append('/anim/`chs("../asset_name")`/geo/fx')
+    if (node.parm('hidefxgeo').eval() == 1) and (node.parm('fx_enabled').eval() == 1):
+        primive_paths.append('/anim/`chs("../asset_name")`/geo/fx')
     
-    #set prim path in the prune node
+    # Set prim path in the prune node
     prune = node.node('display_settings_prune')
-    prune.parm('num_rules').set(len(primPathList))
-    for i in range(0, len(primPathList)):
-        primPattern = 'primpattern' + str(i+1)
-        prune.parm('primpattern' + str(i+1)).set(primPathList[i])
-        
-        
-def hairPrune(node):
-    pass
-    """
-    hairPrune = node.node('maggie_hair_prune')
-    if node.parm('anim_name').eval() == 'maggie':
-        hairPrune.bypass(0)
-    else:
-        hairPrune.bypass(1)
-    """
-        
-   
+    prune.parm('num_rules').set(len(primive_paths))
+
+    for i, primitive_path in enumerate(primive_paths, start=1):
+        parameter_name = f'primpattern{i}'
+        prune.parm(parameter_name).set(primitive_path)

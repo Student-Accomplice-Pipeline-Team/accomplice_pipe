@@ -26,15 +26,16 @@ def _shot_select_gui():
 
     win = cmds.window("ms_selectShot_GUI", title="Select Shot")
     cmds.showWindow(win)
+    #cmds.rowLayout(numberOfColumns=1, adjustableColumn=1, rowAttach=[1, 'both', 0])
     cmds.columnLayout(adjustableColumn=True)
 
-    cmds.rowLayout(nc=3)
-    prefix = cmds.textFieldGrp('search_field')
+    cmds.rowLayout(numberOfColumns=3, adjustableColumn=1)
+    prefix = cmds.textFieldGrp('search_field', adjustableColumn=1)
     cmds.button(label="Search", c=lambda x: print('search'))
     cmds.button(label="X", c=lambda x: print('base_list'))
     cmds.setParent('..')
 
-    selection = cmds.textScrollList("Shot_List", numberOfRows=8,
+    selection = cmds.textScrollList("Shot_List", #numberOfRows=8,
                                     append=shot_list,
                                     selectIndexedItem=1, showIndexedItem=1)
 
