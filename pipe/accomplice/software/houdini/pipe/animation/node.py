@@ -1,9 +1,13 @@
 import hou
 import os, functools
 import glob
-from pipe import Asset
+# from pipe import Asset # This is producing this error: ImportError: cannot import name 'Asset' from 'pipe' (/groups/accomplice/pipeline/pipe/accomplice/software/houdini/pipe/__init__.py)
+from pipe.shared.object import Asset
 
-""" BEGIN CHARACTER NAME PARAMETER MENU SCRIPT """
+ANIM_SUBDIRECTORY = 'anim'
+
+# TODO: Get rid of all the old code
+# TODO: Extract the shot name 
 
 def get_asset(name: str) -> Asset:
     return pipe.server.get_asset(name)
@@ -11,22 +15,23 @@ def get_asset(name: str) -> Asset:
 def get_character_options_list():
     display_list = []
 
-    hip_dir = os.path.dirname(hou.hipFile.path()) # hip directory
-    #Check if user is at least in the shots directories
-    # check if the current directory has an anim folder
-    anim_dir = os.path.join(hip_dir, 'anim')
-    if os.path.isdir(anim_dir):
-        path_to_check = os.path.join(anim_dir, '**', '*.abc')
-        for file in glob.iglob(path_to_check, recursive=True):
-            # don't take if it has anim_backup in the path
-            if not 'anim_backup' in file:
-                # get the file name, not the full path
-                split_file = file.split('/')
-                anim = '/'.join(split_file[split_file.index('anim')+1:])
-                display_list.append(anim)
-                display_list.append(anim[:-len('.abc')])
-    else:
-        hou.ui.displayMessage("There doesn't seem to be an anim folder in the context of this file. Go to a shot file and try again.")
+    hip_dir = os.path.dirname(hou.hipFile.path()) # $HIP directory
+
+    # Check if the current directory has an anim folder
+    anim_dir = os.path.join(hip_dir, ANIM_SUBDIRECTORY)
+
+    if not os.path.isdir(anim_dir): # Error check
+        hou.ui.displayMessage("There doesn't seem to be an anim folder in the context of this file. Open shot file and try again.")
+        return []
+
+    path_to_check = os.path.join(anim_dir, '**', '*.abc')
+    for file in glob.iglob(path_to_check, recursive=True): # For each file in the anim directory
+        if not 'anim_backup' in file:
+            # Get the file name, not the full path
+            split_file = file.split('/')
+            anim = '/'.join(split_file[split_file.index(ANIM_SUBDIRECTORY)+1:])
+            display_list.append(anim)
+            display_list.append(anim[:-len('.abc')])
 
     return display_list
 
@@ -41,12 +46,15 @@ def get_asset_name(node):
 def get_anim_description(node):
     return node.parm('./anim_descr').eval()
 
-def publishUsd(node):
+def publish_usd(node):
     print(node.path())
     usd_rop = hou.node(node.path() + '/USD_ANIM_EXPORT')
     usd_rop.parm('execute').pressButton()
     usd_rop = node.node('USD_VBLUR_EXPORT')
     usd_rop.parm('execute').pressButton()
+
+def test_button(node):
+    print("This is the test button!!!", node.path())
 
 
 # gets called when a new character/object name is selected
