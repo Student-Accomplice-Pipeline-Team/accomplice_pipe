@@ -3,6 +3,7 @@ import hou
 import os, functools
 import glob
 from pipe.shared.object import Asset
+import pipe
 
 # Constants
 ANIM_SUBDIRECTORY = 'anim'
@@ -61,9 +62,12 @@ def animation_name_update(node):
 
     anim_name = (anim_path.split('/')[-1])[:-len('.abc')] # Get just the name of the file, excluding extension
     underscore_location = anim_name.find('_')
+    asset_name = None
     if underscore_location != -1:
-        anim_description = anim_name[anim_name.find('_')+1:] # The anim description is everything after the underscore
-        asset_name = anim_description[:anim_description.find('_')]
+        anim_description = anim_name[underscore_location+1:] # The anim description is everything after the underscore
+        asset_name = anim_name[:underscore_location] # The asset name is everything before the underscore
+    else:
+        asset_name = anim_name
     print("anim name ", anim_name)
     print("asset name: ", asset_name)
 
@@ -77,8 +81,7 @@ def animation_name_update(node):
 
 def get_path_to_materials(node):
     asset_name = get_asset_name(node)
-    # need to search for the right dir
-    asset_dir = AccomplicePipe.get_asset_dir(asset_name)
+    asset_dir = None # TODO: get asset dir from server!
     if asset_dir is None:
         return None
     return os.path.join(asset_dir, "materials")
