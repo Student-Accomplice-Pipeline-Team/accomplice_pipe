@@ -6,8 +6,8 @@ from pipe.shared.object import Asset
 
 ANIM_SUBDIRECTORY = 'anim'
 
+# NOTE: to be more cross platform, the code could use os.path.sep instead of '/', which is Linux specific.
 # TODO: Get rid of all the old code
-# TODO: Extract the shot name 
 
 def get_asset(name: str) -> Asset:
     return pipe.server.get_asset(name)
@@ -120,13 +120,6 @@ def setAnimType(node):
         
     # print(anim_type.eval())
     # print(str(fx_bool.eval()))
-
-def do_material(node):
-    if node.parm('do_material').eval() == 0:
-        hou.node("./switch_shading").parm("input").set(0)
-    else:
-        hou.node("./switch_shading").parm("input").set(1)
-
 
 def prune(node):
     #make prim path list
