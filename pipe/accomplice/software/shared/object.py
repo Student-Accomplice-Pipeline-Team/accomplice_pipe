@@ -149,6 +149,16 @@ class Asset(JsonSerializable):
 
         return str(path)
 
+    def get_turnaround_path(self, geo_variant, material_variant):
+        if os.name == "nt":
+            path = Path(self.path.replace('/groups/', 'G:\\').replace('/pipline/production', '/renders/assetTurnarounds'))
+        else:
+            path = Path(self.path)
+
+        path = path / self.name / geo_variant / material_variant
+
+        return str(path)
+
 class MaterialType(Enum):
         BASIC = 1
         METAL = 2
