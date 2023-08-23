@@ -27,3 +27,5 @@
 *.hipnc
 *.usd
 *.usdc
+*.vdb
+*.bgeo.sc
