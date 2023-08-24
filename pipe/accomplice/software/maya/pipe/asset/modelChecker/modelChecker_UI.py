@@ -21,6 +21,8 @@ import pipe.asset.modelChecker.modelChecker_list as mcl
 importlib.reload(mcl)
 import os,re,sys
 
+import pipe
+
 
 def getMainWindow():
     main_window_ptr = omui.MQtUtil.mainWindow()
@@ -251,7 +253,7 @@ class UI(QtWidgets.QMainWindow):
             self.categoryWidget[obj].setVisible(not state)
 
     def export(self):
-        OSTRICH_ROOT = os.environ.get('OSTRICH_ROOT', 'invalidfilepath')
+        #OSTRICH_ROOT = os.environ.get('OSTRICH_ROOT', 'invalidfilepath')
         
         theErrors = self.sanityCheckExport()
         if theErrors != []:
@@ -260,7 +262,10 @@ class UI(QtWidgets.QMainWindow):
         
         for exportGrp in self.getExportGrps():
             assetName = self.getAssetName(exportGrp)
-            finalAssetFolder = '/'.join([OSTRICH_ROOT, "FINAL", "asset"])
+
+            asset = pipe.server.get_asset(assetName)
+            
+            asset.get_modelling_path()
             
             finalFilePath = '/'.join([finalAssetFolder, self.assetType, assetName])
             if not os.path.exists(finalFilePath):
@@ -284,7 +289,7 @@ class UI(QtWidgets.QMainWindow):
 
             # export file
             cmds.file(finalFileName, exportSelected=True, type='FBX export', force=True)
-            os.chmod(finalFileName, 0o770)
+            #os.chmod(finalFileName, 0o770)
             cmds.confirmDialog(
                 message=f"Path: {finalFileName}", 
                 defaultButton="OK",

@@ -3,7 +3,142 @@ global proc shelf_SA_Animation () {
     global string $gBuffStr0;
     global string $gBuffStr1;
 
-
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Imports Letty... Don't look in her eyes..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Letty Importer" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/icons/accomplice/letty_scare.png" 
+        -image1 "/groups/accomplice/pipeline/icons/accomplice/letty_scare.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import reference\n\nshelf = reference()\n\nshelf.rig('letty')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Imports Ed... Kiss him... do it..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Ed Importer" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/icons/accomplice/ed_kawaii.png" 
+        -image1 "/groups/accomplice/pipeline/icons/accomplice/ed_kawaii.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import reference\n\nshelf = reference()\n\nshelf.rig('ed')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Imports Vaughn... hey... HEEEEYYY!!!" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Vaughn Importer" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/icons/accomplice/vaughn_fig.png" 
+        -image1 "/groups/accomplice/pipeline/icons/accomplice/vaughn_fig.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import reference\n\nshelf = reference()\n\nshelf.rig('vaughn')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Imports Hero Car so cute so cute so cute so cute so cute so cute so cute" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Hero Car Importer" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/icons/accomplice/heroCar_kawaii.png" 
+        -image1 "/groups/accomplice/pipeline/icons/accomplice/heroCar_kawaii.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import reference\n\nshelf = reference()\n\nshelf.rig('heroCar')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
     shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
@@ -40,6 +175,41 @@ global proc shelf_SA_Animation () {
         -flat 1
     ;
     shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Instructions: This is exports a playblast..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Playblast Exporter" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Playblast Exporter" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "playblast.png" 
+        -image1 "playblast.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import PlayblastExporter\nexp = PlayblastExporter('anim')\nexp.run()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
             -enableCommandRepeat 1
             -flexibleWidthType 3
             -flexibleWidthValue 32
@@ -49,19 +219,19 @@ global proc shelf_SA_Animation () {
             -manage 1
             -visible 1
             -preventOverride 0
-            -annotation "'''\nINSTRUCTIONS:\nExport Alembics... Duh..." 
+            -annotation "'''\nINSTRUCTIONS:\nExports Animation USD... Duh..." 
             -enableBackground 0
             -backgroundColor 0 0 0 
             -highlightColor 0.321569 0.521569 0.65098 
             -align "center" 
-            -label "Alembic Exporter" 
+            -label "Anim USD Exporter" 
             -labelOffset 0
             -rotation 0
             -flipX 0
             -flipY 0
             -useAlpha 1
             -font "plainLabelFont" 
-            -imageOverlayLabel "Alembic Exporter" 
+            -imageOverlayLabel "Anim USD Exporter" 
             -overlayLabelColor 0.8 0.8 0.8 
             -overlayLabelBackColor 0 0 0 0.5 
             -image "exportCache.png" 

@@ -93,6 +93,7 @@ class Asset(JsonSerializable):
     
     def create_metadata(self):
         meta_path = self.get_metadata_path()
+        path = meta_path.replace('meta.json', '')
         data = AssetMaterials(self.name)
         geovars = self.get_geo_variants()
 
@@ -102,6 +103,9 @@ class Asset(JsonSerializable):
             hierarchy[geovar] = {}
         
         data.hierarchy = hierarchy
+
+        if not os.path.exists(path):
+            os.makedirs(path)
     
         with open(meta_path, 'w') as outfile:
             outfile.write(data.to_json())
@@ -150,12 +154,12 @@ class Asset(JsonSerializable):
         return str(path)
 
     def get_turnaround_path(self, geo_variant, material_variant):
-        if os.name == "nt":
-            path = Path(self.path.replace('/groups/', 'G:\\').replace('/pipline/production', '/renders/assetTurnarounds'))
-        else:
-            path = Path(self.path)
+        path = self.path
+        path = path.replace('pipeline/production/assets', 'renders/assetTurnarounds')
 
-        path = path / self.name / geo_variant / material_variant
+        path = Path(path)
+
+        path = path / geo_variant / material_variant
 
         return str(path)
 
@@ -256,3 +260,6 @@ class Shot(JsonSerializable):
     
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
+
+    def get_playblast_path(self, destination):
+        return os.path.join('/groups/accomplice/edit/shots/', destination, self.name + '.mov')
