@@ -13,7 +13,7 @@ class HoudiniNodeUtils():
             index += 1
         return unique_name
 
-class HoudiniPaths():
+class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
         my_path = hou.hipFile.path()
