@@ -28,21 +28,41 @@ class ShotFileDialog(QtWidgets.QDialog):
         
         self.setLayout(layout)
 
+class InfoDialog(QtWidgets.QDialog):
+    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):
+        super(InfoDialog, self).__init__(parent)
+        self.setWindowTitle(dialog_title)
+        
+        layout = QtWidgets.QVBoxLayout()
+
+        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message
+        layout.addWidget(message_label)  # Add the label to the layout
+
+        ok_button = QtWidgets.QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        layout.addWidget(ok_button)
+
+        if include_cancel_button:
+            cancel_button = QtWidgets.QPushButton("Cancel")
+            cancel_button.clicked.connect(self.reject)
+            layout.addWidget(cancel_button)
+
+        self.setLayout(layout)
+
+
 def open_file(file_path):
     """ Opens a new Maya file """
     cmds.file(file_path, open=True, force=True)
 
 def create_new_file(file_path):
     """ Creates a new Maya file """
+    directory = os.path.dirname(file_path)
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
     cmds.file(new=True, force=True)
     cmds.file(rename=file_path)
     cmds.file(save=True)
     
-def create_maya_file_path_from_houdini_shot_file(houdini_file_path: str):
-    """ A really hacky thing that needs to be deleted that creates what might be the path to the maya version of this file """
-    assert houdini_file_path.endswith(".hipnc")
-    return houdini_file_path.replace(".hipnc", ".mb") # Switch out the file extension :)
-
 def open_shot_file():
     unsaved_changes = cmds.file(query=True, modified=True)
     if unsaved_changes:
@@ -68,14 +88,20 @@ def open_shot_file():
             shot_name = selected_item.text()
             shot = pipe.server.get_shot(shot_name)
             
-            file_path = shot.get_shotfile(type='anim')
-            file_path = create_maya_file_path_from_houdini_shot_file(file_path) # TODO: This is scary, fix this! :)
-            print(file_path)
+            file_path = shot.get_maya_shotfile_path()
             
             if os.path.isfile(file_path): # If the file exists
+                result = shot_dialog.exec_()
                 # Open the file
                 open_file(file_path)
             else: # Otherwise, open a new tile and save it
-                create_new_file(file_path)
+                dialog = InfoDialog("Create New File", "Shot " + shot_name + " does not yet exist. Would you like to create it?", include_cancel_button=True)
+                response = dialog.exec_()
+                if response == QtWidgets.QDialog.Accepted:
+                    create_new_file(file_path)
+                else:
+                    dialog = InfoDialog("Shot not created.", "The shot was not created.")
+                    response = dialog.exec_()
+                    
 
 open_shot_file()

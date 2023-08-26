@@ -1,6 +1,7 @@
 import hou
 import os
 import pipe
+
 USD_CACHE_FOLDER_NAME = "usd_cache"
 
 class HoudiniNodeUtils():
@@ -8,7 +9,9 @@ class HoudiniNodeUtils():
     def get_unique_node_name(base_name):
         unique_name = base_name
         index = 1
-        while hou.node(unique_name):
+
+        # This seems to work if this function is called in the context of an HDA, that way it's looking for other nodes that are in the same context as the HDA
+        while hou.node(unique_name): 
             unique_name = f"{base_name}_{index}"
             index += 1
         return unique_name
@@ -25,6 +28,7 @@ class HoudiniPathUtils():
         main_fx_folder_location = os.path.dirname(shot.get_shotshotfile(type='fx'))
         return os.path.join(main_fx_folder_location, USD_CACHE_FOLDER_NAME)
     
+    @staticmethod
     def get_fx_usd_cache_file_path(base_name):
         folder_path = HoudiniPaths.get_fx_usd_cache_folder_path()
         if folder_path is None:
