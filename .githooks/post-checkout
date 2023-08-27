@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+PROD_DIR=/groups/accomplice/pipeline
+
+cp "${PROD_DIR}/pipe/accomplice/sg_config.py" "${GIT_DIR}/pipe/accomplice/sg_config.py"
