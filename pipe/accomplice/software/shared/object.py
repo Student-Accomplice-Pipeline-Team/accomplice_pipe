@@ -258,8 +258,15 @@ class Shot(JsonSerializable):
         else:
             return os.path.join(self.path, type, f'{self.name}_{type}.hipnc')
     
+    def get_maya_shotfile_path(self):
+        houdini_file_path = self.get_shotfile('anim')
+        assert houdini_file_path.endswith('hipnc')
+        return houdini_file_path.replace('.hipnc', '.mb')
+    
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
     def get_playblast_path(self, destination):
-        return os.path.join('/groups/accomplice/edit/shots/', destination, self.name + '.mov')
+    
+        sequence = self.name.split('_')[0]
+        return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, self.name + '.mov')
