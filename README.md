@@ -7,6 +7,33 @@ Development started on *CentOS 7*, but final deployment is intended for a *RHEL 
 
 Since all of the film's files are on the department's fileserver and mounted at `/groups/accomplice/` in the TMCB animation and gaming labs, this pipeline has no need for and so does not provide tools for sharing assets between users/computers.
 
+### Setting up a dev environment in the labs
+1. Generate a GitHub SSH key and upload it to your GitHub
+   - ```bash
+     ssh-keygen -t ed25519 -C "yourgithubemail@email.com"
+     cat ~/.ssh/github.pub
+     ```
+   - When it asks for a path, type '/users/animation/yournetid/.ssh/github'
+   - Only provide a passphrase if you want to type that every time you push or pull
+   - Go to https://github.com/settings/keys and add the contents of `~/.ssh/github.pub` as a **New SSH key**
+1. Make a local copy of the git repo
+   ```bash
+   cd ~/Documents
+   git clone -c core.sshCommand='ssh -i ~/.ssh/github' git@github.com:Student-Accomplice-Pipeline-Team/accomplice_pipe.git
+   cd accomplice_pipe
+   ```
+1. Configure the git repo to use the new SSH key and our git hooks
+   ```bash
+   git config --add --local core.sshCommand 'ssh -i ~/.ssh/github'
+   git config --local core.hooksPath .githooks/
+   ```
+1. Check out your personal dev branch
+   ```bash
+   git checkout -B yourname-dev 
+   # don't need -B if it already exists
+   git push --set-upstream origin yourname-dev
+   ```
+
 ## Table of Contents
 - [Usage and features](#usage--features) (for artists)
   - [Maya](#maya)
@@ -100,6 +127,7 @@ UnDini defines many custom nodes with functionality specifically for Unfamiliar.
 
 ## Development
 This pipeline consists of toolsets for several DCC packages. 
+
 
 ### Autodesk Maya 2023
 The `maya.sh` file found in the `launch/` folder is a bash script that sets many environment variables and settings for Maya before launching it. 
