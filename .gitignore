@@ -29,3 +29,7 @@
 *.usdc
 *.vdb
 *.bgeo.sc
+
+
+# Ignore Erwin Sequentials
+/pipe/accomplice/software/maya/pipe/erwinSequentials
