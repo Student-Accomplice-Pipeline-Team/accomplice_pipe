@@ -518,7 +518,7 @@ global proc shelf_SA_Animation () {
         -backgroundColor 0 0 0 
         -highlightColor 0.321569 0.521569 0.65098 
         -align "center" 
-        -label "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 impo..." 
+        -label "Open Shot" 
         -labelOffset 0
         -rotation 0
         -flipX 0
