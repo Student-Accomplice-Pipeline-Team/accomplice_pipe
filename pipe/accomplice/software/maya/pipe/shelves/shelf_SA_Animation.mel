@@ -3,6 +3,7 @@ global proc shelf_SA_Animation () {
     global string $gBuffStr0;
     global string $gBuffStr1;
 
+
     shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
@@ -149,7 +150,7 @@ global proc shelf_SA_Animation () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation ""
+        -annotation "packedAutoReloadRigRefs = '''def accompliceAutoReloadRigRefs():\n..." 
         -enableBackground 0
         -backgroundColor 0 0 0 
         -highlightColor 0.321569 0.521569 0.65098 
@@ -210,39 +211,39 @@ global proc shelf_SA_Animation () {
         -flat 1
     ;
     shelfButton
-            -enableCommandRepeat 1
-            -flexibleWidthType 3
-            -flexibleWidthValue 32
-            -enable 1
-            -width 35
-            -height 34
-            -manage 1
-            -visible 1
-            -preventOverride 0
-            -annotation "'''\nINSTRUCTIONS:\nExports Animation USD... Duh..." 
-            -enableBackground 0
-            -backgroundColor 0 0 0 
-            -highlightColor 0.321569 0.521569 0.65098 
-            -align "center" 
-            -label "Anim USD Exporter" 
-            -labelOffset 0
-            -rotation 0
-            -flipX 0
-            -flipY 0
-            -useAlpha 1
-            -font "plainLabelFont" 
-            -imageOverlayLabel "Anim USD Exporter" 
-            -overlayLabelColor 0.8 0.8 0.8 
-            -overlayLabelBackColor 0 0 0 0.5 
-            -image "exportCache.png" 
-            -image1 "exportCache.png" 
-            -style "iconOnly" 
-            -marginWidth 0
-            -marginHeight 1
-            -command "from pipe.animation import Exporter\n\nexp = Exporter()\n\nexp.run()" 
-            -sourceType "python" 
-            -commandRepeatable 1
-            -flat 1
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nExports Animation USD... Duh..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Anim USD Exporter" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Anim USD Exporter" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "exportCache.png" 
+        -image1 "exportCache.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation import Exporter\n\nexp = Exporter()\n\nexp.run()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
@@ -442,7 +443,7 @@ global proc shelf_SA_Animation () {
         -manage 1
         -visible 1
         -preventOverride 0
-        -annotation "AnimPicker"
+        -annotation "AnimPicker" 
         -enableBackground 0
         -backgroundColor 0 0 0 
         -highlightColor 0.321569 0.521569 0.65098 
@@ -498,6 +499,40 @@ global proc shelf_SA_Animation () {
         -marginWidth 0
         -marginHeight 1
         -command "import maya.cmds as mc\nimport math\n\n# get selected object\nobject_name = mc.ls(sl=True)[0]\n\n# get current frame value and object location on that frame\ncurTime = mc.currentTime(q=True)\ncurLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame before the current frame\nmc.currentTime(curTime-1)\nbefLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\n#do the same for the frame after the current frame\nmc.currentTime(curTime+1)\naftLoc = mc.xform(object_name, query=True, worldSpace=True, translation=True)\n\ndef distance_between_vectors(v1, v2):\n    squared_distance = sum((a - b) ** 2 for a, b in zip(v1, v2))\n    distance = math.sqrt(squared_distance)\n    return distance\n\n#get distance between object on frames before and after\nbefDist = distance_between_vectors(befLoc, curLoc)\naftDist = distance_between_vectors(curLoc, aftLoc)\n\n# 160900 cm = 1 Mile\nbefDistM = befDist / 160900\naftDistM = aftDist / 160900\n\nhoursInOneFrame = 1/86400\n\n# get MPH before and after current frame\nbefObjMph = befDistM / hoursInOneFrame\naftObjMph = aftDistM / hoursInOneFrame\n\n# average before and after MPH to get approximate current frame MPH\nobjMph = (befObjMph + aftObjMph)/2\n\nmc.currentTime(curTime)\n\nprint('')\nprint('')\nprint('')\nprint('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')\n\nmc.warning('Object Speed on Current Frame = '+str(round(objMph,4))+' MPH')" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 import QtWidgets, QtGui, QtCore\n\nclass ShotFileDialog(QtWidgets.QDialog):\n    \"\"\" A PyQt class for holding the list of shot files \"\"\"\n    def __init__(self, shot_names, parent=None):\n        super(ShotFileDialog, self).__init__(parent)\n        self.setWindowTitle(\"Open Shot File\")\n        \n        layout = QtWidgets.QVBoxLayout()\n        \n        self.shot_list = QtWidgets.QListWidget()\n        layout.addWidget(self.shot_list)\n        \n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n        \n        cancel_button = QtWidgets.QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.reject)\n        layout.addWidget(cancel_button)\n        \n        for shot_name in shot_names:\n            item = QtWidgets.QListWidgetItem(shot_name)\n            self.shot_list.addItem(item)\n        \n        self.setLayout(layout)\n\nclass InfoDialog(QtWidgets.QDialog):\n    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):\n        super(InfoDialog, self).__init__(parent)\n        self.setWindowTitle(dialog_title)\n        \n        layout = QtWidgets.QVBoxLayout()\n\n        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message\n        layout.addWidget(message_label)  # Add the label to the layout\n\n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n\n        if include_cancel_button:\n            cancel_button = QtWidgets.QPushButton(\"Cancel\")\n            cancel_button.clicked.connect(self.reject)\n            layout.addWidget(cancel_button)\n\n        self.setLayout(layout)\n\n\ndef open_file(file_path):\n    \"\"\" Opens a new Maya file \"\"\"\n    cmds.file(file_path, open=True, force=True)\n\ndef create_new_file(file_path):\n    \"\"\" Creates a new Maya file \"\"\"\n    directory = os.path.dirname(file_path)\n    if not os.path.isdir(directory):\n        os.makedirs(directory)\n    cmds.file(new=True, force=True)\n    cmds.file(rename=file_path)\n    cmds.file(save=True)\n    \ndef open_shot_file():\n    unsaved_changes = cmds.file(query=True, modified=True)\n    if unsaved_changes:\n        response = cmds.confirmDialog(\n            title=\"Unsaved Changes\",\n            message=\"The current file has unsaved changes. Continue anyway?\",\n            button=[\"Continue\", \"Cancel\"],\n            defaultButton=\"Cancel\",\n            cancelButton=\"Cancel\",\n            dismissString=\"Cancel\"\n        )\n        if response == \"Cancel\":\n            return\n    \n    shot_names = pipe.server.get_shot_list()\n    \n    shot_dialog = ShotFileDialog(shot_names)\n    result = shot_dialog.exec_()\n    \n    if result == QtWidgets.QDialog.Accepted:\n        selected_item = shot_dialog.shot_list.currentItem()\n        if selected_item:\n            shot_name = selected_item.text()\n            shot = pipe.server.get_shot(shot_name)\n            \n            file_path = shot.get_maya_shotfile_path()\n            \n            if os.path.isfile(file_path): # If the file exists\n                result = shot_dialog.exec_()\n                # Open the file\n                open_file(file_path)\n            else: # Otherwise, open a new tile and save it\n                dialog = InfoDialog(\"Create New File\", \"Shot \" + shot_name + \" does not yet exist. Would you like to create it?\", include_cancel_button=True)\n                response = dialog.exec_()\n                if response == QtWidgets.QDialog.Accepted:\n                    create_new_file(file_path)\n                else:\n                    dialog = InfoDialog(\"Shot not created.\", \"The shot was not created.\")\n                    response = dialog.exec_()\n                    \n\nopen_shot_file()" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 impo..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 import QtWidgets, QtGui, QtCore\n\nclass ShotFileDialog(QtWidgets.QDialog):\n    \"\"\" A PyQt class for holding the list of shot files \"\"\"\n    def __init__(self, shot_names, parent=None):\n        super(ShotFileDialog, self).__init__(parent)\n        self.setWindowTitle(\"Open Shot File\")\n        \n        layout = QtWidgets.QVBoxLayout()\n        \n        self.shot_list = QtWidgets.QListWidget()\n        layout.addWidget(self.shot_list)\n        \n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n        \n        cancel_button = QtWidgets.QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.reject)\n        layout.addWidget(cancel_button)\n        \n        for shot_name in shot_names:\n            item = QtWidgets.QListWidgetItem(shot_name)\n            self.shot_list.addItem(item)\n        \n        self.setLayout(layout)\n\nclass InfoDialog(QtWidgets.QDialog):\n    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):\n        super(InfoDialog, self).__init__(parent)\n        self.setWindowTitle(dialog_title)\n        \n        layout = QtWidgets.QVBoxLayout()\n\n        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message\n        layout.addWidget(message_label)  # Add the label to the layout\n\n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n\n        if include_cancel_button:\n            cancel_button = QtWidgets.QPushButton(\"Cancel\")\n            cancel_button.clicked.connect(self.reject)\n            layout.addWidget(cancel_button)\n\n        self.setLayout(layout)\n\n\ndef open_file(file_path):\n    \"\"\" Opens a new Maya file \"\"\"\n    cmds.file(file_path, open=True, force=True)\n\ndef create_new_file(file_path):\n    \"\"\" Creates a new Maya file \"\"\"\n    directory = os.path.dirname(file_path)\n    if not os.path.isdir(directory):\n        os.makedirs(directory)\n    cmds.file(new=True, force=True)\n    cmds.file(rename=file_path)\n    cmds.file(save=True)\n    \ndef open_shot_file():\n    unsaved_changes = cmds.file(query=True, modified=True)\n    if unsaved_changes:\n        response = cmds.confirmDialog(\n            title=\"Unsaved Changes\",\n            message=\"The current file has unsaved changes. Continue anyway?\",\n            button=[\"Continue\", \"Cancel\"],\n            defaultButton=\"Cancel\",\n            cancelButton=\"Cancel\",\n            dismissString=\"Cancel\"\n        )\n        if response == \"Cancel\":\n            return\n    \n    shot_names = pipe.server.get_shot_list()\n    \n    shot_dialog = ShotFileDialog(shot_names)\n    result = shot_dialog.exec_()\n    \n    if result == QtWidgets.QDialog.Accepted:\n        selected_item = shot_dialog.shot_list.currentItem()\n        if selected_item:\n            shot_name = selected_item.text()\n            shot = pipe.server.get_shot(shot_name)\n            \n            file_path = shot.get_maya_shotfile_path()\n            \n            if os.path.isfile(file_path): # If the file exists\n                result = shot_dialog.exec_()\n                # Open the file\n                open_file(file_path)\n            else: # Otherwise, open a new tile and save it\n                dialog = InfoDialog(\"Create New File\", \"Shot \" + shot_name + \" does not yet exist. Would you like to create it?\", include_cancel_button=True)\n                response = dialog.exec_()\n                if response == QtWidgets.QDialog.Accepted:\n                    create_new_file(file_path)\n                else:\n                    dialog = InfoDialog(\"Shot not created.\", \"The shot was not created.\")\n                    response = dialog.exec_()\n                    \n\nopen_shot_file()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
