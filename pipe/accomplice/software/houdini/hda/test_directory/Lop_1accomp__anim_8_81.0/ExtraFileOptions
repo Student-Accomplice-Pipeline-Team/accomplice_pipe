@@ -1,0 +1,22 @@
+{
+	"PythonModule/Cursor":{
+		"type":"intarray",
+		"value":[4,12]
+	},
+	"PythonModule/IsExpr":{
+		"type":"bool",
+		"value":false
+	},
+	"PythonModule/IsPython":{
+		"type":"bool",
+		"value":true
+	},
+	"PythonModule/IsScript":{
+		"type":"bool",
+		"value":true
+	},
+	"PythonModule/Source":{
+		"type":"string",
+		"value":"/groups/accomplice/pipeline/pipe/accomplice/software/houdini/pipe/animation/node.py"
+	}
+}

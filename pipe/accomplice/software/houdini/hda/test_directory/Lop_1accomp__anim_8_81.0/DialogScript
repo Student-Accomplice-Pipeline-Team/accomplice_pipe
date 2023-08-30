@@ -1,0 +1,233 @@
+# Dialog script for accomp_anim::1.0 automatically generated
+
+{
+    name	accomp_anim::1.0
+    script	unanim
+    label	"Accomplice Animation"
+
+    help {
+	""
+    }
+
+    inputlabel	1	"Input Stage"
+    inputlabel	2	"Input 2"
+    inputlabel	3	"Input 3"
+    inputlabel	4	"Input 4"
+
+    parm {
+        name    "character_importer"
+        label   "character_importer"
+        type    label
+        default { "Character Importer" }
+        parmtag { "sidefx::look" "heading" }
+    }
+    parm {
+        name    "explanation_message"
+        label   "explanation_message"
+        type    label
+        default { "Any animated objects or characters that have been published\nfrom StuMaya correctly will appear in the \"Character/Object Name\" dropdown menu.\nSelecting one will import that animation and assign its respective shader." }
+        parmtag { "sidefx::look" "block" }
+    }
+    parm {
+        name    "anim_filename"
+        label   "Character/Object Name"
+        type    string
+        default { "" }
+        menureplace {
+            [ "import hou" ]
+            [ "import os, functools" ]
+            [ "import glob" ]
+            [ "" ]
+            [ "" ]
+            [ "display_list = []" ]
+            [ "" ]
+            [ "hip_dir = os.path.dirname(hou.hipFile.path()) # hip directory" ]
+            [ "#Check if user is at least in the shots directories" ]
+            [ "# check if the current directory has an anim folder" ]
+            [ "anim_dir = os.path.join(hip_dir, 'anim')" ]
+            [ "if os.path.isdir(anim_dir):" ]
+            [ "    path_to_check = os.path.join(anim_dir, '**', '*.abc')" ]
+            [ "    for file in glob.iglob(path_to_check, recursive=True):" ]
+            [ "        # don't take if it has anim_backup in the path" ]
+            [ "        if not 'anim_backup' in file:" ]
+            [ "            # get the file name, not the full path" ]
+            [ "            split_file = file.split('/')" ]
+            [ "            anim = '/'.join(split_file[split_file.index('anim')+1:])" ]
+            [ "            display_list.append(anim)" ]
+            [ "            display_list.append(anim[:-len('.abc')])" ]
+            [ "else:" ]
+            [ "    hou.ui.displayMessage(\"There doesn't seem to be an anim folder in the context of this file. Check out a shot and try again.\")" ]
+            [ "" ]
+            [ "return display_list" ]
+            language python
+        }
+        parmtag { "script_callback" "kwargs['node'].hdaModule().animation_name_update(kwargs['node'])" }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "sepparm3"
+        label   "Spacer"
+        type    separator
+        default { "" }
+        parmtag { "sidefx::layout_height" "small" }
+        parmtag { "sidefx::look" "blank" }
+    }
+    parm {
+        name    "sepparm2"
+        label   "Separator"
+        type    separator
+        default { "" }
+        hidewhen "{ anim_type == object }"
+    }
+    group {
+        name    "folder0"
+        label   "Display Settings"
+        invisibletab
+
+        parm {
+            name    "displaysettings"
+            label   "Display Settings (beta):"
+            type    label
+            default { "" }
+            hidewhen "{ anim_type == object }"
+        }
+        parm {
+            name    "hidetemphair"
+            label   "Hide Temp Hair"
+            type    toggle
+            joinnext
+            default { "0" }
+            hidewhen "{ anim_type != human }"
+            parmtag { "script_callback" "kwargs['node'].hdaModule().prune(kwargs['node'])" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "hidetempcloth"
+            label   "Hide Temp Cloth"
+            type    toggle
+            joinnext
+            default { "0" }
+            hidewhen "{ anim_type != human }"
+            parmtag { "script_callback" "kwargs['node'].hdaModule().prune(kwargs['node'])" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "hidefxgeo"
+            label   "Hide FX Geo"
+            type    toggle
+            default { "0" }
+            hidewhen "{ fx_enabled != 1 }"
+            parmtag { "script_callback" "kwargs['node'].hdaModule().prune(kwargs['node'])" }
+            parmtag { "script_callback_language" "python" }
+        }
+        parm {
+            name    "sepparm"
+            label   "Spacer"
+            type    separator
+            default { "" }
+            parmtag { "sidefx::layout_height" "medium" }
+            parmtag { "sidefx::look" "blank" }
+        }
+    }
+
+    parm {
+        name    "usd_publisher_header"
+        label   "usd_publisher_header"
+        type    label
+        default { "USD Animation Publisher" }
+        parmtag { "sidefx::look" "heading" }
+    }
+    parm {
+        name    "button_explanation"
+        label   "button_explanation"
+        type    label
+        default { "Click \"Publish USD\" to wrap the Alembic in a USD" }
+        parmtag { "sidefx::look" "block" }
+    }
+    parm {
+        name    "publish_button"
+        label   "Publish USD"
+        type    button
+        default { "0" }
+        parmtag { "export_disable" "1" }
+        parmtag { "script_callback" "kwargs['node'].hdaModule().publish_usd(kwargs['node'])" }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "sepparm4"
+        label   "Spacer"
+        type    separator
+        default { "" }
+        parmtag { "sidefx::layout_height" "small" }
+        parmtag { "sidefx::look" "blank" }
+    }
+    parm {
+        name    "sepparm5"
+        label   "Separator"
+        type    separator
+        default { "" }
+    }
+    parm {
+        name    "apply_shaders_header"
+        label   "Apply Shaders"
+        type    label
+        default { "" }
+    }
+    parm {
+        name    "switch_apply_shaders"
+        label   "Apply Shaders"
+        type    toggle
+        default { "0" }
+        parmtag { "script_callback" "" }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "labelparm"
+        label   "Message"
+        type    label
+        invisible
+        default { "In order to import the character animation, a USD file must first be created that references the .abc alembic file.\nThis publish is required before the animation will appear. Use the following \"Publish USD\" button to publish \n(or republish) the USD!" }
+        parmtag { "sidefx::look" "block" }
+    }
+    parm {
+        name    "anim_type"
+        label   "anim_type"
+        type    string
+        default { "human" }
+        hidewhen "{ anim_type != baka }"
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "fx_enabled"
+        label   "fx_bool"
+        type    integer
+        default { "1" }
+        hidewhen "{ anim_type != baka }"
+        range   { 0 10 }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "asset_name"
+        label   "Asset Name"
+        type    string
+        invisible
+        default { "" }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "anim_name"
+        label   "Anim Name"
+        type    string
+        invisible
+        default { "" }
+        parmtag { "script_callback_language" "python" }
+    }
+    parm {
+        name    "anim_descr"
+        label   "Anim Description"
+        type    string
+        invisible
+        default { "" }
+        parmtag { "script_callback_language" "python" }
+    }
+}
