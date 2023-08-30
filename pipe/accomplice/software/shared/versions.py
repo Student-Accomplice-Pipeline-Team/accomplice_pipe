@@ -59,7 +59,8 @@ def get_next_version(sym_path):
 #Deletes current symlink and creates a new one linked to the given file. 
 def update_symlink(sym_path, new_version_path):
     log.info('creating new symlink at ' + sym_path + '. Linked to ' + new_version_path)
-    os.remove(sym_path)
+    if os.path.exists(sym_path):
+        os.remove(sym_path)
     os.symlink(new_version_path, sym_path)
 
 
