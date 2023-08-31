@@ -2,6 +2,8 @@ from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
 
+from sys import path as sys_path
+sys_path.append('/groups/accomplice/pipeline/lib')
 import shotgun_api3
 
 from shared.object import Asset
@@ -49,7 +51,7 @@ class ShotGridDatabase(Database):
         ]
 
         asset = self.sg.find_one('Asset', filters, fields)
-
+        print(f"CODE IS {asset['code']}, ASSET PATH IS {asset['sg_path']}")
         return Asset(asset['code'], path = asset['sg_path'])
 
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:

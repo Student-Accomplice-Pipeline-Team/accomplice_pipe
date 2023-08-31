@@ -138,7 +138,10 @@ class _PipeProxy(PipeProxyInterface):
     def get_asset(self, name: str) -> Asset:
         """Get an asset's data from the pipe."""
         asset = Asset(name)
-        asset.path = '/groups/accomplice/pipeline/production/assets' + self._get_data(f'/assets?name={name}', Asset).strip()
+        sg_path = self._get_data(f'/assets?name={name}'.replace(" ", "+"), Asset).strip()
+        print(f"SG PATH IS : {sg_path}")
+        asset.path = '/groups/accomplice/pipeline/production/assets' + sg_path
+        print(f'ASSET NAME: {name} ASSET PATH: {asset.path}')
         return asset
         #return self._get_data(f'/assets?name={name}', Asset)
 
