@@ -201,8 +201,8 @@ class EditShader():
         tex_folder_path = Path(self.texturesPath + '/')
         print(tex_folder_path)
 
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png.tex')
-        print(next(files))
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
+        #print(next(files))
 
         for file in files:
             path = str(file).replace('1001', '<UDIM>')
