@@ -237,15 +237,27 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
         print(asset.name)
         print(asset_path)
+        print('this works?')
 
         resource_dir = pathlib.Path().cwd() / 'resources'
 
         export_path = asset_path / 'textures' / geo_variant / material_variant
+        tmp_path = asset_path / 'textures' / geo_variant / material_variant / 'tmp'
   
         if not os.path.exists(str(export_path)):
             os.makedirs(str(export_path))
+
+        if not os.path.exists(str(tmp_path)):
+            os.makedirs(str(tmp_path))
+
+        print(tmp_path)
         
         meta = asset.get_metadata()
+
+        if not meta:
+            QtWidgets.QMessageBox.warning(self, "Error", "Missing Metadata file")
+            return
+
         metadata_path = asset.get_metadata_path()
 
         if not os.path.exists(str(metadata_path)):
@@ -285,7 +297,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             
             RMAN_config = {
                 "exportShaderParams" 	: False,
-                "exportPath" 			: str(export_path),
+                "exportPath" 			: str(tmp_path),
                 "exportList"			: [ { "rootPath" : str(stack) } ],
                 "exportPresets" 		: [ { "name" : "default", "maps" : [] } ],
                 "defaultExportPreset" 	: RMAN_preset.identifier().url(),
@@ -304,7 +316,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             try:
                 substance_painter.export.export_project_textures(RMAN_config)
 
-
             except Exception as e:
                 error = True
                 print(e)
@@ -315,6 +326,20 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
                 return
             
+        #Convert to tex
+        try:
+            txmake(export_path, tmp_path)
+            shutil.rmtree(tmp_path)
+        except Exception as e:
+            error = True
+            print(e)
+            QtWidgets.QMessageBox.warning(self, "Error",
+                                            "Oh whoops, I screwed up")
+        
+        if error:
+                QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
+                return
+
         meta.hierarchy[geo_variant][material_variant].materials = materials
 
         with open(metadata_path, 'w') as outfile:
@@ -324,6 +349,43 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(self, "Export complete", "Textures exported successfully.")
 
         self.close()
+
+def startupInfo():
+    """Returns a Windows-only object to make sure tasks launched through
+    subprocess don't open a cmd window.
+
+    Returns:
+        subprocess.STARTUPINFO -- the properly configured object if we are on
+                                  Windows, otherwise None
+    """
+    startupinfo = None
+    if os.name is 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    return startupinfo
+
+def txmake(export_path, tmp_path):
+    rmantree = os.environ['RMANTREE']
+    binary = os.path.join(rmantree,'bin', 'txmake.exe')
+    cmd = [binary]
+
+    cmd += ['-resize', 'round-',
+            '-mode', 'clamp',
+            '-format', 'pixar',
+            '-compression', 'lossless',
+            '-newer',
+            'src', 'dst']
+    
+    for img in os.listdir(tmp_path):
+        cmd[-2] = os.path.join(tmp_path, img)
+        dirname, filename = os.path.split(img)
+        texfile = os.path.splitext(filename)[0] + '.tex'
+        cmd[-1] = os.path.join(export_path, texfile)
+        
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             startupinfo=startupInfo())
+        p.wait()
 
 def create_version(path):
     #print(path)
