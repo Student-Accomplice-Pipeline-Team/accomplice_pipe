@@ -49,7 +49,7 @@ if __name__ == "__main__":
 def launch_exporter():
 
     if not substance_painter.project.is_open():
-        QtWidgets.QMessageBox.warning(None, "No project open", "Please open a project before trying to publish, IDIOT!!!")
+        QtWidgets.QMessageBox.warning(None, "No project open", "Please open a project before trying to publish.")
         return
     
     # Check for existing windows and close them before opening a new one

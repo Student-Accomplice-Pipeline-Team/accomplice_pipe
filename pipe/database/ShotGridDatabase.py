@@ -52,7 +52,7 @@ class ShotGridDatabase(Database):
 
         asset = self.sg.find_one('Asset', filters, fields)
         return Asset(asset['code'], path = asset['sg_path'])
-
+        
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
@@ -79,6 +79,31 @@ class ShotGridDatabase(Database):
         assets = self.sg.find('Asset', filters, fields)
 
         return set(Asset(asset['code'], path = asset['sg_path']) for asset in assets)
+
+    def get_id(self, name: str) -> Asset:
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            [ 'code', 'is', name ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
+        ]
+        fields = [
+            'code',
+            'sg_path',
+            'id'
+        ]
+        asset = self.sg.find_one('Asset', filters, fields)
+        return asset['id']
+
+    def set_field(self, asset, field, value):
+        data = {field: value}
+        asset_id = self.get_id(asset)
+        self.sg.update("Asset", asset_id, data)
 
     def get_asset_list(self) -> Sequence[str]:
         filters = [

@@ -30,10 +30,12 @@ class EditShader():
 
         if asset_name == None:
             self.asset = None
-            self.materials = {}
+
             self.materialVariant = None
             self.nodes_path = None
             return
+        
+        self.materials = {}
 
         self.asset = pipe.server.get_asset(asset_name)
         
@@ -46,6 +48,8 @@ class EditShader():
 
         for _, material in self.materialVariant.materials.items():
                     self.materials[material] = {}
+
+        print(self.materials.keys())
 
 
         #self.nodes_path = Path(self.asset.path) / 'maps' / 'metadata' / 'nodes.uti'
@@ -109,7 +113,7 @@ class EditShader():
         matType = MaterialType(mat.matType)
 
         if matType == MaterialType.BASIC:
-            print('creating basic')
+            print(mat.name)
             self.create_basic(mat)
 
         if matType == MaterialType.METAL:
@@ -117,7 +121,7 @@ class EditShader():
             self.create_metal(mat)
 
         if matType == MaterialType.GLASS:
-            print('creating glass')
+            print(mat.name)
             self.create_glass(mat)
 
         if matType == MaterialType.CLOTH:
@@ -199,9 +203,9 @@ class EditShader():
 
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
-        print(tex_folder_path)
+        #print(tex_folder_path)
 
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png.tex')
         #print(next(files))
 
         for file in files:
@@ -223,11 +227,21 @@ class EditShader():
 
             nodes[channel].parm('filename').set(channels[channel])
 
-            #setup previs color shader
+            #setup previs color texture
             if channel == 'DiffuseColor':
                 
                 self.matLib().node('preview_diffuse_color_' + material.name).parm('file').set(channels[channel])
+
+            #setup previs metallic texture
+            if channel == 'SpecularFaceColor':
+                
+                self.matLib().node('preview_metallic_' + material.name).parm('file').set(channels[channel])
             
+            #setup previs roughness texture
+            if channel == 'SpecularRoughness':
+                
+                self.matLib().node('preview_roughness_' + material.name).parm('file').set(channels[channel])
+
     #assign each material to its corresponding named primitive
     def assign_materials(self, value):
         print("assigning")
