@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <toolshelf name="accomplice_fx" label="Accomplice FX">
+    <memberTool name="create_lop_node"/>
+    <memberTool name="create_output_nulls"/>
+  </toolshelf>
+
+  <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+
+def create_sop_import_lop():
+    """Creates SOP Import node from the first node in selection."""
+    lop_node = hou.node('/stage').createNode('sopimport')
+    return lop_node
+
+def get_effect_name(original_node_name: str):
+    return original_node_name.replace("OUT_", "")
+
+def configure_sop_import_lop(lop_node: hou.Node, effect_name: str):
+    # Set the name of the node
+    lop_node_name = effect_name
+    lop_node.setName(lop_node_name, unique_name=True)
+    
+    # Set the SOP path
+    path = lop_node.relativePathTo(selected_node)
+    lop_node.parm('soppath').set(path)
+
+    # Set save path
+    lop_node.parm('enable_savepath').set(True)
+    lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + lop_node_name + ".usd")
+
+
+selection = hou.selectedNodes()
+if len(selection) != 1:
+    hou.ui.setStatusMessage(
+        'Please select exactly one null with the naming convention: "OUT_" + <name of effect>',
+        severity=hou.severityType.Warning
+    )
+else:
+    selected_node = selection[0]
+    lop_node = create_sop_import_lop()
+    effect_name = get_effect_name(selected_node.name())
+    configure_sop_import_lop(lop_node, effect_name)]]></script>
+  </tool>
+
+  <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[selected = hou.selectedNodes()
+for selected_node in selected:
+    outputs = selected_node.outputConnectors()
+
+    for i in range(len(outputs)):
+        null_node = selected_node.createOutputNode("null")
+        null_node.setInput(0, selected_node, i)
+        
+        # Prompt the user for a name
+        result = hou.ui.readInput("Enter a name for the null node (not including 'OUT_' prefix)")
+
+        # The result is a tuple where the first item is the button clicked (0 for OK, 1 for Cancel) 
+        # and the second item is the text entered by the user
+        if result[0] == 0:
+            null_node.setName("OUT_" + result[1].replace(" ", "_"), unique_name=True)
+        
+        null_node.setCurrent(True, clear_all_selected=True)
+]]></script>
+  </tool>
+</shelfDocument>
