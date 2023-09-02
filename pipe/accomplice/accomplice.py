@@ -369,8 +369,8 @@ class AccomplicePipe(SimplePipe):
         # Get the specified assets
         if 'name' in query:
             # return set([self.asset_lookup.get(asset) for asset in query.get('name')])
-            return [asset.name for asset in set(self._database.get_assets(query.get('name')))]
-        raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 376 accomplice.py")
+            return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
+        raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
         # return self.asset_lookup
     
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
@@ -378,13 +378,13 @@ class AccomplicePipe(SimplePipe):
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                return self.shot_lookup.keys()
-                #return self._database.get_shot_list()
+                # return self.shot_lookup.keys()
+                return self._database.get_shot_list()
 
         # Get the specified shots
         if 'name' in query:
-            return set([self.shot_lookup.get(shot) for shot in query.get('name')])
-            #return set(self._database.get_assets(query.get('name')))
+            # return set([self.shot_lookup.get(shot) for shot in query.get('name')])
+            return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
         
         return self.shot_lookup
 
