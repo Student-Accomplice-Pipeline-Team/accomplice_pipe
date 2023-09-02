@@ -11,7 +11,17 @@ class HoudiniProxy(HTTPSoftwareProxy):
     """A software proxy for Houdini."""
 
     houdini_pipe_dir = Path(__file__).resolve().parent
+
+    # Configure job path:
+    job_dir = houdini_pipe_dir
+    while path.basename(job_dir) != 'pipe':
+        job_dir = path.dirname(job_dir)
+
+    # Get one more directory above so that, if desired, the JOB variable can be used to access the 'production' folder
+    job_dir = path.dirname(job_dir)
+
     houdini_env_vars = {
+        'JOB': job_dir,
         'PYTHONPATH': houdini_pipe_dir,
         'HOUDINI_DESK_PATH': houdini_pipe_dir.joinpath('menu'),         # Custom workspaces
         'HOUDINI_OTLSCAN_PATH': houdini_pipe_dir.joinpath('hda', ";&"), # digital asset library path?
