@@ -35,8 +35,18 @@ def open_asset_file():
     if asset_response:
         asset_name = asset_names[asset_response[0]]
         asset = pipe.server.get_asset(asset_name)
-        file_path = os.path.join(asset.path, asset.name + ".hipnc")
+        if not os.path.isdir(asset.path):
+            warning_response = hou.ui.displayMessage(
+                f"{asset.path} does not exist. Create?",
+                buttons=("Create Folder", "Cancel"),
+                severity=hou.severityType.Message,
+                default_choice=1
+            )
+            if warning_response == 1:
+                return
+            os.makedirs(asset.path)
         
+        file_path = os.path.join(asset.path, asset.name + ".hipnc")
         if os.path.isfile(file_path):
             hou.hipFile.load(file_path, suppress_save_prompt=True)
         else:

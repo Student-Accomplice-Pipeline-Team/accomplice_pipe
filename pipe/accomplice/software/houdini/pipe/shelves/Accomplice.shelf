@@ -14,6 +14,9 @@
     <memberToolshelf name="hairtools"/>
     <memberToolshelf name="guidemodify"/>
     <memberToolshelf name="groomtools"/>
+    <memberToolshelf name="create"/>
+    <memberToolshelf name="model"/>
+    <memberToolshelf name="labs_toolset"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">
