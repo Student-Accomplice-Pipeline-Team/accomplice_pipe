@@ -19,8 +19,8 @@ from typing import Mapping, Any, MutableSet, MutableSequence
 
 from baseclass import SimplePipe
 
-#from .sg_config import SG_CONFIG
-#from database.ShotGridDatabase import ShotGridDatabase
+from .sg_config import SG_CONFIG
+from database.ShotGridDatabase import ShotGridDatabase
 
 from . import software
 from .software.interface import SoftwareProxyInterface
@@ -276,12 +276,12 @@ class AccomplicePipe(SimplePipe):
 
     _data_root = "/groups/accomplice/pipeline/production"
 
-#    _database = ShotGridDatabase(
-#        SG_CONFIG['SITE_NAME'],
-#        SG_CONFIG['SCRIPT_NAME'],
-#        SG_CONFIG['SCRIPT_KEY'],
-#        SG_CONFIG['ACCOMPLICE_ID']
-#    )
+    _database = ShotGridDatabase(
+    SG_CONFIG['SITE_NAME'],
+    SG_CONFIG['SCRIPT_NAME'],
+    SG_CONFIG['SCRIPT_KEY'],
+    SG_CONFIG['ACCOMPLICE_ID']
+    )
 
     @property
     def port(self) -> int:
@@ -363,28 +363,28 @@ class AccomplicePipe(SimplePipe):
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                return self.asset_lookup.keys()
-                #return self._database.get_asset_list()
+                # return self.asset_lookup.keys()
+                return self._database.get_asset_list()
 
         # Get the specified assets
         if 'name' in query:
-            return set([self.asset_lookup.get(asset) for asset in query.get('name')])
-            #return set(self._database.get_assets(query.get('name')))
-        
-        return self.asset_lookup
+            # return set([self.asset_lookup.get(asset) for asset in query.get('name')])
+            return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
+        raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
+        # return self.asset_lookup
     
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all shots
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                return self.shot_lookup.keys()
-                #return self._database.get_shot_list()
+                # return self.shot_lookup.keys()
+                return self._database.get_shot_list()
 
         # Get the specified shots
         if 'name' in query:
-            return set([self.shot_lookup.get(shot) for shot in query.get('name')])
-            #return set(self._database.get_assets(query.get('name')))
+            # return set([self.shot_lookup.get(shot) for shot in query.get('name')])
+            return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
         
         return self.shot_lookup
 
