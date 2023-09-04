@@ -5,16 +5,8 @@ import pipe
 USD_CACHE_FOLDER_NAME = "usd_cache"
 
 class HoudiniNodeUtils():
-    @staticmethod
-    def get_unique_node_name(base_name):
-        unique_name = base_name
-        index = 1
-
-        # This seems to work if this function is called in the context of an HDA, that way it's looking for other nodes that are in the same context as the HDA
-        while hou.node(unique_name): 
-            unique_name = f"{base_name}_{index}"
-            index += 1
-        return unique_name
+    """ The location of static methods for use with houdini nodes that are likely to be called in a variety of places """
+    pass
 
 class HoudiniPathUtils():
     @staticmethod
@@ -30,7 +22,7 @@ class HoudiniPathUtils():
     
     @staticmethod
     def get_fx_usd_cache_file_path(base_name):
-        folder_path = HoudiniPaths.get_fx_usd_cache_folder_path()
+        folder_path = HoudiniPathUtils.get_fx_usd_cache_folder_path()
         if folder_path is None:
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
