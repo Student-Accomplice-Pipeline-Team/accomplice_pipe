@@ -12,6 +12,11 @@ import pipe
 
 
 def open_shot_file():
+    hou.ui.displayMessage(
+        "This button is currently being updated."
+    )
+    return
+    
     if hou.hipFile.hasUnsavedChanges():
         warning_response = hou.ui.displayMessage(
             "The current file has not been saved. Continue anyways?",
