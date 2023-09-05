@@ -2,6 +2,8 @@ from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
 
+from sys import path as sys_path
+sys_path.append('/groups/accomplice/pipeline/lib')
 import shotgun_api3
 
 from shared.object import Asset
@@ -49,9 +51,8 @@ class ShotGridDatabase(Database):
         ]
 
         asset = self.sg.find_one('Asset', filters, fields)
-
         return Asset(asset['code'], path = asset['sg_path'])
-
+        
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
@@ -79,6 +80,31 @@ class ShotGridDatabase(Database):
 
         return set(Asset(asset['code'], path = asset['sg_path']) for asset in assets)
 
+    def get_id(self, name: str) -> Asset:
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            [ 'code', 'is', name ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
+        ]
+        fields = [
+            'code',
+            'sg_path',
+            'id'
+        ]
+        asset = self.sg.find_one('Asset', filters, fields)
+        return asset['id']
+
+    def set_field(self, asset, field, value):
+        data = {field: value}
+        asset_id = self.get_id(asset)
+        self.sg.update("Asset", asset_id, data)
+
     def get_asset_list(self) -> Sequence[str]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
@@ -102,3 +128,72 @@ class ShotGridDatabase(Database):
         query = self.sg.find('Asset', filters, fields)
 
         return [ asset['code'] for asset in query ]
+
+    def get_asset_list(self) -> Sequence[str]:
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
+        ]
+        fields = [
+            'code',
+            'tags'
+        ]
+        query = self.sg.find('Asset', filters, fields)
+        to_return = []
+        for asset in query:
+            add = True
+            # Filter out any assets with _Set_ in any of their tags
+            for tag in asset['tags']:
+                if "_Set_" in tag['name']:
+                    add = False
+            if add:
+                to_return.append(asset['code'])
+        return to_return
+
+    def get_set_list(self) -> Sequence[str]:
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            { 
+                'filter_operator': 'all',
+                'filters': [ 
+                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
+                ], 
+            },
+        ]
+        fields = [
+            'code',
+            'tags'
+        ]
+        query = self.sg.find('Asset', filters, fields)
+        to_return = []
+        for asset in query:
+            add = False
+            # Only assets with _Set_ in one of their tags
+            for tag in asset['tags']:
+                if "_Set_" in tag['name']:
+                    add = True
+            if add:
+                to_return.append(asset['code'])
+        return to_return
+
+    def get_shot_list(self) -> Sequence[str]:
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+        ]
+        fields = [
+            'code'
+        ]
+        query = self.sg.find('Shot', filters, fields)
+        return [ shot['code'] for shot in query ]
+
+    def set_field(self, asset, field, value):
+        data = {field: value}
+        asset_id = self.get_id(asset)
+        self.sg.update("Asset", asset_id, data)
