@@ -407,6 +407,7 @@ def txmake(export_path, tmp_path):
     for img in os.listdir(tmp_path):
         cmd[-2] = os.path.join(tmp_path, img)
         dirname, filename = os.path.split(img)
+        print("Converting " + filename + " to .tex! Be Patient!")
         texfile = os.path.splitext(filename)[0] + '.tex'
         cmd[-1] = os.path.join(export_path, texfile)
         

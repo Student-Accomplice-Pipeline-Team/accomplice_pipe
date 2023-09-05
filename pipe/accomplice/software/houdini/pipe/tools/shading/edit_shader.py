@@ -232,7 +232,7 @@ class EditShader():
         channels = {'BaseColor' : '', 'Metallic' : '', 'Roughness' : ''}
         tex_folder_path = Path(self.texturesPath + '/PBRMR/')
 
-        files = tex_folder_path.glob('*.1001.png')
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png')
         #print(next(files))
 
         for file in files:
