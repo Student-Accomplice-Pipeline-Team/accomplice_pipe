@@ -263,8 +263,12 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         if not os.path.exists(str(metadata_path)):
             os.makedirs(str(metadata_path))
 
-        #Define export preset
+        #Define RenderMan export preset
         RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
+            substance_painter.resource.Usage.EXPORT)
+
+        #Define export preset
+        PBRMR_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "PBRMR_ACCOMP.spexp"),
             substance_painter.resource.Usage.EXPORT)
 
         create_version(str(export_path))
@@ -311,7 +315,31 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 ]
             }
 
+            PBRMR_config = {
+                "exportShaderParams" 	: False,
+                "exportPath" 			: str(export_path),
+                "exportList"			: [ { "rootPath" : str(stack) } ],
+                "exportPresets" 		: [ { "name" : "default", "maps" : [] } ],
+                "defaultExportPreset" 	: PBRMR_preset.identifier().url(),
+                "exportParameters" 		: [
+                    {
+                        "parameters"	: 
+                            {
+                                "paddingAlgorithm": "infinite" ,
+                            }
+                    }
+                ]
+            }
+
             error = False
+
+            try:
+                substance_painter.export.export_project_textures(PBRMR_config)
+            except Exception as e:
+                error = True
+                print(e)
+                QtWidgets.QMessageBox.warning(self, "Error",
+                "An error occurred while exporting PBRMR textures. Please check the console for more information.")
 
             try:
                 substance_painter.export.export_project_textures(RMAN_config)
@@ -320,7 +348,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 error = True
                 print(e)
                 QtWidgets.QMessageBox.warning(self, "Error",
-                                            "You screwed up maaaaaan")
+                                            "An error occurred while exporting RMAN textures. Please check the console for more information.")
             
             if error:
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
@@ -379,6 +407,7 @@ def txmake(export_path, tmp_path):
     for img in os.listdir(tmp_path):
         cmd[-2] = os.path.join(tmp_path, img)
         dirname, filename = os.path.split(img)
+        print("Converting " + filename + " to .tex! Be Patient!")
         texfile = os.path.splitext(filename)[0] + '.tex'
         cmd[-1] = os.path.join(export_path, texfile)
         

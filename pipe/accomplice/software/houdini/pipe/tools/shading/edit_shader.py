@@ -195,12 +195,17 @@ class EditShader():
         self.materials[mat]['Normal'] = self.matLib().node('normal_map_' + mat.name)
         self.materials[mat]['Presence'] = self.matLib().node('presence_' + mat.name)
         self.materials[mat]['Displacement'] = self.matLib().node('displacement_' + mat.name)
+        
+        self.materials[mat]['BaseColor'] = self.matLib().node('preview_diffuse_color_' + mat.name)
+        self.materials[mat]['Metallic'] = self.matLib().node('preview_metallic_' + mat.name)
+        self.materials[mat]['Roughness'] = self.matLib().node('preview_roughness_' + mat.name)
 
     #put the texture path into each texture node
     def load_textures(self, material):
 
         nodes = self.materials[material]
 
+        #Load Renderman Maps
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
         #print(tex_folder_path)
@@ -227,15 +232,27 @@ class EditShader():
 
             nodes[channel].parm('filename').set(channels[channel])
 
-            #setup previs color texture
-            if channel == 'DiffuseColor':
-                
-                self.matLib().node('preview_diffuse_color_' + material.name).parm('file').set(channels[channel])
+        #Load Preview Maps
+        channels = {'BaseColor' : '', 'Metallic' : '', 'Roughness' : ''}
+        tex_folder_path = Path(self.texturesPath + '/PBRMR/')
 
-            #setup previs metallic texture
-            if channel == 'SpecularFaceColor':
-                
-                self.matLib().node('preview_metallic_' + material.name).parm('file').set(channels[channel])
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png')
+        #print(next(files))
+
+        for file in files:
+            print(file)
+            path = str(file).replace('1001', '<UDIM>')
+            if 'BaseColor' in path:
+                channels['BaseColor'] = path
+            if 'Metallic' in path:
+                channels['Metallic'] = path
+            if 'Roughness' in path:
+                channels['Roughness'] = path
+
+        for channel in channels:
+
+            nodes[channel].parm('file').set(channels[channel])
+        
             
             #setup previs roughness texture
             if channel == 'SpecularRoughness':
