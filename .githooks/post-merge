@@ -36,6 +36,7 @@ if GIT_ROOT:
     except Exception as e:
         print(f"Error: {e}")
 
+print("Finished running post-merge hook.")
 # Continue with the commit
 exit(0)
 
