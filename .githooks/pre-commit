@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import json
+import os
+
+# Define the path to the env.json file relative to the Git directory
+ENV_FILE = "pipe/accomplice/software/houdini/package/env.json"
+
+# Get the root directory of the Git repository
+GIT_ROOT = os.popen("git rev-parse --show-toplevel").read().strip()
+
+# Check if the Git root directory exists
+if GIT_ROOT:
+    # Construct the new HOUDINI_TOOLBAR_PATH value by prefixing it with Git directory
+    NEW_TOOLBAR_PATH = os.path.join(GIT_ROOT, "pipe/accomplice/software/houdini/pipe/shelves")
+
+    try:
+        # Read the existing JSON data
+        with open(ENV_FILE, "r") as json_file:
+            data = json.load(json_file)
+
+        # Update the HOUDINI_TOOLBAR_PATH value
+        if "env" in data and isinstance(data["env"], list):
+            for item in data["env"]:
+                if "HOUDINI_TOOLBAR_PATH" in item:
+                    item["HOUDINI_TOOLBAR_PATH"]["value"] = NEW_TOOLBAR_PATH
+
+        # Write the updated JSON data back to the file
+        with open(ENV_FILE, "w") as json_file:
+            json.dump(data, json_file, indent=4)
+
+        # Add the modified file to the commit
+        os.system(f"git add {ENV_FILE}")
+
+        # Print a message indicating the change
+        print(f"Updated HOUDINI_TOOLBAR_PATH in {ENV_FILE} to use Git directory prefix.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+# Continue with the commit
+exit(0)
+
