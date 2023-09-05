@@ -106,7 +106,7 @@ class Exporter():
 	    		        selectIndexedItem=1, showIndexedItem=1)
         
         cmds.rowLayout(numberOfColumns=2)
-        cmds.button(label="Select Current Shot", c=lambda x: self.select_current_shot(selection))
+        #cmds.button(label="Select Current Shot", c=lambda x: self.select_current_shot(selection))
         cmds.button(label="Next", c=lambda x: self.save_shot(self.getSelected(selection)[0]))
         cmds.setParent("..")
     
