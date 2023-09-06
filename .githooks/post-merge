@@ -12,6 +12,7 @@ GIT_ROOT = os.popen("git rev-parse --show-toplevel").read().strip()
 if GIT_ROOT:
     # Construct the new HOUDINI_TOOLBAR_PATH value by prefixing it with Git directory
     NEW_TOOLBAR_PATH = os.path.join(GIT_ROOT, "pipe/accomplice/software/houdini/pipe/shelves")
+    NEW_HOUDINI_PATH = os.path.join(GIT_ROOT, "pipe/accomplice/software/houdini/package")
 
     try:
         # Read the existing JSON data
@@ -23,6 +24,8 @@ if GIT_ROOT:
             for item in data["env"]:
                 if "HOUDINI_TOOLBAR_PATH" in item:
                     item["HOUDINI_TOOLBAR_PATH"]["value"] = NEW_TOOLBAR_PATH
+                if "HOUDINI_PATH" in item:
+                    item["HOUDINI_PATH"]["value"] = NEW_HOUDINI_PATH
 
         # Write the updated JSON data back to the file
         with open(ENV_FILE, "w") as json_file:
