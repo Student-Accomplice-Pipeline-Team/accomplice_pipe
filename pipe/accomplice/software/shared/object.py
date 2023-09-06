@@ -264,6 +264,7 @@ class Shot(JsonSerializable):
         return houdini_file_path.replace('.hipnc', '.mb')
     
     def get_fx_usd_cache_path(self):
+        USD_CACHE_FOLDER_NAME = "usd_cache"
         houdini_fx_file_path = self.get_shotfile('fx')
         houdini_fx_folder_path = os.path.dirname(houdini_fx_file_path)
         return os.path.join(houdini_fx_folder_path, 'usd_cache')

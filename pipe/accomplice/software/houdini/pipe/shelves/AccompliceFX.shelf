@@ -14,16 +14,15 @@
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 from pipe.shared.proxy import proxy
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
 
 # Set constants
 server = proxy.get_proxy()
-USD_CACHE_FOLDER_NAME = "usd_cache"
 FX_PREFIX = "/fx"
 
 def create_sop_import_lop():
     """Creates SOP Import node from the first node in selection."""
-    lop_node = hou.node('/stage').createNode('sopimport')
+    lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sopimport')
     return lop_node
 
 def get_effect_name(original_node_name: str):
@@ -49,7 +48,7 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
     materials_node = None
     # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
     if effect_name == "sparks":
-        materials_node = lop_node.parent().createNode('accomp_sparks_material::1.0')
+        materials_node = HoudiniNodeUtils.create_node(lop_node.parent(), 'accomp_sparks_material')
         pass
     elif effect_name == "smoke":
         # TODO: create a smoke_materials node
@@ -61,7 +60,7 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
         subnetwork_nodes = []
 
         # Inside the subnetwork node, create a material library node
-        material_library_node = materials_node.createNode('materiallibrary')
+        material_library_node = HoudiniNodeUtils.create_node(materials_node, 'materiallibrary')
         material_library_node.setName(effect_name + "_material_library", unique_name=True)
         material_library_node.parm('matpathprefix').set(FX_PREFIX + "/" + effect_name + "/materials/")
 
@@ -98,7 +97,7 @@ def add_auxiliary_nodes(lop_node: hou.Node, effect_name: str):
     auxiliary_nodes.append(materials_node)
     
     # Connect a USD ROP to the LOP node
-    usd_rop_node = lop_node.parent().createNode('usd_rop')
+    usd_rop_node = HoudiniNodeUtils.create_node(lop_node.parent(), 'usd_rop')
     usd_rop_node.setInput(0, materials_node)
     usd_rop_node.setName("OUT_" + effect_name, unique_name=True)
     
@@ -107,12 +106,11 @@ def add_auxiliary_nodes(lop_node: hou.Node, effect_name: str):
 
     # Set the lop node output file to the save path of the lop node
     usd_path = HoudiniPathUtils.get_fx_usd_cache_file_path(effect_name)
-    print(usd_path)
     usd_rop_node.parm('lopoutput').set(usd_path)
     auxiliary_nodes.append(usd_rop_node)
 
     # Create a reference node that references the usd file
-    reference_node = usd_rop_node.parent().createNode('reference::2.0')
+    reference_node = HoudiniNodeUtils.create_node(usd_rop_node.parent(), 'reference')
     reference_node.setName(effect_name + "_reference", unique_name=True)
     reference_node.parm('filepath1').set(usd_path)
     reference_node.parm('primpath1').set(FX_PREFIX)
