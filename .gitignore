@@ -33,4 +33,6 @@
 
 # Ignore Erwin Sequentials
 /pipe/accomplice/software/maya/pipe/erwinSequentials
+
+# Ignore Houdini env.json
 pipe/accomplice/software/houdini/package/env.json
