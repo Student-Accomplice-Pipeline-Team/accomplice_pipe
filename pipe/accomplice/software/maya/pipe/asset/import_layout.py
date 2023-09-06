@@ -28,11 +28,11 @@ def import_layout():
             shot = pipe.server.get_shot(shot_name)
             layout_path = shot.get_layout_path()
 
-            cmds.file(layout_path, i=True)
+            cmds.file(layout_path, r=True)
         
         cmds.deleteUI(window_tag, window=True)
     
-    import_button = cmds.button(label="Import", command=_import)
+    import_button = cmds.button(label="Import Reference", command=_import)
 
     cmds.showWindow(window)
 
