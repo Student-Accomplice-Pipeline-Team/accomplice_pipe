@@ -13,8 +13,13 @@
 
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
+from pipe.shared.proxy import proxy
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
 
-fx_prefix = "/fx"
+# Set constants
+server = proxy.get_proxy()
+USD_CACHE_FOLDER_NAME = "usd_cache"
+FX_PREFIX = "/fx"
 
 def create_sop_import_lop():
     """Creates SOP Import node from the first node in selection."""
@@ -34,11 +39,11 @@ def configure_sop_import_lop(lop_node: hou.Node, effect_name: str):
     lop_node.parm('soppath').set(path)
 
     # Set the Import Path Prefix:
-    lop_node.parm('pathprefix').set(fx_prefix + "/$OS")
+    lop_node.parm('pathprefix').set(FX_PREFIX + "/$OS")
 
     # Set save path
     lop_node.parm('enable_savepath').set(True)
-    lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + lop_node_name + ".usd")
+    lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + effect_name + ".usd")
 
 def get_materials_node(lop_node: hou.Node,effect_name: str):
     materials_node = None
@@ -58,7 +63,7 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
         # Inside the subnetwork node, create a material library node
         material_library_node = materials_node.createNode('materiallibrary')
         material_library_node.setName(effect_name + "_material_library", unique_name=True)
-        material_library_node.parm('matpathprefix').set(fx_prefix + "/" + effect_name + "/materials/")
+        material_library_node.parm('matpathprefix').set(FX_PREFIX + "/" + effect_name + "/materials/")
 
         # Set input of the material library node to be the input of the subnetwork
         
@@ -100,18 +105,9 @@ def add_auxiliary_nodes(lop_node: hou.Node, effect_name: str):
     # Set the range to include the entire timeline
     usd_rop_node.parm('trange').set(1)
 
-    # Set the top node output file to the save path of the lop node
-    # TODO: once the server is working again, you should pull the usd_cache_location! :)
-    usd_path = lop_node.parm('savepath').eval() # (When the server is working, this will ask for the proper usd_cache_location)
-    # print(usd_path)
-    # Go up a directory
-    from os import path
-    usd_path = path.dirname(usd_path) # TODO: clean this up once you can call the server again :)
-    usd_path = path.dirname(usd_path) 
-    usd_path = path.dirname(usd_path) 
-    usd_path = path.dirname(usd_path) 
-    usd_path = path.join(usd_path, "usd_cache", effect_name + ".usd")
-
+    # Set the lop node output file to the save path of the lop node
+    usd_path = HoudiniPathUtils.get_fx_usd_cache_file_path(effect_name)
+    print(usd_path)
     usd_rop_node.parm('lopoutput').set(usd_path)
     auxiliary_nodes.append(usd_rop_node)
 
@@ -119,6 +115,8 @@ def add_auxiliary_nodes(lop_node: hou.Node, effect_name: str):
     reference_node = usd_rop_node.parent().createNode('reference::2.0')
     reference_node.setName(effect_name + "_reference", unique_name=True)
     reference_node.parm('filepath1').set(usd_path)
+    reference_node.parm('primpath1').set(FX_PREFIX)
+    reference_node.setDisplayFlag(True)
     auxiliary_nodes.append(reference_node)
     
     # Layout only the associated nodes

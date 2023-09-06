@@ -263,6 +263,11 @@ class Shot(JsonSerializable):
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
     
+    def get_fx_usd_cache_path(self):
+        houdini_fx_file_path = self.get_shotfile('fx')
+        houdini_fx_folder_path = os.path.dirname(houdini_fx_file_path)
+        return os.path.join(houdini_fx_folder_path, 'usd_cache')
+    
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
