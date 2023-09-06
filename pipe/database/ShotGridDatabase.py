@@ -202,11 +202,11 @@ class ShotGridDatabase(Database):
         to_return = []
         for shot in query:
             shot_name = shot['code']
-            if not 't' in shot_name:
+            if not 't' in shot_name.lower():
                 to_return.append(shot['code'])
         return to_return
 
-    def set_asset_field(self, asset, field, value):
+    def set_asset_field(self, asset, field, value): 
         data = {field: value}
         asset_id = self.get_asset_id(asset)
         self.sg.update("Asset", asset_id, data)
