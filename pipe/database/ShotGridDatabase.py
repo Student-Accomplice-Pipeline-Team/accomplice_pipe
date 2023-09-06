@@ -202,7 +202,7 @@ class ShotGridDatabase(Database):
         to_return = []
         for shot in query:
             shot_name = shot['code']
-            if not 't' in shot_name:
+            if not 't' in shot_name.lower():
                 to_return.append(shot['code'])
         return to_return
 
