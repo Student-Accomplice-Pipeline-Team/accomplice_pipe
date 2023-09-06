@@ -14,6 +14,7 @@
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 
+fx_prefix = "/fx"
 
 def create_sop_import_lop():
     """Creates SOP Import node from the first node in selection."""
@@ -33,7 +34,7 @@ def configure_sop_import_lop(lop_node: hou.Node, effect_name: str):
     lop_node.parm('soppath').set(path)
 
     # Set the Import Path Prefix:
-    lop_node.parm('pathprefix').set("/fx/$OS")
+    lop_node.parm('pathprefix').set(fx_prefix + "/$OS")
 
     # Set save path
     lop_node.parm('enable_savepath').set(True)
@@ -57,7 +58,7 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
         # Inside the subnetwork node, create a material library node
         material_library_node = materials_node.createNode('materiallibrary')
         material_library_node.setName(effect_name + "_material_library", unique_name=True)
-        material_library_node.parm('matpathprefix').set("/" + effect_name + "/materials/")
+        material_library_node.parm('matpathprefix').set(fx_prefix + "/" + effect_name + "/materials/")
 
         # Set input of the material library node to be the input of the subnetwork
         
@@ -70,6 +71,7 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
         # Create an assign material node and connect it
         assign_material_node = materials_node.createNode('assignmaterial')
         assign_material_node.setInput(0, material_library_node)
+        # TODO: Set the material path and the geometry path
         subnetwork_nodes.append(assign_material_node)
 
         output_node = materials_node.node('output0')
