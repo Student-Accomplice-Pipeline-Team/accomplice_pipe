@@ -206,7 +206,7 @@ class ShotGridDatabase(Database):
                 to_return.append(shot['code'])
         return to_return
 
-    def set_asset_field(self, asset, field, value):
+    def set_asset_field(self, asset, field, value): 
         data = {field: value}
         asset_id = self.get_asset_id(asset)
         self.sg.update("Asset", asset_id, data)
