@@ -7,9 +7,10 @@ import hou
 
 """Import HDAs"""
 
-"""Yeah... I know it uses absolute file path right now, I'll fix it later"""
-hda_directory = Path("/groups/accomplice/pipeline/pipe/accomplice/software/houdini_new/pipe/hda")
+# As far as I can tell, this code isn't being called and it's already handled by setting the environment variables anyway
+# """Yeah... I know it uses absolute file path right now, I'll fix it later"""
+# hda_directory = Path("/groups/accomplice/pipeline/pipe/accomplice/software/houdini_new/pipe/hda")
 
-for path in hda_directory.glob("*.hdanc"):
-    hou.hda.installFile(str(Path(path).resolve()))
+# for path in hda_directory.glob("*.hdanc"):
+#     hou.hda.installFile(str(Path(path).resolve()))
 
