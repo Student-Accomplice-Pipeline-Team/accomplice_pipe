@@ -271,7 +271,7 @@ class Shot(JsonSerializable):
         if len(files) != 1:
             return None
         else:
-            return str(next(files))
+            return str(files[0])
     
     def get_maya_shotfile_path(self):
         houdini_file_path = self.get_shotfile('anim')
