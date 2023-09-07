@@ -8,7 +8,7 @@
   <toolshelf name="accomplice_fx" label="Accomplice FX">
     <memberTool name="create_lop_node"/>
     <memberTool name="create_output_nulls"/>
-    <memberTool name="export_main_fx_usd"/>
+    <memberTool name="compile_fx_usd"/>
   </toolshelf>
 
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
@@ -163,5 +163,37 @@ for selected_node in selected:
         
         null_node.setCurrent(True, clear_all_selected=True)
 ]]></script>
+  </tool>
+
+  <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import os
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
+
+usd_cache_folder = HoudiniPathUtils.get_fx_usd_cache_folder_path()
+
+# Loop through all usd files in this folder and create a reference node for each
+usd_files = list(os.listdir(usd_cache_folder))
+refernece_nodes = []
+for usd_file in usd_files:
+    if not (usd_file.endswith(".usd") or usd_file.endswith(".usda") or usd_file.endswith(".usdc")):
+        print(usd_file, "does not end with .usd, .usda, or .usdc")
+        continue
+    print(usd_file)
+    usd_file_path = os.path.join(usd_cache_folder, usd_file)
+    reference_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "reference")
+    reference_node.parm("filepath1").set(usd_file_path)
+    reference_node.parm("primpath1").set("/fx/`@sourcename`")
+    fx_base_name = usd_file.split(".")[0]
+    reference_node.setName(fx_base_name, unique_name=True)
+    refernece_nodes.append(reference_node)
+
+# Merge all reference nodes together:
+merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
+for reference_node in refernece_nodes:
+    merge_node.setNextInput(reference_node)
+
+nodes_to_layout = [merge_node] + refernece_nodes
+hou.node('/stage').layoutChildren(nodes_to_layout)]]></script>
   </tool>
 </shelfDocument>
