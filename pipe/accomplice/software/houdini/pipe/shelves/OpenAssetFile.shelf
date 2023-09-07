@@ -12,10 +12,10 @@ import pipe
 
 
 def open_asset_file():
-    hou.ui.displayMessage(
-        "This button is currently being updated."
-    )
-    return
+    # hou.ui.displayMessage(
+    #     "This button is currently being updated."
+    # )
+    # return
     
     if hou.hipFile.hasUnsavedChanges():
         warning_response = hou.ui.displayMessage(
