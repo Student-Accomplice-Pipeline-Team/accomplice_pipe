@@ -195,7 +195,7 @@ class CameraExporter:
         # Do the things to the camera
 
         origCam = cmds.ls(sl=True)[0]
-        camName = origCam.split(':')[0].replace('_', '')
+        camName = origCam.split(':')[0].replace('_', '') + 'tmp'
 
         newCam = cmds.duplicate(origCam, n=camName)[0]
         cmds.select(newCam)
@@ -237,7 +237,7 @@ class CameraExporter:
                     button=['Ok'], defaultButton='Ok',
                     dismissString='Other')
             if confirm == 'Ok':
-                pass  # You were missing a pass statement here
+                pass
 
 
         cmds.select(newCam)
