@@ -4,6 +4,7 @@ import pipe.shared.versions as vs
 import maya.cmds as cmds
 import maya.mel as mel
 from pathlib import Path
+from re import match
 import os
 import shutil
 
@@ -80,4 +81,24 @@ class CameraImporter:
             cmds.deleteUI('ms_selectShot_GUI')
             
     def import_camera(self):
-        pass
+        camera_path = self.shot_selection.get_camera('RLO')
+        
+        if not camera_path:
+            confirm = cmds.confirmDialog(title='WARNING',
+                    message='No camera has been exported for this shot', button=['Ok'],
+                    defaultButton='Ok', dismissString='Other')
+            if confirm == 'Ok':
+                return
+        
+        cam_nodes = cmds.file(camera_path, 
+                        type="USD Import", 
+                        options=";shadingMode=[[useRegistry,rendermanForMaya],[useRegistry,MaterialX],[pxrRis,none],[useRegistry,UsdPreviewSurface],[displayColor,none],[none,none]];preferredMaterial=none;primPath=/;readAnimData=1;useCustomFrameRange=0;startTime=0;endTime=0;importUSDZTextures=0",
+                        importFrameRate=True,
+                        importTimeRange="override",
+                        i=True,
+                        returnNewNodes=True)
+        
+        cam = list(filter(lambda v: match('^[^|]*\|[^|]*$', v), cam_nodes))
+        cmds.rename(cam, self.shot_selection.name + '_CAM')
+                  
+        #mel.eval('file -import -type "USD Import"  -ignoreVersion -ra true -mergeNamespacesOnClash false -namespace "camera_A_030__F1_111_" -options ";shadingMode=[[useRegistry,rendermanForMaya],[useRegistry,MaterialX],[pxrRis,none],[useRegistry,UsdPreviewSurface],[displayColor,none],[none,none]];preferredMaterial=none;primPath=/;readAnimData=1;useCustomFrameRange=0;startTime=0;endTime=0;importUSDZTextures=0"  -pr  -importFrameRate true  -importTimeRange "override" "' + camera_path + '";')
