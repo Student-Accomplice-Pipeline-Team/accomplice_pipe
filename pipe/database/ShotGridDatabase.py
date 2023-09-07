@@ -80,7 +80,7 @@ class ShotGridDatabase(Database):
 
         return set(Asset(asset['code'], path = asset['sg_path']) for asset in assets)
 
-    def get_id(self, name: str) -> Asset:
+    def get_asset_id(self, name: str) -> Asset:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
@@ -100,10 +100,18 @@ class ShotGridDatabase(Database):
         asset = self.sg.find_one('Asset', filters, fields)
         return asset['id']
 
-    def set_field(self, asset, field, value):
-        data = {field: value}
-        asset_id = self.get_id(asset)
-        self.sg.update("Asset", asset_id, data)
+    def get_shot_id(self, name: str):
+        filters = [
+            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
+            [ 'code', 'is', name ]
+        ]
+        fields = [
+            'code',
+            'id'
+        ]
+        shot = self.sg.find_one('Shot', filters, fields)
+        return shot['id']
 
     def get_asset_list(self) -> Sequence[str]:
         filters = [
@@ -191,9 +199,19 @@ class ShotGridDatabase(Database):
             'code'
         ]
         query = self.sg.find('Shot', filters, fields)
-        return [ shot['code'] for shot in query ]
+        to_return = []
+        for shot in query:
+            shot_name = shot['code']
+            if not 't' in shot_name.lower():
+                to_return.append(shot['code'])
+        return to_return
 
-    def set_field(self, asset, field, value):
+    def set_asset_field(self, asset, field, value): 
         data = {field: value}
-        asset_id = self.get_id(asset)
+        asset_id = self.get_asset_id(asset)
         self.sg.update("Asset", asset_id, data)
+
+    def set_shot_field(self, shot, field, value):
+        data = {field: value}
+        shot_id = self.get_shot_id(shot)
+        self.sg.update("Shot", shot_id, data)
