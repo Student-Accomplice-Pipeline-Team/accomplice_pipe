@@ -49,7 +49,6 @@ class ShotGridDatabase(Database):
             'code',
             'sg_path',
         ]
-
         asset = self.sg.find_one('Asset', filters, fields)
         return Asset(asset['code'], path = asset['sg_path'])
         
@@ -124,33 +123,10 @@ class ShotGridDatabase(Database):
                 ], 
             },
         ]
-        # fields = [
-        #     'code',
-        #     'sg_asset_type',
-        #     'sg_status_list',
-        # ]
-        fields = [
-            'code'
-        ]
-
-        query = self.sg.find('Asset', filters, fields)
-
-        return [ asset['code'] for asset in query ]
-
-    def get_asset_list(self) -> Sequence[str]:
-        filters = [
-            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
-            [ 'sg_status_list', 'is_not', 'oop' ],
-            { 
-                'filter_operator': 'all',
-                'filters': [ 
-                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
-                ], 
-            },
-        ]
         fields = [
             'code',
-            'tags'
+            'tags',
+            'parents'
         ]
         query = self.sg.find('Asset', filters, fields)
         to_return = []
@@ -160,6 +136,9 @@ class ShotGridDatabase(Database):
             for tag in asset['tags']:
                 if "_Set_" in tag['name']:
                     add = False
+            # Filter out child assets (variants)
+            if len(asset['parents']) > 0:
+                add = False
             if add:
                 to_return.append(asset['code'])
         return to_return
