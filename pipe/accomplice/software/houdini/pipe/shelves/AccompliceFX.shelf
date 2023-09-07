@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <toolshelf name="accomplice_fx" label="Accomplice FX">
+    <memberTool name="create_lop_node"/>
+    <memberTool name="create_output_nulls"/>
+    <memberTool name="export_main_fx_usd"/>
+  </toolshelf>
+
+  <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+fx_prefix = "/fx"
+
+def create_sop_import_lop():
+    """Creates SOP Import node from the first node in selection."""
+    lop_node = hou.node('/stage').createNode('sopimport')
+    return lop_node
+
+def get_effect_name(original_node_name: str):
+    return original_node_name.replace("OUT_", "")
+
+def configure_sop_import_lop(lop_node: hou.Node, effect_name: str):
+    # Set the name of the node
+    lop_node_name = effect_name
+    lop_node.setName(lop_node_name, unique_name=True)
+    
+    # Set the SOP path
+    path = lop_node.relativePathTo(selected_node)
+    lop_node.parm('soppath').set(path)
+
+    # Set the Import Path Prefix:
+    lop_node.parm('pathprefix').set(fx_prefix + "/$OS")
+
+    # Set save path
+    lop_node.parm('enable_savepath').set(True)
+    lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + lop_node_name + ".usd")
+
+def get_materials_node(lop_node: hou.Node,effect_name: str):
+    materials_node = None
+    # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
+    if effect_name == "sparks":
+        materials_node = lop_node.parent().createNode('accomp_sparks_material::1.0')
+        pass
+    elif effect_name == "smoke":
+        # TODO: create a smoke_materials node
+        pass
+    else:
+        # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
+        # If nothing else, create a default materials subnetwork with a hint to create materials
+        materials_node = lop_node.parent().createNode('subnet')
+        subnetwork_nodes = []
+
+        # Inside the subnetwork node, create a material library node
+        material_library_node = materials_node.createNode('materiallibrary')
+        material_library_node.setName(effect_name + "_material_library", unique_name=True)
+        material_library_node.parm('matpathprefix').set(fx_prefix + "/" + effect_name + "/materials/")
+
+        # Set input of the material library node to be the input of the subnetwork
+        
+        subnetwork_nodes.append(material_library_node)
+
+
+        # Create a pxrsurface node inside the material library node
+        pxrsurface_node = material_library_node.createNode('pxrsurface::3.0')
+
+        # Create an assign material node and connect it
+        assign_material_node = materials_node.createNode('assignmaterial')
+        assign_material_node.setInput(0, material_library_node)
+        # TODO: Set the material path and the geometry path
+        subnetwork_nodes.append(assign_material_node)
+
+        output_node = materials_node.node('output0')
+        output_node.setInput(0, assign_material_node)
+        subnetwork_nodes.append(output_node)
+
+        materials_node.layoutChildren(subnetwork_nodes)
+
+    return materials_node
+
+
+def add_auxiliary_nodes(lop_node: hou.Node, effect_name: str):
+    auxiliary_nodes = [lop_node]
+
+    # Add a subnetwork indicating a place to add materials
+    materials_node = get_materials_node(lop_node, effect_name)
+    materials_node.setName(effect_name + "_materials", unique_name=True)
+    materials_node.setInput(0, lop_node)
+    auxiliary_nodes.append(materials_node)
+    
+    # Connect a USD ROP to the LOP node
+    usd_rop_node = lop_node.parent().createNode('usd_rop')
+    usd_rop_node.setInput(0, materials_node)
+    usd_rop_node.setName("OUT_" + effect_name, unique_name=True)
+    
+    # Set the range to include the entire timeline
+    usd_rop_node.parm('trange').set(1)
+
+    # Set the top node output file to the save path of the lop node
+    # TODO: once the server is working again, you should pull the usd_cache_location! :)
+    usd_path = lop_node.parm('savepath').eval() # (When the server is working, this will ask for the proper usd_cache_location)
+    # print(usd_path)
+    # Go up a directory
+    from os import path
+    usd_path = path.dirname(usd_path) # TODO: clean this up once you can call the server again :)
+    usd_path = path.dirname(usd_path) 
+    usd_path = path.dirname(usd_path) 
+    usd_path = path.dirname(usd_path) 
+    usd_path = path.join(usd_path, "usd_cache", effect_name + ".usd")
+
+    usd_rop_node.parm('lopoutput').set(usd_path)
+    auxiliary_nodes.append(usd_rop_node)
+
+    # Create a reference node that references the usd file
+    reference_node = usd_rop_node.parent().createNode('reference::2.0')
+    reference_node.setName(effect_name + "_reference", unique_name=True)
+    reference_node.parm('filepath1').set(usd_path)
+    auxiliary_nodes.append(reference_node)
+    
+    # Layout only the associated nodes
+    lop_node.parent().layoutChildren(auxiliary_nodes)
+
+    # Create a network box and add the nodes to it
+    box = lop_node.parent().createNetworkBox()
+    box.setComment("Configure " + effect_name)
+    for node in auxiliary_nodes:
+        box.addNode(node)
+
+selection = hou.selectedNodes()
+if len(selection) != 1:
+    hou.ui.setStatusMessage(
+        'Please select exactly one null with the naming convention: "OUT_" + <name of effect>',
+        severity=hou.severityType.Warning
+    )
+else:
+    selected_node = selection[0]
+    lop_node = create_sop_import_lop()
+    effect_name = get_effect_name(selected_node.name())
+    configure_sop_import_lop(lop_node, effect_name)
+    add_auxiliary_nodes(lop_node, effect_name)
+    hou.ui.setStatusMessage(
+        'Lop nodes created successfully! Navigate to /stage to see the results.',
+        severity=hou.severityType.Message
+    )]]></script>
+  </tool>
+
+  <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[selected = hou.selectedNodes()
+for selected_node in selected:
+    outputs = selected_node.outputConnectors()
+
+    for i in range(len(outputs)):
+        null_node = selected_node.createOutputNode("null")
+        null_node.setInput(0, selected_node, i)
+        
+        # Prompt the user for a name
+        result = hou.ui.readInput("Enter a name for the null node (not including 'OUT_' prefix)")
+
+        # The result is a tuple where the first item is the button clicked (0 for OK, 1 for Cancel) 
+        # and the second item is the text entered by the user
+        if result[0] == 0:
+            null_node.setName("OUT_" + result[1].replace(" ", "_"), unique_name=True)
+        
+        null_node.setCurrent(True, clear_all_selected=True)
+]]></script>
+  </tool>
+</shelfDocument>
