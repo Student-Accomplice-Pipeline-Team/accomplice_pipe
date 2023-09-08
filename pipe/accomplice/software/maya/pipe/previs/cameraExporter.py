@@ -180,12 +180,13 @@ class CameraExporter:
         self.camera_filepath = os.path.join(shot.path, 'camera', 'RLO')
         if not os.path.exists(self.camera_filepath):
             os.makedirs(self.camera_filepath)
-
+        
+        #unused
         frameRange = '_F' + str(int(self.startFrame)) + '-' \
             + str(int(self.endFrame))
 
         self.usd_filepath = os.path.join(self.camera_filepath, 'camera_'
-                + shot.name + '_' + frameRange + '_.usd')
+                + shot.name + '.usd')
         print(self.usd_filepath)
 
         self.version_camera_animation()
@@ -195,7 +196,7 @@ class CameraExporter:
         # Do the things to the camera
 
         origCam = cmds.ls(sl=True)[0]
-        camName = origCam.split(':')[0].replace('_', '')
+        camName = origCam.split(':')[0].replace('_', '') + 'tmp'
 
         newCam = cmds.duplicate(origCam, n=camName)[0]
         cmds.select(newCam)
@@ -237,7 +238,7 @@ class CameraExporter:
                     button=['Ok'], defaultButton='Ok',
                     dismissString='Other')
             if confirm == 'Ok':
-                pass  # You were missing a pass statement here
+                pass
 
 
         cmds.select(newCam)

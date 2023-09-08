@@ -257,6 +257,21 @@ class Shot(JsonSerializable):
             return self.path + '/' + self.name + '.hipnc'
         else:
             return os.path.join(self.path, type, f'{self.name}_{type}.hipnc')
+        
+    def get_camera(self, cam_type):
+        if cam_type not in ['FLO', 'RLO']:
+            raise ValueError('type must be "FLO" or "RLO"')
+        
+        sequence, shot = self.name.split('_')
+        folder = os.path.join(self.path, 'camera', cam_type)
+        path_obj = Path(folder)
+        
+        files = list(path_obj.glob('camera_' + self.name + '*.usd'))
+        
+        if len(files) != 1:
+            return None
+        else:
+            return str(files[0])
     
     def get_maya_shotfile_path(self):
         houdini_file_path = self.get_shotfile('anim')
