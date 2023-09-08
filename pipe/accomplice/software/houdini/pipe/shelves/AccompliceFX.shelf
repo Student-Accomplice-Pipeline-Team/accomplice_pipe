@@ -14,26 +14,7 @@
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 from pipe.shared.proxy import proxy
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
-
-class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
-    current_node_definitions = {
-        'reference': 'reference::2.0',
-        'pxrsurface': 'pxrsurface::3.0',
-        'sparks_material': 'accomp_sparks_material::1.0',
-        'smoke_material': 'accomp_smoke_material::1.0',
-    }
-
-    def get_node_definition_name(base_name: str) -> str:
-        if base_name in HoudiniNodeUtils.current_node_definitions:
-            return HoudiniNodeUtils.current_node_definitions[base_name]
-        return base_name
-    
-    def create_node(parent_node: hou.Node, base_name: str, override_name = False) -> hou.Node:
-        if not override_name:
-            node_definition_name = HoudiniNodeUtils.get_node_definition_name(base_name)
-            return parent_node.createNode(node_definition_name)
-        return parent_node.createNode(base_name)
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
 
 # Set constants
 server = proxy.get_proxy()
@@ -210,7 +191,36 @@ merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
 for reference_node in refernece_nodes:
     merge_node.setNextInput(reference_node)
 
+# Set the display flag on the merge node:
+merge_node.setDisplayFlag(True)
+
 nodes_to_layout = [merge_node] + refernece_nodes
-hou.node('/stage').layoutChildren(nodes_to_layout)]]></script>
+
+
+# Add a usd rop node to the end of the chain
+usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
+usd_rop_node.setInput(0, merge_node)
+usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
+full_fx_usd_path = HoudiniPathUtils.get_entire_shot_fx_usd_path()
+relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
+# Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
+usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)
+usd_rop_node.setName("OUT_usd", unique_name=True)
+
+nodes_to_layout.append(usd_rop_node)
+hou.node('/stage').layoutChildren(nodes_to_layout)
+
+# Check if the usd file already exists on disk. If so, prompt user to overwrite it or not
+if os.path.exists(full_fx_usd_path):
+    print("The usd file already exists on disk. Do you want to overwrite it?")
+    overwrite = hou.ui.displayMessage("The usd file already exists on disk. Do you want to overwrite it?", buttons=("Yes", "No"))
+    if overwrite == 0: # The user clicked "Yes"
+        usd_rop_node.parm("execute").pressButton()
+        hou.ui.setStatusMessage("The new FX have been exported to overwrite the old FX usd " + full_fx_usd_path, severity=hou.severityType.Message)
+else:
+    print("The usd file does not exist on disk. Creating it now.")
+    usd_rop_node.parm("execute").pressButton()
+    hou.ui.setStatusMessage("The FX have been exported to " + full_fx_usd_path, severity=hou.severityType.Message)
+]]></script>
   </tool>
 </shelfDocument>

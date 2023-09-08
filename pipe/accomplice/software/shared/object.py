@@ -263,16 +263,27 @@ class Shot(JsonSerializable):
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
     
-    def get_fx_usd_cache_path(self):
-        USD_CACHE_FOLDER_NAME = "usd_cache"
+    def get_fx_directory_path(self):
         houdini_fx_file_path = self.get_shotfile('fx')
         houdini_fx_folder_path = os.path.dirname(houdini_fx_file_path)
+        return houdini_fx_folder_path
+
+    def get_shot_fx_usd_path(self):
+        """Returns the path to the usd file that contains all the FX for this shot."""
+        return os.path.join(self.get_fx_directory_path(), f'{self.name}_fx.usd')
+    
+    def get_fx_usd_cache_directory_path(self):
+        """Returns the path to the usd cache folder (where individual FX are cached) for this shot."""
+        USD_CACHE_FOLDER_NAME = "usd_cache"
+        houdini_fx_folder_path = self.get_fx_directory_path()
         return os.path.join(houdini_fx_folder_path, 'usd_cache')
     
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
     def get_playblast_path(self, destination):
-    
         sequence = self.name.split('_')[0]
         return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, self.name + '.mov')
+    
+    def get_name(self):
+        return self.name

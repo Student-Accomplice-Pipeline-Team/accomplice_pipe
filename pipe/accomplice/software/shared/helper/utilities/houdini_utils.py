@@ -5,11 +5,12 @@ from pipe.shared.proxy import proxy
 
 server = proxy.get_proxy()
 
-class HoudiniNodeUtils():
+class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
         'sparks_material': 'accomp_sparks_material::1.0',
+        'smoke_material': 'accomp_smoke_material::1.0',
     }
 
     def get_node_definition_name(base_name: str) -> str:
@@ -30,7 +31,7 @@ class HoudiniPathUtils():
         if shot_name is None:
             return None
         shot = server.get_shot(shot_name)
-        main_fx_folder_location = shot.get_fx_usd_cache_path()
+        main_fx_folder_location = shot.get_fx_usd_cache_directory_path()
         if main_fx_folder_location is None:
             return None
         
@@ -44,6 +45,14 @@ class HoudiniPathUtils():
         if folder_path is None:
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
+    
+    @staticmethod
+    def get_entire_shot_fx_usd_path():
+        shot_name = HoudiniPathUtils.get_shot_name()
+        if shot_name is None:
+            return None
+        shot = server.get_shot(shot_name)
+        return shot.get_shot_fx_usd_path()
     
     @staticmethod
     def get_shot_name():
