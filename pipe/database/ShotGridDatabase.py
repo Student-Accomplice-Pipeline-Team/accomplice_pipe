@@ -1,5 +1,4 @@
 import os
-import shotgun_api3
 from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
@@ -7,6 +6,8 @@ from shared.object import Asset
 
 from sys import path as sys_path
 sys_path.append('/groups/accomplice/pipeline/lib')
+import shotgun_api3
+
 
 class ShotGridDatabase(Database):
     
@@ -47,10 +48,11 @@ class ShotGridDatabase(Database):
             'code',
             'sg_path',
         ]
+
         asset = self.sg.find_one('Asset', filters, fields)
         sg_path = asset['sg_path']
         name = os.path.basename(sg_path)
-        return Asset(file_name, path = asset['sg_path'])
+        return Asset(name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
@@ -59,7 +61,7 @@ class ShotGridDatabase(Database):
             {
                 'filter_operator': 'any',
                 'filters': [
-                    ['code', 'is', name] for name in names
+                    [ 'sg_path', 'ends_with', f'/{name}' ] for name in names
                 ],
             },
             { 
@@ -77,7 +79,12 @@ class ShotGridDatabase(Database):
 
         assets = self.sg.find('Asset', filters, fields)
 
-        return set(Asset(asset['code'], path = asset['sg_path']) for asset in assets)
+        return set(
+            Asset(
+                os.path.basename(asset['sg_path']),
+                path = asset['sg_path']
+            ) for asset in assets
+        )
 
     def get_asset_id(self, name: str) -> Asset:
         filters = [
