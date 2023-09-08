@@ -16,11 +16,12 @@
 from pipe.shared.proxy import proxy
 from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
 
-class HoudiniNodeUtils():
+class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
         'sparks_material': 'accomp_sparks_material::1.0',
+        'smoke_material': 'accomp_smoke_material::1.0',
     }
 
     def get_node_definition_name(base_name: str) -> str:
@@ -66,11 +67,9 @@ def get_materials_node(lop_node: hou.Node,effect_name: str):
     materials_node = None
     # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
     if effect_name == "sparks":
-        materials_node = HoudiniNodeUtils.create_node(lop_node.parent(), 'accomp_sparks_material')
-        pass
+        materials_node = HoudiniNodeUtils.create_node(lop_node.parent(), 'sparks_material')
     elif effect_name == "smoke":
-        # TODO: create a smoke_materials node
-        pass
+        materials_node = HoudiniNodeUtils.create_node(lop_node.parent(), 'smoke_material')
     else:
         # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
         # If nothing else, create a default materials subnetwork with a hint to create materials
