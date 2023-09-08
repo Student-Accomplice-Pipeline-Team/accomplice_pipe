@@ -36,7 +36,7 @@ class ShotGridDatabase(Database):
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
-            [ 'code', 'is', name ],
+            [ 'sg_path', 'ends_with', f'/{name}' ],
             { 
                 'filter_operator': 'all',
                 'filters': [ 
@@ -50,7 +50,10 @@ class ShotGridDatabase(Database):
             'sg_path',
         ]
         asset = self.sg.find_one('Asset', filters, fields)
-        return Asset(asset['code'], path = asset['sg_path'])
+        sg_path = asset['sg_path']
+        split_path = sg_path.split("/")
+        file_name = split_path[len(split_path) - 1]
+        return Asset(file_name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
@@ -126,7 +129,8 @@ class ShotGridDatabase(Database):
         fields = [
             'code',
             'tags',
-            'parents'
+            'parents',
+            'sg_path'
         ]
         query = self.sg.find('Asset', filters, fields)
         to_return = []
@@ -140,7 +144,10 @@ class ShotGridDatabase(Database):
             if len(asset['parents']) > 0:
                 add = False
             if add:
-                to_return.append(asset['code'])
+                sg_path = asset['sg_path']
+                split_path = sg_path.split("/")
+                file_name = split_path[len(split_path) - 1]
+                to_return.append(file_name)
         return to_return
 
     def get_set_list(self) -> Sequence[str]:
