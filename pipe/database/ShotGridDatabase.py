@@ -1,14 +1,12 @@
+import os
+import shotgun_api3
 from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
+from shared.object import Asset
 
 from sys import path as sys_path
 sys_path.append('/groups/accomplice/pipeline/lib')
-import shotgun_api3
-
-from shared.object import Asset
-
-from pprint import pprint
 
 class ShotGridDatabase(Database):
     
@@ -51,8 +49,7 @@ class ShotGridDatabase(Database):
         ]
         asset = self.sg.find_one('Asset', filters, fields)
         sg_path = asset['sg_path']
-        split_path = sg_path.split("/")
-        file_name = split_path[len(split_path) - 1]
+        name = os.path.basename(sg_path)
         return Asset(file_name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
