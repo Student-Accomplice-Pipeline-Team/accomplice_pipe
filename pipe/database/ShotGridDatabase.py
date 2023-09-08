@@ -1,14 +1,13 @@
+import os
 from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
+from shared.object import Asset
 
 from sys import path as sys_path
 sys_path.append('/groups/accomplice/pipeline/lib')
 import shotgun_api3
 
-from shared.object import Asset
-
-from pprint import pprint
 
 class ShotGridDatabase(Database):
     
@@ -36,7 +35,7 @@ class ShotGridDatabase(Database):
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
-            [ 'code', 'is', name ],
+            [ 'sg_path', 'ends_with', f'/{name}' ],
             { 
                 'filter_operator': 'all',
                 'filters': [ 
@@ -51,7 +50,9 @@ class ShotGridDatabase(Database):
         ]
 
         asset = self.sg.find_one('Asset', filters, fields)
-        return Asset(asset['code'], path = asset['sg_path'])
+        sg_path = asset['sg_path']
+        name = os.path.basename(sg_path)
+        return Asset(name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         filters = [
@@ -60,7 +61,7 @@ class ShotGridDatabase(Database):
             {
                 'filter_operator': 'any',
                 'filters': [
-                    ['code', 'is', name] for name in names
+                    [ 'sg_path', 'ends_with', f'/{name}' ] for name in names
                 ],
             },
             { 
@@ -78,9 +79,14 @@ class ShotGridDatabase(Database):
 
         assets = self.sg.find('Asset', filters, fields)
 
-        return set(Asset(asset['code'], path = asset['sg_path']) for asset in assets)
+        return set(
+            Asset(
+                os.path.basename(asset['sg_path']),
+                path = asset['sg_path']
+            ) for asset in assets
+        )
 
-    def get_id(self, name: str) -> Asset:
+    def get_asset_id(self, name: str) -> Asset:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
@@ -100,34 +106,18 @@ class ShotGridDatabase(Database):
         asset = self.sg.find_one('Asset', filters, fields)
         return asset['id']
 
-    def set_field(self, asset, field, value):
-        data = {field: value}
-        asset_id = self.get_id(asset)
-        self.sg.update("Asset", asset_id, data)
-
-    def get_asset_list(self) -> Sequence[str]:
+    def get_shot_id(self, name: str):
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
-            { 
-                'filter_operator': 'all',
-                'filters': [ 
-                    [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
-                ], 
-            },
+            [ 'code', 'is', name ]
         ]
-        # fields = [
-        #     'code',
-        #     'sg_asset_type',
-        #     'sg_status_list',
-        # ]
         fields = [
-            'code'
+            'code',
+            'id'
         ]
-
-        query = self.sg.find('Asset', filters, fields)
-
-        return [ asset['code'] for asset in query ]
+        shot = self.sg.find_one('Shot', filters, fields)
+        return shot['id']
 
     def get_asset_list(self) -> Sequence[str]:
         filters = [
@@ -142,7 +132,9 @@ class ShotGridDatabase(Database):
         ]
         fields = [
             'code',
-            'tags'
+            'tags',
+            'parents',
+            'sg_path'
         ]
         query = self.sg.find('Asset', filters, fields)
         to_return = []
@@ -152,8 +144,14 @@ class ShotGridDatabase(Database):
             for tag in asset['tags']:
                 if "_Set_" in tag['name']:
                     add = False
+            # Filter out child assets (variants)
+            if len(asset['parents']) > 0:
+                add = False
             if add:
-                to_return.append(asset['code'])
+                sg_path = asset['sg_path']
+                split_path = sg_path.split("/")
+                file_name = split_path[len(split_path) - 1]
+                to_return.append(file_name)
         return to_return
 
     def get_set_list(self) -> Sequence[str]:
@@ -191,9 +189,19 @@ class ShotGridDatabase(Database):
             'code'
         ]
         query = self.sg.find('Shot', filters, fields)
-        return [ shot['code'] for shot in query ]
+        to_return = []
+        for shot in query:
+            shot_name = shot['code']
+            if not 't' in shot_name.lower():
+                to_return.append(shot['code'])
+        return to_return
 
-    def set_field(self, asset, field, value):
+    def set_asset_field(self, asset, field, value): 
         data = {field: value}
-        asset_id = self.get_id(asset)
+        asset_id = self.get_asset_id(asset)
         self.sg.update("Asset", asset_id, data)
+
+    def set_shot_field(self, shot, field, value):
+        data = {field: value}
+        shot_id = self.get_shot_id(shot)
+        self.sg.update("Shot", shot_id, data)

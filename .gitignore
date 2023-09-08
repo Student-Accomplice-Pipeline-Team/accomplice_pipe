@@ -23,7 +23,6 @@
 *.bak
 
 # Ignore large binary files
-*.hdanc
 *.hipnc
 *.usd
 *.usdc
@@ -34,5 +33,7 @@
 # Ignore Erwin Sequentials
 /pipe/accomplice/software/maya/pipe/erwinSequentials
 
+
 # Ignore Houdini env.json
 pipe/accomplice/software/houdini/package/env.json
+
