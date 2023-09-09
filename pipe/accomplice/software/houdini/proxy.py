@@ -1,5 +1,5 @@
 import sys
-from os import path
+import os
 from pathlib import Path
 from typing import Mapping, Optional, Sequence, Union
 
@@ -11,10 +11,11 @@ class HoudiniProxy(HTTPSoftwareProxy):
     """A software proxy for Houdini."""
 
     houdini_pipe_dir = Path(__file__).resolve().parent
+    fx_hda_locations = [dir[0] for dir in os.walk(str(houdini_pipe_dir.joinpath('hda', 'fx'))) if not dir[0].endswith('backup')]
     houdini_env_vars = {
         'PYTHONPATH': houdini_pipe_dir,
         'HOUDINI_DESK_PATH': houdini_pipe_dir.joinpath('menu'),         # Custom workspaces
-        'HOUDINI_OTLSCAN_PATH': str(houdini_pipe_dir.joinpath('hda', ";")) + str(houdini_pipe_dir.joinpath('hda', 'fx', 'materials',";&")), # digital asset library path
+        'HOUDINI_OTLSCAN_PATH': str(houdini_pipe_dir.joinpath('hda', ";")) + "; ".join(fx_hda_locations) + ';&', # digital asset library path, finish with ampersand so that the default paths to the Houdini libraries are also scanned
         'HOUDINI_NO_ENV_FILE_OVERRIDES': 1,                             # Prevent user envs from overriding existing values
         'HOUDINI_COREDUMP': 1,                                          # Dump the core on crash to help debugging
         'HOUDINI_PACKAGE_DIR': str(houdini_pipe_dir.joinpath('package')),      # Startup script
