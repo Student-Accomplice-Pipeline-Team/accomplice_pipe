@@ -55,6 +55,12 @@ class ShotGridDatabase(Database):
         return Asset(name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
+        # TODO: Ideally it'd be nice to not grab assets that have a parent, but since I can't figure that out, I'm going to just limit the path that's returned from an asset.
+        # Our quick fix for now is to add the:
+            # @property
+            # def path(self):
+        # lines to the Asset object. This will only return the first path that's returned from the database instead of the list of them :)
+        
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
@@ -192,7 +198,7 @@ class ShotGridDatabase(Database):
         to_return = []
         for shot in query:
             shot_name = shot['code']
-            if not 't' in shot_name.lower():
+            if not 't' in shot_name.lower(): # This excludes the test shots, which begin 'T_0...'
                 to_return.append(shot['code'])
         return to_return
 

@@ -143,7 +143,6 @@ class _PipeProxy(PipeProxyInterface):
         asset = Asset(file_name)
         asset.path = '/groups/accomplice/pipeline/production/assets' + sg_path
         return asset
-        #return self._get_data(f'/assets?name={name}', Asset)
 
     def get_asset_list(self) -> Iterable[str]:
         """Get a list of all assets from the pipe."""

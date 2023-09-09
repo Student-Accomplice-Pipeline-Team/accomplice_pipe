@@ -39,23 +39,28 @@ class Effect(JsonSerializable):
 
 class Asset(JsonSerializable):
     name = None
-    path = None
+    _path = None
     version = None
     checked_out = False
     variants : Iterable[str] = None
 
     def __init__(self, name: str, path: Optional[str] = None) -> None:
         self.name = name
-        self.path = path
+        self._path = self._get_first_path(path)
+
+    def _get_first_path(self, path: str) -> str:
+        if path is None:
+            return None
+        return path.split(',')[0]
 
     def get_usd_path(self):
-        return os.path.join(self.path, f"{self.name}.usd")
+        return os.path.join(self._path, f"{self.name}.usd")
 
     def get_geo_path(self):
-        return f"{self.path}/geo/"
+        return f"{self._path}/geo/"
     
     def get_shader_geo_path(self, geo_variant):
-        path = f"{self.path}/geo/"
+        path = f"{self._path}/geo/"
         if os.name == "nt":
             path = path.replace('/groups/', 'G:\\')
 
@@ -64,7 +69,7 @@ class Asset(JsonSerializable):
         return path
         
     def get_shading_path(self):
-        path = f"{self.path}"
+        path = f"{self._path}"
         if os.name == "nt":
             path = path.replace('/groups/', 'G:\\')
 
@@ -73,7 +78,7 @@ class Asset(JsonSerializable):
 
     
     def get_metadata_path(self):
-        meta_path = f"{self.path}/textures/meta.json"
+        meta_path = f"{self._path}/textures/meta.json"
 
         if os.name == "nt":
             meta_path = meta_path.replace('/groups/', 'G:\\')
@@ -90,6 +95,17 @@ class Asset(JsonSerializable):
             return data
             
         return None
+    
+    # Because we weren't able to figure out how to query the database for assets that don't have any parents
+    # We decided to just make it so the path variable only includes the first path that's returned.
+    @property
+    def path(self):
+        return self._get_first_path(self._path)
+    
+    @path.setter
+    def path(self, value):
+        self._path = self._get_first_path(value)
+        self.create_metadata() # Recreate the path metadata if needed
     
     def create_metadata(self):
         meta_path = self.get_metadata_path()
@@ -145,16 +161,16 @@ class Asset(JsonSerializable):
 
     def get_textures_path(self, geo_variant, material_variant):
         if os.name == "nt":
-            path = Path(self.path.replace('/groups/', 'G:\\'))
+            path = Path(self._path.replace('/groups/', 'G:\\'))
         else:
-            path = Path(self.path)
+            path = Path(self._path)
 
         path = path / 'textures' / geo_variant / material_variant
 
         return str(path)
 
     def get_turnaround_path(self, geo_variant, material_variant):
-        path = self.path
+        path = self._path
         path = path.replace('pipeline/production/assets', 'renders/assetTurnarounds')
 
         path = Path(path)
