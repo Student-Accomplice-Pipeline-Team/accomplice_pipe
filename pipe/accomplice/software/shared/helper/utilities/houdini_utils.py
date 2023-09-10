@@ -11,6 +11,7 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
         'pxrsurface': 'pxrsurface::3.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
+        'file_cache': 'filecache::2.0'
     }
 
     def get_node_definition_name(base_name: str) -> str:
