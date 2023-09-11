@@ -52,23 +52,18 @@ def open_asset_file():
         if os.path.isfile(file_path):
             hou.hipFile.load(file_path, suppress_save_prompt=True)
         else:
-            hou.ui.displayMessage(
-                "Shot file has not yet been created. Reach out to a pipeline technician."
-            )
-            return
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(file_path)
             
-            # hou.hipFile.clear(suppress_save_prompt=True)
-            # hou.hipFile.save(file_path)
+            stage = hou.node("stage")
+            geo_node = stage.createNode("accomp_geo_variant")
+            # material_node = stage.createNode("ccm64_edit_shader")
+            # material_node.setFirstInput(geo_node)
+            # publish_node = stage.createNode("accomp_asset_publish")
+            # publish_node.setFirstInput(material_node)
+            stage.layoutChildren()
             
-            # stage = hou.node("stage")
-            # geo_node = stage.createNode("accomp_geo_variant")
-            # # material_node = stage.createNode("ccm64_edit_shader")
-            # # material_node.setFirstInput(geo_node)
-            # # publish_node = stage.createNode("accomp_asset_publish")
-            # # publish_node.setFirstInput(material_node)
-            # stage.layoutChildren()
-            
-            # hou.hipFile.save(file_path)
+            hou.hipFile.save(file_path)
 
 
 open_asset_file()
