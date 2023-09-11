@@ -1,36 +1,62 @@
 import hou
 import os
-import pipe
+from pathlib import Path
+from pipe.shared.proxy import proxy
 
-USD_CACHE_FOLDER_NAME = "usd_cache"
+server = proxy.get_proxy()
 
-class HoudiniNodeUtils():
-    @staticmethod
-    def get_unique_node_name(base_name):
-        unique_name = base_name
-        index = 1
+class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
+    current_node_definitions = {
+        'reference': 'reference::2.0',
+        'pxrsurface': 'pxrsurface::3.0',
+        'sparks_material': 'accomp_sparks_material::1.0',
+        'smoke_material': 'accomp_smoke_material::1.0',
+        'file_cache': 'filecache::2.0'
+    }
 
-        # This seems to work if this function is called in the context of an HDA, that way it's looking for other nodes that are in the same context as the HDA
-        while hou.node(unique_name): 
-            unique_name = f"{base_name}_{index}"
-            index += 1
-        return unique_name
+    def get_node_definition_name(base_name: str) -> str:
+        if base_name in HoudiniNodeUtils.current_node_definitions:
+            return HoudiniNodeUtils.current_node_definitions[base_name]
+        return base_name
+    
+    def create_node(parent_node: hou.Node, base_name: str, override_name = False) -> hou.Node:
+        if not override_name:
+            node_definition_name = HoudiniNodeUtils.get_node_definition_name(base_name)
+            return parent_node.createNode(node_definition_name)
+        return parent_node.createNode(base_name)
 
 class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
-        my_path = hou.hipFile.path()
-        from .file_path_utils import FilePathUtils
-        shot_name = FilePathUtils.get_shot_name_from_file_path(my_path)
+        shot_name = HoudiniPathUtils.get_shot_name()
         if shot_name is None:
             return None
-        shot = pipe.server.get_shot(shot_name)
-        main_fx_folder_location = os.path.dirname(shot.get_shotshotfile(type='fx'))
-        return os.path.join(main_fx_folder_location, USD_CACHE_FOLDER_NAME)
+        shot = server.get_shot(shot_name)
+        main_fx_folder_location = shot.get_fx_usd_cache_directory_path()
+        if main_fx_folder_location is None:
+            return None
+        
+        # Create the folder (or do nothing if it already exists)
+        Path(main_fx_folder_location).mkdir(parents=True, exist_ok=True)
+        return main_fx_folder_location
     
     @staticmethod
     def get_fx_usd_cache_file_path(base_name):
-        folder_path = HoudiniPaths.get_fx_usd_cache_folder_path()
+        folder_path = HoudiniPathUtils.get_fx_usd_cache_folder_path()
         if folder_path is None:
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
+    
+    @staticmethod
+    def get_entire_shot_fx_usd_path():
+        shot_name = HoudiniPathUtils.get_shot_name()
+        if shot_name is None:
+            return None
+        shot = server.get_shot(shot_name)
+        return shot.get_shot_fx_usd_path()
+    
+    @staticmethod
+    def get_shot_name():
+        my_path = hou.hipFile.path()
+        from .file_path_utils import FilePathUtils
+        return FilePathUtils.get_shot_name_from_file_path(my_path)
