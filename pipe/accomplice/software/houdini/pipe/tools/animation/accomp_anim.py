@@ -1,39 +1,42 @@
+""" This file contains the code for the accomp_anim HDA """
+
 # Imports
 import hou
 import os, functools
 import glob
 from pipe.shared.object import Asset
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
 import pipe
 
 # Constants
 ANIM_SUBDIRECTORY = 'anim'
+EXTENSION = '.usd'
 
 # Functions
-class Animation_Importer():
+class AnimationImporter():
 
     def __init__(self):
         print("IMPORTING ANIMATION")
-        self.shot == None
+        self.shot = self.get_shot()
 
-    def set_shot(self):
-        file_name = hou.hipFile.basename()
-        sequence, shot = file_name.split('_')[:2]
-
-        self.shot = pipe.server.get_shot(sequence + '_' + shot)
-        
-        print(self.shot.name)
+    def get_shot(self):
+        shot_name = HoudiniPathUtils.get_shot_name()
+        shot = pipe.server.get_shot(shot_name)
+        return shot
 
     def get_character_options_list(self):
+        self.shot = pipe.server.get_shot(HoudiniPathUtils.get_shot_name())
+        print('This is the shot name!', self.shot.name)
         display_list = []
 
         # Check if the current directory has an anim folder
-        anim_dir = os.path.join(shot.path, ANIM_SUBDIRECTORY)
+        anim_dir = self.shot.get_shotfile_folder('anim')
 
         if not os.path.isdir(anim_dir): # Error check
             hou.ui.displayMessage("There doesn't seem to be an anim folder in the context of this file. Contact pipe engineer.")
             return []
 
-        path_to_check = os.path.join(anim_dir, '**', '*.usd')
+        path_to_check = os.path.join(anim_dir, '**', '*' + EXTENSION)
         for file in glob.iglob(path_to_check, recursive=True): # For each file in the anim directory
             if not 'anim_backup' in file:
                 # Get the file name, not the full path
@@ -60,7 +63,7 @@ class Animation_Importer():
         anim_path = node.parm('./anim_filename').eval() # Get path to file
         print("anim path: ", anim_path)
 
-        anim_name = (anim_path.split('/')[-1])[:-len('.abc')] # Get just the name of the file, excluding extension
+        anim_name = (anim_path.split('/')[-1])[:-len(EXTENSION)] # Get just the name of the file, excluding extension
         underscore_location = anim_name.find('_')
         asset_name = None
         if underscore_location != -1:
@@ -76,8 +79,8 @@ class Animation_Importer():
         node.parm('./anim_descr').set(anim_description)
 
         node.allowEditingOfContents()
-        set_anim_type(node)
-        character_material_update(node)
+        self.set_anim_type(node)
+        self.character_material_update(node)
 
     def get_path_to_materials(self, node):
         asset_name = get_asset_name(node)
@@ -88,7 +91,7 @@ class Animation_Importer():
 
     def character_material_update(self, node):
         mat_sublayer = node.node('materials')
-        path_to_materials = get_path_to_materials(node)
+        path_to_materials = self.get_path_to_materials(node)
         if path_to_materials is None:
             hou.ui.displayMessage("Could not find asset's material folder. Alembic naming may not match. Please manually pull in the material folder to reference in the materials node within.")
         else:
