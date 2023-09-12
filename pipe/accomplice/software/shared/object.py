@@ -91,10 +91,12 @@ class Asset(JsonSerializable):
         if os.path.isfile(meta_path):
             with open(meta_path, 'r') as f:
                 data = AssetMaterials.from_string(f.read())
+                f.close()
 
             return data
             
         return None
+        
     
     # Because we weren't able to figure out how to query the database for assets that don't have any parents
     # We decided to just make it so the path variable only includes the first path that's returned.
@@ -105,7 +107,7 @@ class Asset(JsonSerializable):
     @path.setter
     def path(self, value):
         self._path = self._get_first_path(value)
-        self.create_metadata() # Recreate the path metadata if needed
+        #self.create_metadata() # Recreate the path metadata if needed
     
     def create_metadata(self):
         meta_path = self.get_metadata_path()
@@ -237,7 +239,7 @@ class MaterialVariant(JsonSerializable):
     materials = None
     name = None
 
-    def __init__(self, name: str, materials=[]) -> None:
+    def __init__(self, name: str, materials={}) -> None:
         super().__init__()
         self.name = name
         self.materials = materials
