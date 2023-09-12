@@ -24,6 +24,7 @@ FX_PREFIX = "/fx"
 # This file uses the template method pattern to setup the USD wrapper for a given effect
 class USDEffectWrapper(ABC):
     def __init__(self, selection: list):
+        print('Initializing USDEffectWrapper')
         self.selection = selection
         self.null_node = self.get_null_node()
         assert self.null_node is not None
@@ -31,7 +32,9 @@ class USDEffectWrapper(ABC):
 
         self.effect_name = self.get_effect_name(self.null_node.name())
         self.effect_import_node = self.get_import_node()
+        self.effect_import_node.setName(self.effect_name, unique_name=True)
         assert self.effect_import_node is not None
+        print('Finished initializing USDEffectWrapper')
 
     def get_materials_node(self):
         materials_node = None
@@ -124,6 +127,8 @@ class USDEffectWrapper(ABC):
         pass
 
     def wrap(self):
+        print('Wrapping effect: ' + self.effect_name)
+        print('Null node: ' + self.null_node.name())
         assert self.effect_import_node is not None
         assert self.effect_name is not None
         self.add_auxiliary_nodes()
@@ -165,21 +170,33 @@ class NonVDBEffectWrapper(USDEffectWrapper):
 
 class VDBEffectWrapper(USDEffectWrapper):
     def __init__(self, selection: list):
-        super().__init__(selection)
-        assert len(self.selection) == 2
         print('Finished initializing VDBEffectWrapper')
+        assert len(selection) == 2
+        super().__init__(selection)
     
     def get_filecache_node(self) -> hou.Node:
+        print('Entering get_filecache_node')
         assert len(self.selection) == 2
         filecache_node = None
         for i in range(len(self.selection)):
+            print(self.selection[i].type().name(), HoudiniNodeUtils.get_node_definition_name('filecache'))
             if self.selection[i].type().name() == HoudiniNodeUtils.get_node_definition_name('filecache'):
                 filecache_node = self.selection[i]
+                print('Found filecache node')
                 break
         assert filecache_node is not None
+        if filecache_node.parm('filetype').eval() != 1: # If not VDB, inform user
+            hou.ui.displayMessage(
+                'The selected filecache node is not a VDB. Please filecache node that saves to VDB.',
+                severity=hou.severityType.Message
+            )
+            raise Exception('The selected filecache node is not a VDB. Please filecache node that saves to VDB.')
+            
+        print('Exiting get_filecache_node')
         return filecache_node
     
     def get_null_node_index_into_selection(self):
+        print('Entering get_null_node_index_into_selection')
         assert len(self.selection) == 2
         null_node_index = None
         for i in range(len(self.selection)):
@@ -187,24 +204,30 @@ class VDBEffectWrapper(USDEffectWrapper):
                 null_node_index = i
                 break
         assert null_node_index is not None
+        print('Exiting get_null_node_index_into_selection')
         return null_node_index
     
     def get_null_node(self) -> hou.Node: # Override abstract method
+        print('Entering get_null_node')
         return self.selection[self.get_null_node_index_into_selection()]
     
     def get_import_node(self) -> hou.Node:
+        print('Entering get_import_node')
         volume_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'volume')
         volume_node.parm('sample_behavior').set('multi') # Set to Sample Frame Range
-        volume_node.parm('filepath1').set(self.get_filecache_node().parm('sopoutput').eval())
+        path = volume_node.relativePathTo(self.get_filecache_node())
+        volume_node.parm('filepath1').set('`chs("' + path + '/sopoutput' + '")`')
+        volume_node.parm('parentprimtype').set('UsdGeomScope')
+        volume_node.parm('primpath').set(FX_PREFIX + "/" + self.effect_name)
         return volume_node
 
 
 selection = hou.selectedNodes()
+print(len(selection))
 if len(selection) < 1 or len(selection) > 2:
-    #TODO:Switch this to a more overt error message
-    hou.ui.setStatusMessage(
+    hou.ui.displayMessage(
         'Please select one null with the naming convention: "OUT_" + <name of effect>. If wrapping a VDB, select both the null and the filecache node that created the VDB.',
-        severity=hou.severityType.Warning
+        severity=hou.severityType.Message
     )
 elif len(selection) == 1:
     usd_wrapper = NonVDBEffectWrapper(selection)
@@ -213,8 +236,9 @@ elif len(selection) == 1:
         'Lop nodes created successfully! Navigate to /stage to see the results.',
         severity=hou.severityType.Message
     )
-else:
+else: # Note: this case is set up and it in theory should work, but I was having trouble getting the VDB to show up in the viewport with the Volume node (set to Sample Frame Range, which allows for optimizations... See: https://www.sidefx.com/forum/topic/87646/?page=1#post-399469)
     assert len(selection) == 2
+    print('VDB selected')
     usd_wrapper = VDBEffectWrapper(selection)
     usd_wrapper.wrap()]]></script>
   </tool>
