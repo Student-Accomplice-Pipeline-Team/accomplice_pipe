@@ -103,6 +103,8 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         #######Asset List#######
         self.comboBox = QComboBox()
+        self.comboBox2 = QComboBox()
+
         self.comboBox.setInsertPolicy(QComboBox.InsertAlphabetically)
         self.comboBox.currentIndexChanged.connect(self.on_change)
 
@@ -110,7 +112,6 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         self.comboBox.addItems(assets)
 
         #######Geo Variant List###########
-        self.comboBox2 = QComboBox()
         self.comboBox2.setInsertPolicy(QComboBox.InsertAlphabetically)
         self.comboBox2.currentIndexChanged.connect(self.on_change_variant)
 
@@ -233,6 +234,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             with open(metadata_path, 'w') as outfile:
                 toFile = meta.to_json()
                 outfile.write(toFile)
+                outfile.close()
 
             self.close()
 

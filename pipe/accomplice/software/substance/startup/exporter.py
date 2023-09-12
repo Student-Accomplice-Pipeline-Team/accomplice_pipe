@@ -254,6 +254,8 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         
         meta = asset.get_metadata()
 
+        print(meta.hierarchy)
+
         if not meta:
             QtWidgets.QMessageBox.warning(self, "Error", "Missing Metadata file")
             return
@@ -387,7 +389,7 @@ def startupInfo():
                                   Windows, otherwise None
     """
     startupinfo = None
-    if os.name is 'nt':
+    if str(os.name) == 'nt':
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     return startupinfo

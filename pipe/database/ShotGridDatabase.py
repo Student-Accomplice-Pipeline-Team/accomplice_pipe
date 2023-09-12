@@ -1,11 +1,17 @@
 import os
+import logging as log
 from typing import Iterable, Set, Sequence, Union
 
 from .baseclass import Database
 from shared.object import Asset
 
-from sys import path as sys_path
-sys_path.append('/groups/accomplice/pipeline/lib')
+import sys
+if str(os.name) == "nt":
+    log.info('Running in Windows')
+    sys.path.append('G:\\accomplice\\pipeline\\lib')
+else:
+    sys.path.append('/groups/accomplice/pipeline/lib')
+
 import shotgun_api3
 
 
