@@ -185,14 +185,15 @@ class Exporter():
      #   if not, it creates a base version and an .element file and an object_main.abc   
     def exporter(self):
 
-        asset = pipe.server.get_asset(self.object_selection)
+        asset = self.object_selection
+        print(asset)
         shot = pipe.server.get_shot(self.shot_selection)
         
         anim_filepath = shot.path + '/anim'
         if not self.dir_exists(anim_filepath):
             os.mkdir(self.anim_filepath)
 
-        self.usd_filepath = anim_filepath + '/' + asset.name.lower() + '/' + asset.name.lower() + '.usd'
+        self.usd_filepath = anim_filepath + '/' + asset + '/' + asset + '.usd'
         print(self.usd_filepath)
         
         command = self.get_alembic_command()
