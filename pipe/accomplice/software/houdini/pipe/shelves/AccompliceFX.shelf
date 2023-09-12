@@ -225,7 +225,6 @@ class VDBEffectWrapper(USDEffectWrapper):
 selection = hou.selectedNodes()
 print(len(selection))
 if len(selection) < 1 or len(selection) > 2:
-    #TODO:Switch this to a more overt error message
     hou.ui.displayMessage(
         'Please select one null with the naming convention: "OUT_" + <name of effect>. If wrapping a VDB, select both the null and the filecache node that created the VDB.',
         severity=hou.severityType.Message
