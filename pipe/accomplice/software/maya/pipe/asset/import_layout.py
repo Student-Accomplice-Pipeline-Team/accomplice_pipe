@@ -1,9 +1,11 @@
 import os
 import pipe
 from maya import cmds
+import mayaUsd
 
 
 def import_layout():
+    cmds.polyCube()
     window_tag = "import_layout"
     if cmds.window(window_tag, exists=True):
         cmds.deleteUI(window_tag, window=True)
@@ -28,7 +30,13 @@ def import_layout():
             shot = pipe.server.get_shot(shot_name)
             layout_path = shot.get_layout_path()
 
-            cmds.file(layout_path, r=True)
+            cmds.polyCube()
+            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=shot_name+"Shape")
+            cmds.connectAttr('time1.outTime', shapeNode+'.time')
+            cmds.setAttr(shapeNode + '.filePath', layout_path, type='string')
+            cmds.select(shapeNode, replace=True)
+
+            # cmds.file(layout_path, r=True)
         
         cmds.deleteUI(window_tag, window=True)
     
