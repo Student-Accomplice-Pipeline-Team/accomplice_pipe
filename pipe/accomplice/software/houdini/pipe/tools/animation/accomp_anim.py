@@ -67,14 +67,14 @@ class AnimationImporter():
         print("anim path: ", anim_path)
 
         anim_name = os.path.basename(anim_path).replace(EXTENSION, '') # Get just the name of the file, excluding extension
-        underscore_location = anim_name.find('_')
-        asset_name = None
-        if underscore_location != -1:
-            anim_description = anim_name[underscore_location+1:] # The anim description is everything after the underscore
-            asset_name = anim_name[:underscore_location] # The asset name is everything before the underscore
+        anim_name_components = anim_name.split('_')
+        if len(anim_name_components) > 1:
+            asset_name = anim_name_components[0]
+            anim_description = anim_name_components[1]
         else:
-            asset_name = anim_name
+            asset_name = anim_name_components[0]
             anim_description = ''
+
         print("anim name ", anim_name)
         print("asset name: ", asset_name)
 
