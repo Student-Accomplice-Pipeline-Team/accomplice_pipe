@@ -27,12 +27,16 @@ def import_layout():
             shot_name = selection[0]
             shot = pipe.server.get_shot(shot_name)
             layout_path = shot.get_layout_path()
+            layout_filename = os.path.basename(layout_path).split('.')[0]
 
-            cmds.file(layout_path, r=True)
+            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=layout_filename + "Shape")
+            cmds.connectAttr('time1.outTime', shapeNode + '.time')
+            cmds.setAttr(shapeNode + '.filePath', layout_path, type='string')
+            cmds.select(shapeNode, replace=True)
         
         cmds.deleteUI(window_tag, window=True)
     
-    import_button = cmds.button(label="Import Reference", command=_import)
+    import_button = cmds.button(label="Import Layout", command=_import)
 
     cmds.showWindow(window)
 
