@@ -1,7 +1,6 @@
 import os
 import pipe
 from maya import cmds
-import mayaUsd
 
 
 def import_layout():
@@ -30,16 +29,14 @@ def import_layout():
             layout_path = shot.get_layout_path()
             layout_filename = os.path.basename(layout_path).split('.')[0]
 
-            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=layout_filename+"Shape")
-            cmds.connectAttr('time1.outTime', shapeNode+'.time')
+            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=layout_filename + "Shape")
+            cmds.connectAttr('time1.outTime', shapeNode + '.time')
             cmds.setAttr(shapeNode + '.filePath', layout_path, type='string')
             cmds.select(shapeNode, replace=True)
-
-            # cmds.file(layout_path, r=True)
         
         cmds.deleteUI(window_tag, window=True)
     
-    import_button = cmds.button(label="Import Reference", command=_import)
+    import_button = cmds.button(label="Import Layout", command=_import)
 
     cmds.showWindow(window)
 
