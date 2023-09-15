@@ -129,14 +129,14 @@ class Asset(JsonSerializable):
             outfile.write(data.to_json())
 
     def get_geo_variants(self):
-        if os.name == "nt":
+        if str(os.name) == "nt":
             path = Path(self.get_geo_path().replace('/groups/', 'G:\\'))
         else:
             path = Path(self.get_geo_path())
 
         geo_variants = []
         if os.path.isdir(path):
-            
+             
 
             path, _, files = next(os.walk(path))
 
