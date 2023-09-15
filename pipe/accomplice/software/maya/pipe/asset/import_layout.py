@@ -5,7 +5,6 @@ import mayaUsd
 
 
 def import_layout():
-    cmds.polyCube()
     window_tag = "import_layout"
     if cmds.window(window_tag, exists=True):
         cmds.deleteUI(window_tag, window=True)
@@ -29,9 +28,9 @@ def import_layout():
             shot_name = selection[0]
             shot = pipe.server.get_shot(shot_name)
             layout_path = shot.get_layout_path()
+            layout_filename = os.path.basename(layout_path).split('.')[0]
 
-            cmds.polyCube()
-            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=shot_name+"Shape")
+            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=layout_filename+"Shape")
             cmds.connectAttr('time1.outTime', shapeNode+'.time')
             cmds.setAttr(shapeNode + '.filePath', layout_path, type='string')
             cmds.select(shapeNode, replace=True)
