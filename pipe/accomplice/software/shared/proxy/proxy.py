@@ -8,7 +8,7 @@ from typing import Any, Iterable, Type, Union
 
 from .. import env
 from ..exception import ServerError
-from ..object import Asset, JsonSerializable, Shot
+from ..object import Asset, JsonSerializable, Shot, Character
 from .interface import PipeProxyInterface
 
 log = logging.getLogger(__name__)
@@ -143,6 +143,17 @@ class _PipeProxy(PipeProxyInterface):
         asset = Asset(file_name)
         asset.path = '/groups/accomplice/pipeline/production/assets' + sg_path
         return asset
+
+    def get_character(self, name: str) -> Character:
+        """Get a character's data from the pipe"""
+        pipe_path = self._get_data(f'/characters?name={name}', Character).strip()
+        character = Character(name)
+        character.path = '/groups/accomplice/pipeline/production/assets' + pipe_path
+        return character
+
+    def get_character_list(self) -> Iterable[str]:
+        """Get a list of all characters from the pipe."""
+        return self._get_data('/characters?list=name', str).split(',')
 
     def get_asset_list(self) -> Iterable[str]:
         """Get a list of all assets from the pipe."""

@@ -105,6 +105,19 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                     asset_data = asset_data[:-1]
 
                 self.wfile.write(asset_data.encode('utf-8'))
+            elif url.path == '/characters':
+                characters = self.pipe.get_characters(parse_qs(url.query))
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+
+                character_data = ''
+                for character in characters:
+                    character_data += character + ','
+                if character_data.endswith(','):
+                    character_data = character_data[:-1]
+
+                self.wfile.write(character_data.encode('utf-8'))
             elif url.path == '/shots':
                 shots = self.pipe.get_shots(parse_qs(url.query))
                 self.send_response(HTTPStatus.OK)
@@ -146,6 +159,13 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
 class AccomplicePipe(SimplePipe):
     """BYU's Student Accomplice (2024) pipeline."""
+
+    character_lookup: dict = {
+        'letty':        '/characters/letty',
+        'ed':           '/characters/ed',
+        'vaughn':       '/characters/vaughn',
+        'studentcar':   '/assets/vehicles/studentcar'
+    }
 
     asset_lookup: dict = {
         ### Props
@@ -372,6 +392,18 @@ class AccomplicePipe(SimplePipe):
             return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
         raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
         # return self.asset_lookup
+
+    '''Temporary character pipeline'''
+    def get_characters(self, query: Mapping[str, Any]) -> MutableSet:
+        log.info('doing the things')
+        log.info(self.character_lookup.keys())
+        if 'list' in query:
+            list_type = query.get('list')
+            if 'name' in list_type:
+                return self.character_lookup.keys()
+
+        if 'name' in query:
+            return set([self.character_lookup.get(asset) for asset in query.get('name')])
     
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all shots

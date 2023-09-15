@@ -181,6 +181,24 @@ class Asset(JsonSerializable):
 
         return str(path)
 
+class Character(JsonSerializable):
+    name = None
+    path = None
+    version = None
+    checked_out = False
+
+    def __init__(self, name: str, path: Optional[str] = None) -> None:
+        self.name = name
+        self.path = None
+
+    def get_geo_path(self):
+        return self.path + '/' + self.name + '_geo.fbx'
+
+    def get_material_path(self):
+        pass
+
+
+
 class MaterialType(Enum):
         BASIC = 1
         METAL = 2
@@ -255,7 +273,6 @@ class MaterialVariant(JsonSerializable):
 
         obj = MaterialVariant(json_dct['name'], materials)
         return obj
-
 
 class Shot(JsonSerializable):
     name = None
