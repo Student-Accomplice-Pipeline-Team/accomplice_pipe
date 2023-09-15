@@ -178,7 +178,7 @@ class EditShader():
 
     def create_skin(self, mat):
         before = self.matLib().allItems()
-        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/SKIN_MAT.uti')
+        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/SKIN_MAT.term')
         after = self.matLib().allItems()
 
         added = self.get_added_nodes(before, after)

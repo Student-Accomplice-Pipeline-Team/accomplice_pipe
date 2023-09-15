@@ -16,12 +16,13 @@ class SubstanceProxy(HTTPSoftwareProxy):
     pipe_dir = substance_plugin_path.parent.parent
 
     # TODO: Define colorspace variables to force the correct colorspace
-    substance_env_vars = {'SUBSTANCE_PAINTER_PLUGINS_PATH': substance_plugin_path}
+    substance_env_vars = {'SUBSTANCE_PAINTER_PLUGINS_PATH': substance_plugin_path,
+                            'QT_PLUGIN_PATH' : '',}
 
     def __init__(
         self,
         pipe_port: int,
-        command: str = 'D:\\Adobe\\Adobe Substance 3D Painter\\Adobe Substance 3D Painter.exe',
+        command: str = 'C:\\Program Files\\Adobe\\Adobe Substance 3D Painter\\Adobe Substance 3D Painter.exe',
         args: Optional[Sequence[str]] = None,
         env_vars: Mapping[str, Optional[Union[str, int]]] = substance_env_vars,
     ) -> None:

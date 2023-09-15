@@ -152,6 +152,9 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         self.matvar_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.matvar_warn.buttonClicked.connect(self.msgbtn)
 
+        self.mesh_warn = QtWidgets.QMessageBox()
+        self.mesh_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+
         #Called when the asset combo box changes
     def on_change(self, newIndex):
         global asset
@@ -203,6 +206,14 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         else:
             mesh_path = asset.get_shader_geo_path(geo_variant)
+
+            if not os.path.isfile(mesh_path):
+                self.mesh_warn.setWindowTitle('Mesh not found.')
+                self.mesh_warn.setText('The mesh file at ' + mesh_path + ' does not exist. Make sure you have exported from Studini.')
+                self.mesh_warn.setStandardButtons(QMessageBox.Cancel)
+                self.mesh_warn.show()
+                return
+
             save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
 
             #move current version out of the way
@@ -237,6 +248,9 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
                 outfile.close()
 
             self.close()
+
+    def close_window(self):
+        self.close()
 
     def import_button(self):
 
