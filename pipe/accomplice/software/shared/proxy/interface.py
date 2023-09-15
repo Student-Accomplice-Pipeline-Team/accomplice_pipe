@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 from ..helper.interface import check_methods
 
-from ..object import Asset, Shot
+from ..object import Asset, Shot, Character
 
 
 class PipeProxyInterface(metaclass=ABCMeta):
@@ -21,4 +21,8 @@ class PipeProxyInterface(metaclass=ABCMeta):
 
     @abstractmethod
     def get_shot(self, name: str) -> Shot:
+        pass
+
+    @abstractmethod
+    def get_character(self, name: str) -> Character:
         pass
