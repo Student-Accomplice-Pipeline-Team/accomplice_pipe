@@ -31,7 +31,7 @@ global proc shelf_SA_Previs () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "print('Rig exporter to Unreal')"
+        -command "print('Rig exporter to Unreal')" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -71,7 +71,7 @@ global proc shelf_SA_Previs () {
         -commandRepeatable 1
         -flat 1
     ;
-        shelfButton
+    shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
         -flexibleWidthValue 32

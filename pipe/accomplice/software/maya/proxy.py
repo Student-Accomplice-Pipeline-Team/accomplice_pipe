@@ -17,14 +17,15 @@ class MayaProxy(HTTPSoftwareProxy):
     pipe_dir = maya_pipe_dir.parent.parent
 
     # TODO: Define colorspace variables to force the correct colorspace
-    maya_env_vars = {'PYTHONPATH': str(maya_pipe_dir) + ':' + '/groups/accomplice/pipeline/lib',
-                     'MAYA_SCRIPT_PATH': str(maya_pipe_dir) + ':' + str(maya_pipe_dir.joinpath('pipe', 'shelves')),
-                     #'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'),
-                     'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
-                     'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
-                     'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
-                     'OCIO': None,
-                     }
+    maya_env_vars = {
+        'PYTHONPATH': str(maya_pipe_dir) + ':' + '/groups/accomplice/pipeline/lib',
+        'MAYA_SCRIPT_PATH': str(maya_pipe_dir) + ':' + str(maya_pipe_dir.joinpath('pipe', 'shelves')),
+        'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'),
+        'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
+        'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
+        'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
+        'OCIO': None
+    }
 
     def __init__(
         self,

@@ -140,7 +140,7 @@ global proc shelf_SA_Animation () {
         -commandRepeatable 1
         -flat 1
     ;
-        shelfButton
+    shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
         -flexibleWidthValue 32
@@ -169,7 +169,7 @@ global proc shelf_SA_Animation () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "cam = pipe.animation.CameraImporter()\n\ncam.run()"
+        -command "cam = pipe.animation.CameraImporter()\n\ncam.run()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -558,6 +558,7 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
+        -font "plainLabelFont" 
         -imageOverlayLabel "Open Shot" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
@@ -571,4 +572,5 @@ global proc shelf_SA_Animation () {
         -commandRepeatable 1
         -flat 1
     ;
+
 } 
