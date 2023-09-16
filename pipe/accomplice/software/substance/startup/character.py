@@ -25,7 +25,7 @@ plugin_widgets = []
 def start_plugin():
 
 	# Create a text widget for a menu
-	Action = QtWidgets.QAction("Accomplice - Import Asset")
+	Action = QtWidgets.QAction("Accomplice - Import Character")
 	Action.triggered.connect(launch_importer)
 
 	# Add this widget to the existing File menu of the application
@@ -94,7 +94,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         self.central_widget.setLayout(self.mainLayout)
 
         ####Title####
-        self.title = QtWidgets.QLabel("Choose an asset, geo variant, and material variant to shade...")
+        self.title = QtWidgets.QLabel("Choose a character to shade")
         self.title.setAlignment(QtCore.Qt.AlignCenter)
         font = self.title.font()
         font.setPointSize(30)
@@ -103,32 +103,13 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         #######Asset List#######
         self.comboBox = QComboBox()
-        self.comboBox2 = QComboBox()
 
         self.comboBox.setInsertPolicy(QComboBox.InsertAlphabetically)
-        self.comboBox.currentIndexChanged.connect(self.on_change)
 
-        assets = sorted(pipe.server.get_asset_list())
-        self.comboBox.addItems(assets)
-
-        #######Geo Variant List###########
-        self.comboBox2.setInsertPolicy(QComboBox.InsertAlphabetically)
-        self.comboBox2.currentIndexChanged.connect(self.on_change_variant)
-
-        self.comboBox2.setEnabled(False)
-
+        characters = sorted(pipe.server.get_character_list())
+        self.comboBox.addItems(characters)
         self.mainLayout.addWidget(self.comboBox, 1)
-        self.mainLayout.addWidget(self.comboBox2)
 
-        #######Material Variant List###########
-        self.comboBox3 = QComboBox()
-        self.comboBox3.setInsertPolicy(QComboBox.InsertAlphabetically)
-        self.comboBox3.currentIndexChanged.connect(self.on_select_matvar)
-
-        self.comboBox3.setEnabled(False)
-        self.comboBox3.setEditable(True)
-
-        self.mainLayout.addWidget(self.comboBox3)
 
         ##########Buttons##########
         buttonSizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -147,6 +128,14 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         ButtonsLayout.addWidget(self.importButton)
 
+        self.setProjectButton = QPushButton("Set Current File")
+        self.setProjectButton.setEnabled(False)
+        self.setProjectButton.clicked.connect(self.set_file)
+
+        ButtonsLayout.addWidget(self.setProjectButton)
+
+        self.comboBox.currentIndexChanged.connect(self.on_change)
+
         #######Popup Warnings############
         self.matvar_warn = QtWidgets.QMessageBox()
         self.matvar_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
@@ -157,47 +146,25 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         #Called when the asset combo box changes
     def on_change(self, newIndex):
-        global asset
+        global character
         global meta
 
-        self.comboBox2.setEnabled(True)
-        self.comboBox2.clear()
-        asset = pipe.server.get_asset(self.comboBox.currentText())
-    
-        meta = asset.get_metadata()
+        character = pipe.server.get_character(self.comboBox.currentText())
+
+        meta = character.get_metadata()
         if not meta:
             print('no metadata found')
-            asset.create_metadata()
-            meta = asset.get_metadata()
-
-        variants = meta.hierarchy.keys()
-
-        if variants:
-            self.comboBox2.addItems(sorted(variants))
-
-    def on_change_variant(self, newIndex):
-        global asset
-        global geo_variant
-        global meta
-
-        self.comboBox3.setEnabled(True)
-        self.comboBox3.clear()
-        geo_variant = self.comboBox2.currentText()
-
-        variants =  meta.hierarchy[geo_variant].keys()
-
-        if variants:
-            self.comboBox3.addItems(sorted(variants))
-
-    def on_select_matvar(self, newIndex):
-        global geo_variant
-        global asset
-        global meta
-        global material_variant
-
+            character.create_metadata()
+            meta = character.get_metadata()
+    
         self.importButton.setEnabled(True)
 
-        material_variant = self.comboBox3.currentText()
+        if substance_painter.project.is_open():
+            self.setProjectButton.setEnabled(True)
+
+
+
+
 
     def msgbtn(self, i):
         print(i.text())
@@ -205,17 +172,17 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             print('closing')
 
         else:
-            mesh_path = asset.get_shader_geo_path(geo_variant)
+            mesh_path = character.get_shader_geo_path()
 
             if not os.path.isfile(mesh_path):
                 self.mesh_warn.setWindowTitle('Mesh not found.')
-                self.mesh_warn.setText('The mesh file at ' + mesh_path + ' does not exist. Make sure you have exported from Studini.')
+                self.mesh_warn.setText('The mesh file at ' + mesh_path + ' does not exist. Contact your lead.')
                 self.mesh_warn.setStandardButtons(QMessageBox.Cancel)
                 self.mesh_warn.show()
                 return
 
-            save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
-            print(save_path)
+            save_path = character.get_shading_path() + '/substance/'+character.name+'.spp'
+
             #move current version out of the way
             if os.path.isfile(save_path):
                 new_version(save_path)
@@ -223,55 +190,59 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             project_settings = substance_painter.project.Settings(
                 default_save_path=save_path,
                 project_workflow=substance_painter.project.ProjectWorkflow.UVTile,
-                default_texture_resolution=2048
+                default_texture_resolution=4096
             )
 
-            
             substance_painter.project.create(
                 mesh_file_path=mesh_path,
                 settings=project_settings
             )
 
-            #substance_painter.project.save_as(save_path)
+            substance_painter.project.save_as(save_path)
 
             #Set Project Metadata
             data = substance_painter.project.Metadata('accomplice')
-            data.set('asset', asset.name)
-            data.set('geo_variant', geo_variant)
-            data.set('material_variant', material_variant)
+            data.set('character', character.name)
 
-            meta.hierarchy[geo_variant][material_variant] = object.MaterialVariant(material_variant, {})
+            meta.hierarchy['Standard'][character.name] = object.MaterialVariant(character.name, {})
 
-            metadata_path = asset.get_metadata_path()
+            metadata_path = character.get_metadata_path()
+            if not os.path.exists(metadata_path):
+                os.mkdirs(metadata_path)
             with open(metadata_path, 'w') as outfile:
                 toFile = meta.to_json()
                 outfile.write(toFile)
                 outfile.close()
 
             self.close()
-            #substance_painter.project.execute_when_not_busy(substance_painter.project.save())
-
-    def close_window(self):
-        self.close()
 
     def import_button(self):
 
-        global material_variant
-        global asset
-        global geo_variant
+        global character
         global meta
 
-        if material_variant not in  meta.hierarchy[geo_variant]:
-            self.matvar_warn.setWindowTitle("Create a new material variant?")
-            self.matvar_warn.setText("You're about to create a new material variant in the pipeline under " + asset.name + '/' + geo_variant + '/' + material_variant + ' Are you sure you want to do this?')
-            self.matvar_warn.setStandardButtons(QMessageBox.Cancel | QMessageBox.Yes)
-            self.matvar_warn.show()
+        self.matvar_warn.setWindowTitle("Create new material variant Substance file?")
+        self.matvar_warn.setText("You're about to create a new Substance file for " + character.name + ' which may already exist. Proceed? Existing files will be archived.')
+        self.matvar_warn.setStandardButtons(QMessageBox.Cancel | QMessageBox.Yes)
+        self.matvar_warn.show()
 
-        else:
-            self.matvar_warn.setWindowTitle("Create new material variant Substance file?")
-            self.matvar_warn.setText("You're about to create a new Substance file for " + asset.name + '/' + geo_variant + '/' + material_variant + ' which may already exist. Proceed? Existing files will be archived.')
-            self.matvar_warn.setStandardButtons(QMessageBox.Cancel | QMessageBox.Yes)
-            self.matvar_warn.show()
+    def set_file(self):
+            global character
+            #Set Project Metadata
+            data = substance_painter.project.Metadata('accomplice')
+            data.set('character', character.name)
+
+            meta.hierarchy['Standard'][character.name] = object.MaterialVariant(character.name, {})
+
+            metadata_path = character.get_metadata_path()
+            if not os.path.exists(metadata_path):
+                os.mkdirs(metadata_path)
+            with open(metadata_path, 'w') as outfile:
+                toFile = meta.to_json()
+                outfile.write(toFile)
+                outfile.close()
+            self.close()
+
 
 def new_version(path):
     if os.path.isfile(path):

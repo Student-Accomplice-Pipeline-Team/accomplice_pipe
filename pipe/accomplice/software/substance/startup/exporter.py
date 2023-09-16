@@ -226,12 +226,25 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
     def do_export(self):
 
         data = substance_painter.project.Metadata('accomplice')
-        asset = pipe.server.get_asset(data.get('asset'))
-        geo_variant = data.get('geo_variant')
+        character = data.get('character')
+        if character:
+            asset = pipe.server.get_character(character)
+            asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
 
-        asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
+            export_path = asset_path / 'textures' / asset.name
+            tmp_path = asset_path / 'textures' / asset.name / 'tmp'
 
-        material_variant = data.get('material_variant')
+        else:
+            asset = pipe.server.get_asset(data.get('asset'))
+            geo_variant = data.get('geo_variant')
+            material_variant = data.get('material_variant')
+
+            asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
+
+            export_path = asset_path / 'textures' / geo_variant / material_variant
+            tmp_path = asset_path / 'textures' / geo_variant / material_variant / 'tmp'
+
+       
 
         materials = {}
 
@@ -241,8 +254,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
 
         resource_dir = pathlib.Path().cwd() / 'resources'
 
-        export_path = asset_path / 'textures' / geo_variant / material_variant
-        tmp_path = asset_path / 'textures' / geo_variant / material_variant / 'tmp'
+
   
         if not os.path.exists(str(export_path)):
             os.makedirs(str(export_path))
@@ -253,6 +265,10 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         print(tmp_path)
         
         meta = asset.get_metadata()
+        if not meta:
+            print('no metadata found')
+            asset.create_metadata()
+            meta = asset.get_metadata()
 
         print(meta.hierarchy)
 
@@ -261,9 +277,6 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             return
 
         metadata_path = asset.get_metadata_path()
-
-        if not os.path.exists(str(metadata_path)):
-            os.makedirs(str(metadata_path))
 
         #Define RenderMan export preset
         RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
@@ -370,7 +383,11 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
                 return
 
-        meta.hierarchy[geo_variant][material_variant].materials = materials
+        if character:
+            meta.hierarchy['Standard'][asset.name].materials = materials
+        else:
+            meta.hierarchy[geo_variant][material_variant].materials = materials
+
 
         with open(metadata_path, 'w') as outfile:
             toFile = meta.to_json()
