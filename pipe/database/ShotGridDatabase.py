@@ -53,12 +53,13 @@ class ShotGridDatabase(Database):
         fields = [
             'code',
             'sg_path',
+            'id'
         ]
 
         asset = self.sg.find_one('Asset', filters, fields)
         sg_path = asset['sg_path']
         name = os.path.basename(sg_path)
-        return Asset(name, path = asset['sg_path'])
+        return Asset(name, path = asset['sg_path'], id = asset['id'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         # TODO: Ideally it'd be nice to not grab assets that have a parent, but since I can't figure that out, I'm going to just limit the path that's returned from an asset.
@@ -109,6 +110,13 @@ class ShotGridDatabase(Database):
                     [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
                 ], 
             },
+            {
+                'filter_operator': 'or',
+                'filters': [
+                    ['parents', 'is', None],
+                    ['parents', 'is', { 'type': 'Asset', 'id': None }]
+                ]
+            }
         ]
         fields = [
             'code',
@@ -217,3 +225,29 @@ class ShotGridDatabase(Database):
         data = {field: value}
         shot_id = self.get_shot_id(shot)
         self.sg.update("Shot", shot_id, data)
+    
+    def create_asset(self, name, asset_type, asset_path, parent_name=None):
+        id = self.get_asset_id(parent_name)
+        data = {
+            'project': {'type': 'Project', 'id': self.PROJECT_ID},
+            'code': name,
+            'sg_asset_type': asset_type,
+            'sg_path': asset_path,
+            'parents': [{'type': 'Asset', 'id':id}]
+        }
+        self.sg.create('Asset', data)
+
+    # def create_asset(self, name, asset_type, asset_path, parent_name=None):
+    #     parent_asset = self.get_asset(parent_name)
+    #     data = {
+    #         'project': {'type': 'Project', 'id': self.PROJECT_ID},
+    #         'code': name,
+    #         'sg_asset_type': asset_type,
+    #         'sg_path': asset_path,
+    #         'parents': [parent_asset]
+    #     }
+    #     self.sg.create('Asset', data)
+    
+    def delete_asset(self, name):
+        asset_id = self.get_asset_id(name)
+        self.sg.delete('Asset', asset_id)
