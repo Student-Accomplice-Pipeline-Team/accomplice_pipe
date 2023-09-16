@@ -15,7 +15,9 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
         'filecache': 'filecache::2.0',
-        'money_material': 'accomp_money_material::1.0'
+        'money_material': 'accomp_money_material::1.0',
+        'money_apply_rotations': 'money_apply_rotations::1.0',
+        'money_post_process': 'money_post_process::1.0'
     }
 
     def get_node_definition_name(base_name: str) -> str:
