@@ -108,13 +108,6 @@ class ShotGridDatabase(Database):
                 'filter_operator': 'all',
                 'filters': [ 
                     [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
-                ], 
-            },
-            {
-                'filter_operator': 'or',
-                'filters': [
-                    ['parents', 'is', None],
-                    ['parents', 'is', { 'type': 'Asset', 'id': None }]
                 ]
             }
         ]
@@ -237,17 +230,6 @@ class ShotGridDatabase(Database):
         }
         self.sg.create('Asset', data)
 
-    # def create_asset(self, name, asset_type, asset_path, parent_name=None):
-    #     parent_asset = self.get_asset(parent_name)
-    #     data = {
-    #         'project': {'type': 'Project', 'id': self.PROJECT_ID},
-    #         'code': name,
-    #         'sg_asset_type': asset_type,
-    #         'sg_path': asset_path,
-    #         'parents': [parent_asset]
-    #     }
-    #     self.sg.create('Asset', data)
-    
     def delete_asset(self, name):
         asset_id = self.get_asset_id(name)
         self.sg.delete('Asset', asset_id)
