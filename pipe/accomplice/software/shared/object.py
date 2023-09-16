@@ -319,7 +319,7 @@ class Shot(JsonSerializable):
         return os.path.join(houdini_fx_folder_path, 'usd_cache')
     
     def get_layout_path(self):
-        return os.path.join(self.path, 'layout', f'{self.name}_layout.usd')
+        return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
     def get_playblast_path(self, destination):
         sequence = self.name.split('_')[0]
