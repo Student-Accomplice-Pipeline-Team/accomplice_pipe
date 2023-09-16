@@ -148,7 +148,7 @@ class _PipeProxy(PipeProxyInterface):
         """Get a character's data from the pipe"""
         pipe_path = self._get_data(f'/characters?name={name}', Character).strip()
         character = Character(name)
-        character.path = '/groups/accomplice/pipeline/production/assets' + pipe_path
+        character.path = '/groups/accomplice/pipeline/production/' + pipe_path
         return character
 
     def get_character_list(self) -> Iterable[str]:
