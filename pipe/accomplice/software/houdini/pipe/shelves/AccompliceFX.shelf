@@ -14,12 +14,18 @@
   <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 from pipe.shared.proxy import proxy
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils, HoudiniFXUtils
 from abc import ABC, abstractmethod
 
 # Set constants
 server = proxy.get_proxy()
 FX_PREFIX = "/fx"
+
+def show_message(message: str) -> None:
+    hou.ui.displayMessage(
+        message,
+        severity=hou.severityType.Message
+    )
 
 # This file uses the template method pattern to setup the USD wrapper for a given effect
 class USDEffectWrapper(ABC):
@@ -32,6 +38,9 @@ class USDEffectWrapper(ABC):
 
         self.effect_name = self.get_effect_name(self.null_node.name())
         self.effect_import_node = self.get_import_node()
+        if self.effect_name in [child.name() for child in hou.node('/stage').children()]: # Check to see if the effect is already here before naming it
+            show_message('The node name ' + self.effect_name + " already exists in the stage. The existing node's name will now be suffixed with '_old'")
+            hou.node('/stage/' + self.effect_name).setName(self.effect_name + '_old', unique_name=True)
         self.effect_import_node.setName(self.effect_name, unique_name=True)
         assert self.effect_import_node is not None
         print('Finished initializing USDEffectWrapper')
@@ -39,11 +48,10 @@ class USDEffectWrapper(ABC):
     def get_materials_node(self):
         materials_node = None
         # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
-        if self.effect_name == "sparks":
-            materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'sparks_material')
-        elif self.effect_name == "smoke":
-            materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'smoke_material')
+        if self.effect_name in HoudiniFXUtils.supported_FX_names:
+            materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), self.effect_name + '_material')
         else:
+            show_message('Note: there is no automatic material assigned for the effect "' + self.effect_name + '" so a default material is being created')
             # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
             # If nothing else, create a default materials subnetwork with a hint to create materials
             materials_node = self.effect_import_node.parent().createNode('subnet')
@@ -73,7 +81,8 @@ class USDEffectWrapper(ABC):
             subnetwork_nodes.append(output_node)
 
             materials_node.layoutChildren(subnetwork_nodes)
-
+        
+        print('Got materials node!', materials_node.name())
         return materials_node
     
     def add_auxiliary_nodes(self):
@@ -84,6 +93,7 @@ class USDEffectWrapper(ABC):
         materials_node.setName(self.effect_name + "_materials", unique_name=True)
         materials_node.setInput(0, self.effect_import_node)
         auxiliary_nodes.append(materials_node)
+        print([node.name() for node in auxiliary_nodes])
         
         # Connect a USD ROP to the LOP node
         usd_rop_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'usd_rop')
@@ -95,6 +105,10 @@ class USDEffectWrapper(ABC):
 
         # Set the lop node output file to the save path of the lop node
         usd_path = HoudiniPathUtils.get_fx_usd_cache_file_path(self.effect_name)
+        print('USD Path:', usd_path)
+        if usd_path is None:
+            usd_path = "$HIP/geo/usd_outputs/" + self.effect_name + ".usd"
+            show_message('Note: it appears that you are not located in a shot directory. LOP output path will be set to: ' + usd_path)
         usd_rop_node.parm('lopoutput').set(usd_path)
         auxiliary_nodes.append(usd_rop_node)
 
