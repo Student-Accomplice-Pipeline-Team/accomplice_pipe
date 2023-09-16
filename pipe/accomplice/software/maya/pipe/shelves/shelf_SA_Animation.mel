@@ -572,5 +572,40 @@ global proc shelf_SA_Animation () {
         -commandRepeatable 1
         -flat 1
     ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Studio Library" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Open Shot" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Studio Library" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/lib/studiolibrary/studiolibrary/resource/icons/icon.png" 
+        -image1 "/groups/accomplice/pipeline/lib/studiolibrary/studiolibrary/resource/icons/icon.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import sys\nif '/groups/accomplice/pipeline/lib/studiolibrary' not in sys.path:\n    sys.path.insert(0, '/groups/accomplice/pipeline/lib/studiolibrary')\nimport studiolibrary\nstudiolibrary.main()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
 
 } 
