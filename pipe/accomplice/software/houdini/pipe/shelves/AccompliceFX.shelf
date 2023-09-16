@@ -38,6 +38,9 @@ class USDEffectWrapper(ABC):
 
         self.effect_name = self.get_effect_name(self.null_node.name())
         self.effect_import_node = self.get_import_node()
+        if self.effect_name in [child.name() for child in hou.node('/stage').children()]: # Check to see if the effect is already here before naming it
+            show_message('The node name ' + self.effect_name + " already exists in the stage. The existing node's name will now be suffixed with '_old'")
+            hou.node('/stage/' + self.effect_name).setName(self.effect_name + '_old', unique_name=True)
         self.effect_import_node.setName(self.effect_name, unique_name=True)
         assert self.effect_import_node is not None
         print('Finished initializing USDEffectWrapper')
