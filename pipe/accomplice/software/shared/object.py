@@ -129,14 +129,14 @@ class Asset(JsonSerializable):
             outfile.write(data.to_json())
 
     def get_geo_variants(self):
-        if os.name == "nt":
+        if str(os.name) == "nt":
             path = Path(self.get_geo_path().replace('/groups/', 'G:\\'))
         else:
             path = Path(self.get_geo_path())
 
         geo_variants = []
         if os.path.isdir(path):
-            
+             
 
             path, _, files = next(os.walk(path))
 
@@ -305,15 +305,22 @@ class Shot(JsonSerializable):
         self.name = name
         self.path = path
     
-    def get_shotfile(self, type: Optional[str] = None) -> str:
-
+    def get_shotfile_folder(self, type: Optional[str] = None) -> str:
         if type not in [None, 'main', 'anim', 'camera', 'fx', 'layout', 'lighting']:
             raise ValueError('type must be one of "main", "anim", "camera", "fx", "layout", "lighting"')
+        if type == 'main' or type == None:
+            return self.path 
+        else:
+            return os.path.join(self.path, type)
+
+    
+    def get_shotfile(self, type: Optional[str] = None) -> str:
+        shot_folder = self.get_shotfile_folder(type)
 
         if type == 'main' or type == None:
-            return self.path + '/' + self.name + '.hipnc'
+            return os.path.join(shot_folder, self.name + '.hipnc')
         else:
-            return os.path.join(self.path, type, f'{self.name}_{type}.hipnc')
+            return os.path.join(shot_folder, f'{self.name}_{type}.hipnc')
         
     def get_camera(self, cam_type):
         if cam_type not in ['FLO', 'RLO']:

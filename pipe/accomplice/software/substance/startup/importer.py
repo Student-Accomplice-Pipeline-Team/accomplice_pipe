@@ -215,7 +215,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
                 return
 
             save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
-
+            print(save_path)
             #move current version out of the way
             if os.path.isfile(save_path):
                 new_version(save_path)
@@ -226,12 +226,13 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
                 default_texture_resolution=2048
             )
 
+            
             substance_painter.project.create(
                 mesh_file_path=mesh_path,
                 settings=project_settings
             )
 
-            substance_painter.project.save_as(save_path)
+            #substance_painter.project.save_as(save_path)
 
             #Set Project Metadata
             data = substance_painter.project.Metadata('accomplice')
@@ -248,6 +249,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
                 outfile.close()
 
             self.close()
+            #substance_painter.project.execute_when_not_busy(substance_painter.project.save())
 
     def close_window(self):
         self.close()
