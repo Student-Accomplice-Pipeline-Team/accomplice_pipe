@@ -181,22 +181,44 @@ class Asset(JsonSerializable):
 
         return str(path)
 
-class Character(JsonSerializable):
-    name = None
-    path = None
-    version = None
-    checked_out = False
+class Character(Asset):
 
     def __init__(self, name: str, path: Optional[str] = None) -> None:
         self.name = name
         self.path = None
 
-    def get_geo_path(self):
-        return self.path + '/' + self.name + '_geo.fbx'
+    def get_shader_geo_path(self):
+        return correct_path(self.path) + '/' + self.name + '_geo.fbx'
 
     def get_material_path(self):
         pass
 
+    def get_textures_path(self):
+        return os.path.join(correct_path(self.path), 'textures')
+
+    def create_metadata(self):
+        meta_path = self.get_metadata_path()
+        path = meta_path.replace('meta.json', '')
+        data = AssetMaterials(self.name)
+        geovars = ['Standard']
+
+        hierarchy = {}
+            
+        for geovar in geovars:
+            hierarchy[geovar] = {}
+        
+        data.hierarchy = hierarchy
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+    
+        with open(meta_path, 'w') as outfile:
+            outfile.write(data.to_json())
+
+def correct_path(path):
+        if os.name == "nt":
+            path = path.replace('/groups/', 'G:\\')
+        return path
 
 
 class MaterialType(Enum):
