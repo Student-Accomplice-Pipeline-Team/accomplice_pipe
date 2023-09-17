@@ -602,7 +602,7 @@ global proc shelf_SA_Animation () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "import sys\nif '/groups/accomplice/pipeline/lib/studiolibrary' not in sys.path:\n    sys.path.insert(0, '/groups/accomplice/pipeline/lib/studiolibrary')\nimport studiolibrary\nstudiolibrary.main()" 
+        -command "import sys\nif '/groups/accomplice/pipeline/lib/studiolibrary' not in sys.path:\n    sys.path.insert(0, '/groups/accomplice/pipeline/lib/studiolibrary')\nimport studiolibrary\nstudiolibrary.setLibraries([{'name': 'Accomplice Poses', 'path': r'/groups/accomplice/anim/pose-library', 'default': True, 'theme': {'accentColor': 'rgb(3,252,211)',},},])\nstudiolibrary.main()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
