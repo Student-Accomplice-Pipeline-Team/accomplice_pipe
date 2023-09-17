@@ -34,6 +34,17 @@ Since all of the film's files are on the department's fileserver and mounted at 
    git push --set-upstream origin yourname-dev
    ```
 
+### Using your personal dev environment
+1. Make changes the code. Edit the pipe code, modify some shelf tools, whatever your heart desires.
+1. If you want, you can periodically take snapshots of your work with `git commit`.
+  1. Save your work
+  1. Stage your changes with `git add path/to/file1 path/to/file2 ...`
+  1. Commit your chages with `git commit -m "Message explaining what changes I made"`
+  1. Push your changes up to GitHub with `git push`
+1. *Test* your changes. Make sure everything works the way you think it should and that nothing new is broken. 
+1. When your changes are ready to be added to production, create a *pull request* to merge your code into the `prod` branch of the GitHub repository:
+  1. Make sure that your changes don't conflict  
+
 ## Table of Contents
 - [Usage and features](#usage--features) (for artists)
   - [Maya](#maya)
