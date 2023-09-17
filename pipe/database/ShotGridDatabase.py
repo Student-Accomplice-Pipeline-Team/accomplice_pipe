@@ -12,7 +12,7 @@ if str(os.name) == "nt":
 else:
     sys.path.append('/groups/accomplice/pipeline/lib')
 
-import shotgun_api3
+import shotgun_api3 # Here's some good API reference: https://developer.shotgridsoftware.com/python-api/reference.html
 
 
 class ShotGridDatabase(Database):
