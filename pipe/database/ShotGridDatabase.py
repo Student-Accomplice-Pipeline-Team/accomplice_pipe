@@ -220,7 +220,7 @@ class ShotGridDatabase(Database):
         self.sg.update("Shot", shot_id, data)
     
     def create_asset(self, name, asset_type, asset_path, parent_name=None):
-        id = self.get_asset_id(parent_name)
+        id = self.get_asset_id(parent_name) # TODO: we need to guarantee that this always returns the ID of the parent asset, not the ID of the first asset with the same name!
         data = {
             'project': {'type': 'Project', 'id': self.PROJECT_ID},
             'code': name,
