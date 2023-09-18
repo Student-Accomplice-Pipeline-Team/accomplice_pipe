@@ -5,13 +5,19 @@ from pipe.shared.proxy import proxy
 
 server = proxy.get_proxy()
 
+class HoudiniFXUtils():
+    supported_FX_names = ['sparks', 'smoke', 'money']
+
 class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
-        'filecache': 'filecache::2.0'
+        'filecache': 'filecache::2.0',
+        'money_material': 'accomp_money_material::1.0',
+        'money_apply_rotations': 'money_apply_rotations::1.0',
+        'money_post_process': 'money_post_process::1.0'
     }
 
     def get_node_definition_name(base_name: str) -> str:
@@ -20,10 +26,12 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
         return base_name
     
     def create_node(parent_node: hou.Node, base_name: str, override_name = False) -> hou.Node:
-        if not override_name:
-            node_definition_name = HoudiniNodeUtils.get_node_definition_name(base_name)
-            return parent_node.createNode(node_definition_name)
-        return parent_node.createNode(base_name)
+        if override_name:
+            print('Creating node... ', base_name)
+            return parent_node.createNode(base_name)
+        node_definition_name = HoudiniNodeUtils.get_node_definition_name(base_name)
+        print('Creating node... ', node_definition_name)
+        return parent_node.createNode(node_definition_name)
 
 class HoudiniPathUtils():
     @staticmethod

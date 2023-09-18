@@ -37,3 +37,5 @@
 # Ignore Houdini env.json
 pipe/accomplice/software/houdini/package/env.json
 
+# Ignore HDA backup files
+*_bak*.hdanc
