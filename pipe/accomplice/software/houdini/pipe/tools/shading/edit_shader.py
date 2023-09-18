@@ -210,7 +210,7 @@ class EditShader():
         tex_folder_path = Path(self.texturesPath + '/')
         #print(tex_folder_path)
 
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png.tex')
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
         #print(next(files))
 
         for file in files:
