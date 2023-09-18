@@ -12,7 +12,7 @@ if str(os.name) == "nt":
 else:
     sys.path.append('/groups/accomplice/pipeline/lib')
 
-import shotgun_api3
+import shotgun_api3 # Here's some good API reference: https://developer.shotgridsoftware.com/python-api/reference.html
 
 
 class ShotGridDatabase(Database):
@@ -53,12 +53,13 @@ class ShotGridDatabase(Database):
         fields = [
             'code',
             'sg_path',
+            'id'
         ]
 
         asset = self.sg.find_one('Asset', filters, fields)
         sg_path = asset['sg_path']
         name = os.path.basename(sg_path)
-        return Asset(name, path = asset['sg_path'])
+        return Asset(name, path = asset['sg_path'], id = asset['id'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         # TODO: Ideally it'd be nice to not grab assets that have a parent, but since I can't figure that out, I'm going to just limit the path that's returned from an asset.
@@ -107,8 +108,8 @@ class ShotGridDatabase(Database):
                 'filter_operator': 'all',
                 'filters': [ 
                     [ 'sg_asset_type', 'is_not', t ] for t in self._untracked_asset_types
-                ], 
-            },
+                ]
+            }
         ]
         fields = [
             'code',
@@ -217,3 +218,18 @@ class ShotGridDatabase(Database):
         data = {field: value}
         shot_id = self.get_shot_id(shot)
         self.sg.update("Shot", shot_id, data)
+    
+    def create_asset(self, name, asset_type, asset_path, parent_name=None):
+        id = self.get_asset_id(parent_name) # TODO: we need to guarantee that this always returns the ID of the parent asset, not the ID of the first asset with the same name!
+        data = {
+            'project': {'type': 'Project', 'id': self.PROJECT_ID},
+            'code': name,
+            'sg_asset_type': asset_type,
+            'sg_path': asset_path,
+            'parents': [{'type': 'Asset', 'id':id}]
+        }
+        self.sg.create('Asset', data)
+
+    def delete_asset(self, name):
+        asset_id = self.get_asset_id(name)
+        self.sg.delete('Asset', asset_id)

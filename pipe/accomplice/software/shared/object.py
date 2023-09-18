@@ -42,11 +42,13 @@ class Asset(JsonSerializable):
     _path = None
     version = None
     checked_out = False
-    variants : Iterable[str] = None
+    variants : Iterable[str] = None # TODO: It looks lik this is outdated or depreciated? 
+    id = None
 
-    def __init__(self, name: str, path: Optional[str] = None) -> None:
+    def __init__(self, name: str, path: Optional[str] = None, id: Optional[int] = None) -> None:
         self.name = name
         self._path = self._get_first_path(path)
+        self.id = id
 
     def _get_first_path(self, path: str) -> str:
         if path is None:
