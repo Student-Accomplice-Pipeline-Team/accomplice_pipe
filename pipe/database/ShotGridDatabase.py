@@ -35,9 +35,7 @@ class ShotGridDatabase(Database):
         return Asset(asset_name, path = asset['sg_path'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
-
         assets = GetAllAssetsByName(self, names).get()
-
         return set(
             Asset(
                 os.path.basename(asset['sg_path']),
@@ -62,24 +60,18 @@ class ShotGridDatabase(Database):
         return shot['id']
 
     def get_asset_list(self) -> Sequence[str]:
-        query = GetAllAssets(self, ['tags', 'parents']).get()
+        query = GetAllAssets(self, ['tags', 'parents']).get() # By default, this now filters out variants (child assets)
         
         # Filter the query
         to_return = []
         for asset in query:
-            add = True
             # Filter out any assets with _Set_ in any of their tags
             for tag in asset['tags']:
-                if "_Set_" in tag['name']:
-                    add = False
-            # Filter out child assets (variants)
-            if len(asset['parents']) > 0:
-                add = False
-            if add:
-                sg_path = asset['sg_path']
-                split_path = sg_path.split("/")
-                file_name = split_path[len(split_path) - 1]
-                to_return.append(file_name)
+                if not "_Set_" in tag['name']:
+                    sg_path = asset['sg_path']
+                    split_path = sg_path.split("/")
+                    file_name = split_path[len(split_path) - 1]
+                    to_return.append(file_name)
         return to_return
 
     # TODO: For consistency, you could convert these to use the query helper, but for now I don't want to fix something that's not broken :)
@@ -136,7 +128,7 @@ class ShotGridDatabase(Database):
         shot_id = self.get_shot_id(shot)
         self.sg.update("Shot", shot_id, data)
     
-    def create_asset(self, name, asset_type, asset_path, parent_name=None):
+    def create_asset(self, name, asset_type, asset_path, parent_name=None) -> dict:
         id = self.get_asset_id(parent_name) # TODO: we need to guarantee that this always returns the ID of the parent asset, not the ID of the first asset with the same name!
         data = {
             'project': {'type': 'Project', 'id': self.PROJECT_ID},
@@ -145,11 +137,10 @@ class ShotGridDatabase(Database):
             'sg_path': asset_path,
             'parents': [{'type': 'Asset', 'id':id}]
         }
-        self.sg.create('Asset', data)
+        return self.sg.create('Asset', data)
 
-    def delete_asset(self, name):
-        asset_id = self.get_asset_id(name)
-        self.sg.delete('Asset', asset_id)
+    def delete_asset_by_id(self, id: int):
+        self.sg.delete('Asset', id)
 
 
 class ShotGridQueryHelper(ABC):
@@ -161,10 +152,11 @@ class ShotGridQueryHelper(ABC):
                         'Tool', 
                         'Font'
                     ]
-    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False):
+    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False, filter_out_variants=True):
         self.shot_grid_database = database
         self.shot_grid = database.sg
         self.fields = self._get_all_fields(additional_fields, override_fields)
+        self.filter_out_variants = filter_out_variants
         
     def _get_all_fields(self, additional_fields: list = [], override_fields=False):
         if override_fields:
@@ -200,27 +192,37 @@ class ShotGridQueryHelper(ABC):
         return [
             'code',
             'sg_path',
+            'parents' # Parents are now included by default so that we can filter for everything that doesn't have parents.
         ]
     
 
     def _construct_filter_by_path_end_name(self, name: str) -> list:
-        return self._create_base_filter().append(self._construct_path_name_filter([name]))
+        base_filters = self._create_base_filter()
+        base_filters.append(self._construct_path_name_filter([name]))
+        return base_filters
     
     def _construct_filter_by_path_end_names(self, names: Iterable[str]) -> list:
-        return self._create_base_filter().append(self._construct_path_name_filter(names))
+        base_filters = self._create_base_filter()
+        base_filters.append(self._construct_path_name_filter(names))
+        return base_filters
     
     def _get_all_asset_json_by_name(self, filters, fields):
-        assets = self.sg.find('Asset', filters, fields)
+        assets = self.shot_grid.find('Asset', filters, fields)
+        if self.filter_out_variants:
+            assets = self._filter_out_child_assets(assets)
         return assets
+    
+    def _filter_out_child_assets(self, assets):
+        return [asset for asset in assets if asset['parents'] == []] # Filter out child assets (variants)
     
     @abstractmethod
     def get(self):
         pass
     
 class GetAllAssetsByName(ShotGridQueryHelper):
-    def __init__(self, database: ShotGridDatabase, names: Iterable[str], additional_fields: list = [], override_fields=False):
+    def __init__(self, database: ShotGridDatabase, names: Iterable[str], additional_fields: list = [], override_fields=False, filter_out_variants=True):
         self.names = names
-        super().__init__(database, additional_fields, override_fields)
+        super().__init__(database, additional_fields, override_fields, filter_out_variants)
 
     def _get_all_assets_by_name(self, names: Iterable[str]):
         filters = self._construct_filter_by_path_end_names(names)
@@ -231,23 +233,31 @@ class GetAllAssetsByName(ShotGridQueryHelper):
         return self._get_all_assets_by_name(self.names)
 
 class GetOneAssetByName(ShotGridQueryHelper):
-    def __init__(self, database: ShotGridDatabase, name: Iterable[str], additional_fields: list = [], override_fields=False):
+    def __init__(self, database: ShotGridDatabase, name: Iterable[str], additional_fields: list = [], override_fields=False, filter_out_variants=True):
         self.name = name
-        self.get_all_assets_by_name = GetAllAssetsByName(database, [name], additional_fields + ['parents'], override_fields)
-        super().__init__(database, additional_fields, override_fields)
+        self.get_all_assets_by_name = GetAllAssetsByName(database, [name], additional_fields + ['parents'], override_fields, filter_out_variants)
+        super().__init__(database, additional_fields, override_fields, filter_out_variants)
 
     def _get_one_asset_by_name(self, name: str):
         assets = self.get_all_assets_by_name.get()
-        assets = [asset for asset in assets if asset['parents'] == []] # Filter out child assets (variants)
+        if self.filter_out_variants:
+            assets = self._filter_out_child_assets(assets)
         assert len(assets) == 1, f"Expected to find one asset with name {name}, but found {len(assets)}"
         return assets[0]
     
+    def get(self):
+        return self._get_one_asset_by_name(self.name)
+    
 class GetAllAssets(ShotGridQueryHelper):
-    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False):
-        super().__init__(database, additional_fields, override_fields)
+    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False, filter_out_variants=True):
+        super().__init__(database, additional_fields, override_fields, filter_out_variants)
+
     # Override
     def get(self):
-        return self._get_all_asset_json_by_name(self._create_base_filter(), self.fields)
+        assets = self._get_all_asset_json_by_name(self._create_base_filter(), self.fields)
+        if self.filter_out_variants:
+            assets = self._filter_out_child_assets(assets)
+        return assets
     
 # class GetOneShotByName(ShotGridQueryHelper):
 #     def __init__(self, database: ShotGridDatabase, name: Iterable[str], additional_fields: list = [], override_fields=False):
