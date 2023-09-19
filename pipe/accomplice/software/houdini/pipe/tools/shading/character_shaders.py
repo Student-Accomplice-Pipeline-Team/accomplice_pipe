@@ -70,7 +70,7 @@ class Character_Shaders(edit.EditShader):
     def load_USD(self, node):
         stage = node.parent()
         
-        sublayer = stage.createNode('sublayer', node_name=self.character.name + '_materials')
+        sublayer = stage.createNode('reference', node_name=self.character.name + '_materials')
         sublayer.parm('filepath1').set(self.character.get_material_path())
         node.setInput(1, sublayer)
         
