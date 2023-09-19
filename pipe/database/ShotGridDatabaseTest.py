@@ -52,13 +52,31 @@ class AsynchronousShotGridDatabaseTest(unittest.TestCase):
         self.name = 'AUTOMATED_TEST_SUBASSET'
         self.variant = self.db.create_asset(self.name, 'Environment', '/tmp/' + self.name + '.usd', parent_name='tree')
 
-    def create_test_subasset(self):
-        assert self.variant is not None
+    def test_create_test_subasset(self):
+        self.assertIsNotNone(self.variant)
+        self.assertTrue(type(self.variant) is dict)
+        self.assertEquals(self.variant['name'], self.name)
+        self.assertEquals(self.variant['sg_path'], '/tmp/' + self.name + '.usd')
+        self.assertEquals(self.variant['sg_asset_type'], 'Environment')
+        self.assertEquals(self.variant['parents'], ['tree'])
     
     def tearDown(self) -> None:
         self.db.delete_asset_by_id(self.variant[id])
 
 def run_tests():
-    unittest.main()
+    import time
+    print('About to run tests!')
+    time.sleep(1)
+    suite = unittest.defaultTestLoader.loadTestsFromModule(__import__('ShotGridDatabaseTest'))
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
     print('Done!')
+    print('Test results:')
+    print(f"Ran {result.testsRun} tests in {result.totalTime:.2f} seconds.")
+    if result.wasSuccessful():
+        print("All tests passed!")
+    else:
+        print("Some tests failed or encountered errors.")
+    time.sleep(4)
     wait = input('Press enter to continue...')
+
+run_tests()

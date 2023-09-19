@@ -15,6 +15,8 @@ else:
 
 import shotgun_api3 # Here's some good API reference: https://developer.shotgridsoftware.com/python-api/reference.html
 
+# TODO: One thing that's a little messy about this class is that it handles both the JSON/dictionaries and the Asset objects. It would be nice to separate these out.
+
 class ShotGridDatabase(Database):
     def __init__(self,
                  shotgun_server: str,
