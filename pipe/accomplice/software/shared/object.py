@@ -137,7 +137,6 @@ class Asset(JsonSerializable):
         geo_variants = []
         if os.path.isdir(path):
              
-
             path, _, files = next(os.walk(path))
 
             if files:
@@ -185,16 +184,16 @@ class Character(Asset):
 
     def __init__(self, name: str, path: Optional[str] = None) -> None:
         self.name = name
-        self.path = None
+        self._path = None
 
     def get_shader_geo_path(self):
         return correct_path(self.path) + '/' + self.name + '_geo.fbx'
 
     def get_material_path(self):
-        pass
+        return correct_path(self.path) + '/' + self.name + '_materials.usd'
 
     def get_textures_path(self):
-        return os.path.join(correct_path(self.path), 'textures')
+        return os.path.join(correct_path(self._path), 'textures', self.name)
 
     def create_metadata(self):
         meta_path = self.get_metadata_path()
@@ -214,9 +213,16 @@ class Character(Asset):
     
         with open(meta_path, 'w') as outfile:
             outfile.write(data.to_json())
-
+            
+    def get_hip_file(self):
+        return os.path.join(self.path, self.name + '.hipnc')
+    
+    @property
+    def path(self):
+        return self._path
+    
 def correct_path(path):
-        if os.name == "nt":
+        if str(os.name) == "nt":
             path = path.replace('/groups/', 'G:\\')
         return path
 
