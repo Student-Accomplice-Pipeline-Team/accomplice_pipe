@@ -49,7 +49,7 @@ class EditShader():
         for _, material in self.materialVariant.materials.items():
                     self.materials[material] = {}
 
-        print(self.materials.keys())
+        #print(self.materials.keys())
 
 
         #self.nodes_path = Path(self.asset.path) / 'maps' / 'metadata' / 'nodes.uti'
@@ -215,6 +215,7 @@ class EditShader():
 
         for file in files:
             path = str(file).replace('1001', '<UDIM>')
+            print(path)
             if 'DiffuseColor' in path:
                 channels['DiffuseColor'] = path
             if 'SpecularFaceColor' in path:
@@ -240,7 +241,7 @@ class EditShader():
         #print(next(files))
 
         for file in files:
-            print(file)
+            #print(file)
             path = str(file).replace('1001', '<UDIM>')
             if 'BaseColor' in path:
                 channels['BaseColor'] = path
@@ -276,7 +277,7 @@ class EditShader():
             geo = input.stage()
 
             count = 1
-            print(list(self.materials.keys()))
+            #print(list(self.materials.keys()))
 
             for material in list(self.materials.keys()):
                 
@@ -308,7 +309,7 @@ class EditShader():
         folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Simple)
 
         if material.isPxr:
-            print('is pxr')
+            #print('is pxr')
             controls = self.matLib().node('controls_' + material.name)
 
             for parm in controls.allParms():
