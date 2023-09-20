@@ -191,7 +191,7 @@ class Exporter():
         
         anim_filepath = shot.path + '/anim'
         if not self.dir_exists(anim_filepath):
-            os.mkdir(self.anim_filepath)
+            os.mkdir(anim_filepath)
 
         self.usd_filepath = anim_filepath + '/' + asset + '/' + asset + '.usd'
         print(self.usd_filepath)
@@ -232,14 +232,14 @@ class Exporter():
         
         self.alem_filepath = save_name
         
-        command = "-frameRange " + start + " " + end + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + save_name
+        command = "-frameRange " + start + " " + end + " -attr shop_materialpath" + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + save_name
         print("command: " + command)
         return command
     
     #Exports and versions the alembic
     def version_alembic(self, command):
         #Export alembic to $TEMP_DIR
-        cmds.AbcExport( j=command)
+        cmds.AbcExport(j=command)
 
 
         #Get new version number
