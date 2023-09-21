@@ -394,7 +394,7 @@ class EditShader():
                                                             naming_scheme=hou.parmNamingScheme.RGBA)
                             out_parm.setMinValue(0)
                             out_parm.setMaxValue(2)
-                            hasFuzzCol = True
+                            hasSubSurfCol = hasFuzzCol
                             parm.setExpression('ch(\"../../' + new_name + 'r\")')
                             folder.addParmTemplate(out_parm)
                             
