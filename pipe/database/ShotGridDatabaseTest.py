@@ -2,8 +2,18 @@ import unittest
 
 from accomplice.sg_config import SG_CONFIG
 from .ShotGridDatabase import ShotGridDatabase
+import pdb
 
 
+
+# Run test in Studini with
+# from database import ShotGridDatabaseTest
+
+id_database = {
+    'tree': 5307,
+    'bicyclerack': 5108,
+    'clipboard': 4721
+}
 
 class ShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
@@ -21,19 +31,19 @@ class ShotGridDatabaseTest(unittest.TestCase):
         self.assertTrue(asset.path.endswith('tree'))
     
     def test_get_asset_id(self):
-        # I'll use Letty for this example because it's unlikely that her id will change
-        asset_id = self.db.get_asset_id('letty')
-        self.assertEqual(asset_id, 3954)
+        # Originally I was going to use letty here, but by default the assets don't include the characters.
+        asset_id = self.db.get_asset_id('clipboard')
+        self.assertEqual(asset_id, id_database['clipboard'])
 
     def test_get_asset_id_for_asset_with_subassets_1(self):
         # Tree
         asset_id = self.db.get_asset_id('tree')
-        self.assertEqual(asset_id, 5307)
+        self.assertEqual(asset_id, id_database['tree'])
 
     def test_get_asset_id_for_asset_with_subassets_2(self):
         # Bicycle Rack
         asset_id = self.db.get_asset_id('bicyclerack')
-        self.assertEqual(asset_id, 5108)
+        self.assertEqual(asset_id, id_database['bicyclerack'])
     
     def test_get_asset_list(self):
         asset_list = self.db.get_asset_list()
@@ -55,28 +65,20 @@ class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     def test_create_test_subasset(self):
         self.assertIsNotNone(self.variant)
         self.assertTrue(type(self.variant) is dict)
-        self.assertEquals(self.variant['name'], self.name)
+        self.assertEquals(self.variant['code'], self.name)
         self.assertEquals(self.variant['sg_path'], '/tmp/' + self.name + '.usd')
         self.assertEquals(self.variant['sg_asset_type'], 'Environment')
-        self.assertEquals(self.variant['parents'], ['tree'])
+        self.assertEquals(self.variant['parents'][0]['id'], id_database['tree'])
     
     def tearDown(self) -> None:
-        self.db.delete_asset_by_id(self.variant[id])
+        self.db.delete_asset_by_id(self.variant['id'])
 
 def run_tests():
-    import time
-    print('About to run tests!')
-    time.sleep(1)
-    suite = unittest.defaultTestLoader.loadTestsFromModule(__import__('ShotGridDatabaseTest'))
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
-    print('Done!')
-    print('Test results:')
-    print(f"Ran {result.testsRun} tests in {result.totalTime:.2f} seconds.")
-    if result.wasSuccessful():
-        print("All tests passed!")
-    else:
-        print("Some tests failed or encountered errors.")
-    time.sleep(4)
-    wait = input('Press enter to continue...')
+    tests = unittest.TestSuite()
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseTest))
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(AsynchronousShotGridDatabaseTest))
+    runner = unittest.TextTestRunner(verbosity=3, failfast=True)
+    runner.run(tests)
+
 
 run_tests()
