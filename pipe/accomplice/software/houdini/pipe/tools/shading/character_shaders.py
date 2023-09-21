@@ -8,6 +8,8 @@ from pathlib import *
 import pipe.shared.versions as vs
 import pipe.tools.shading.edit_shader as edit
 
+MATLIB_NAME = "Material_Library"
+
 class Character_Shaders(edit.EditShader):
     
     def __init__(self):
@@ -36,6 +38,10 @@ class Character_Shaders(edit.EditShader):
             self.asset = self.character
             node.parm('toggle').set(1)
             print(self.character.path)
+            
+            ref = node.node('reference1')
+            ref.parm('primpath').set('/' + self.character.name + '/materials')
+            
         else:
             node.parm('toggle').set(0)
         print(character)
@@ -87,7 +93,7 @@ class Character_Shaders(edit.EditShader):
         super().create_materials()
         
     def matLib(self):
-        return hou.node('.').inputs()[1]
+        return hou.node('./' + MATLIB_NAME)
     
     
         
