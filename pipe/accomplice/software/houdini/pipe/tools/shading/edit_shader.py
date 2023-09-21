@@ -148,7 +148,7 @@ class EditShader():
 
     def create_metal(self, mat):
         before = self.matLib().allItems()
-        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/BASIC_MAT.uti')
+        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/METAL_MAT.uti')
         after = self.matLib().allItems()
 
         added = self.get_added_nodes(before, after)
@@ -231,7 +231,10 @@ class EditShader():
 
         for channel in channels:
 
-            nodes[channel].parm('filename').set(channels[channel])
+            if channel != 'Normal':
+                nodes[channel].parm('filename').set(channels[channel])
+            else:
+                nodes[channel].parm('b2r_texture').set(channels[channel])
 
         #Load Preview Maps
         channels = {'BaseColor' : '', 'Metallic' : '', 'Roughness' : ''}
@@ -312,18 +315,108 @@ class EditShader():
             #print('is pxr')
             controls = self.matLib().node('controls_' + material.name)
 
+            hasIOR = False
+            hasSubSurfCol = False
+            hasFuzzCol = False
+            hasExtCoeff = False
+    
             for parm in controls.allParms():
                 #bypass unneeded parm
                 if parm.name() != 'outputnum':
 
-                    new_name = material.name + '_' + parm.name()
-                    out_parm = hou.FloatParmTemplate(new_name, parm.description(), 1, default_value=[parm.eval()])
-                    out_parm.setMinValue(0)
-                    out_parm.setMaxValue(1)
+                    if 'iorCol' in parm.name():
+                        if not hasIOR:
+                            new_name = material.name + '_iorCol'
 
-                    folder.addParmTemplate(out_parm)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('iorColr'),controls.evalParm('iorColg'),controls.evalParm('iorColb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasIOR = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                        else:
+    
+                            new_name = material.name + '_iorCol' + parm.name().split('iorCol')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                        
+                    elif 'ssc' in parm.name():
+                        
+                        if not hasSubSurfCol:
+                            
+                            new_name = material.name + '_ssc'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('sscr'),controls.evalParm('sscg'),controls.evalParm('sscb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasSubSurfCol = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_ssc' + parm.name().split('ssc')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                    
+                    elif 'extcoeff' in parm.name():
+                        
+                        if not hasExtCoeff:
+                            
+                            new_name = material.name + '_extcoeff'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('extcoeffr'),controls.evalParm('extcoeffg'),controls.evalParm('extcoeffb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasExtCoeff = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_extcoeff' + parm.name().split('extcoeff')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                    
+                    elif 'fuzzcolor' in parm.name():
+                        
+                        if not hasFuzzCol:
+                            
+                            new_name = material.name + '_fuzzcolor'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('fuzzcolorr'),controls.evalParm('fuzzcolorg'),controls.evalParm('fuzzcolorb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasSubSurfCol = hasFuzzCol
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_fuzzcolor' + parm.name().split('fuzzcolor')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                            
+                    elif 'thin' in parm.name():
+                        new_name = material.name + '_' + parm.name()
+                        out_parm = hou.ToggleParmTemplate(new_name, parm.description())
+                        parm.setExpression('ch(\"../../' + new_name + '\")')
+                        folder.addParmTemplate(out_parm)
+                    else:
+                        new_name = material.name + '_' + parm.name()
+                        out_parm = hou.FloatParmTemplate(new_name, parm.description(), 1, default_value=[parm.eval()])
+                        out_parm.setMinValue(0)
+                        out_parm.setMaxValue(1)
+                        expression = 'ch(\"../../' + new_name + '\")'
+                        parm.setExpression(expression)
+                        folder.addParmTemplate(out_parm)
 
-                    parm.setExpression('ch(\"../../' + new_name + '\")')
+
                     hou.node('.').setParmTemplateGroup(group)
             
         group.appendToFolder(('Materials'), folder)
@@ -337,7 +430,7 @@ class EditShader():
         for material in self.materials:
             self.create_parm_group(material, group)
         
-        hou.node('.').setParmTemplateGroup(group)
+        hou.node('.').setParmTemplateGroup(group, True)
 
     #renames a material template
     def rename_nodes(self, added, mat):
