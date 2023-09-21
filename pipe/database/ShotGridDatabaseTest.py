@@ -2,9 +2,6 @@ import unittest
 
 from accomplice.sg_config import SG_CONFIG
 from .ShotGridDatabase import ShotGridDatabase
-import pdb
-
-
 
 # Run test in Studini with
 # from database import ShotGridDatabaseTest

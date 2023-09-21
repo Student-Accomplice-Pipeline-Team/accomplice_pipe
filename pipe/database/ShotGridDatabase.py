@@ -7,7 +7,6 @@ from .baseclass import Database
 from shared.object import Asset
 
 import sys
-import pdb
 if str(os.name) == "nt":
     log.info('Running in Windows')
     sys.path.append('G:\\accomplice\\pipeline\\lib')
@@ -217,7 +216,6 @@ class ShotGridQueryHelper(ABC):
     
     def _get_all_asset_json(self):
         assets = self.shot_grid.find('Asset', self.filters, self.fields)
-        # pdb.set_trace()
         if self.filter_out_variants:
             assets = self._filter_out_child_assets(assets)
         return assets
@@ -251,7 +249,6 @@ class GetAllAssetsByName(ShotGridQueryHelper):
 
         # If that fails, try to find assets by code name
         print('No assets found by path end name. Attempting to find assets by code name.')
-        # pdb.set_trace()
         self.filters = self._create_base_filter()
         return self._get_all_assets_by_code_names(self.names)
 
@@ -281,6 +278,8 @@ class GetAllAssets(ShotGridQueryHelper):
             assets = self._filter_out_child_assets(assets)
         return assets
     
+
+# If we had all the time in the world, you could go ahead and continue writing classes like this one...
 # class GetOneShotByName(ShotGridQueryHelper):
 #     def __init__(self, database: ShotGridDatabase, name: Iterable[str], additional_fields: list = [], override_fields=False):
 #         super().__init__(database, additional_fields, override_fields)
@@ -296,6 +295,4 @@ class GetAllAssets(ShotGridQueryHelper):
     
 #     def get(self):
 #         pass
-
-
-# TODO: Test: it's possible that getting b y any code name isn't grabbing letty...
+# ...
