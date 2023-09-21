@@ -25,7 +25,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
         -image "/groups/accomplice/pipeline/icons/accomplice/letty_scare.png" 
@@ -59,7 +58,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
         -image "/groups/accomplice/pipeline/icons/accomplice/ed_kawaii.png" 
@@ -93,7 +91,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
         -image "/groups/accomplice/pipeline/icons/accomplice/vaughn_fig.png" 
@@ -127,7 +124,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
         -image "/groups/accomplice/pipeline/icons/accomplice/heroCar_kawaii.png" 
@@ -161,7 +157,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.3 
         -image "/groups/accomplice/pipeline/icons/accomplice/big_feet_camera.png" 
@@ -195,7 +190,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "rigUpdate" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.4 
@@ -230,7 +224,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "Playblast Exporter" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
@@ -265,7 +258,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "Anim USD Exporter" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
@@ -300,7 +292,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "ctlVFix" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -335,7 +326,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "alt0zeroOut" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -370,7 +360,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "delSetGroundButton" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -405,7 +394,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "fixBrightness" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -453,7 +441,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "spaceSwitch" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -488,7 +475,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "AnimPicker" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -523,7 +509,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "MPHfromSelected" 
         -overlayLabelColor 0 0 0 
         -overlayLabelBackColor 1 1 1 0.5 
@@ -558,7 +543,6 @@ global proc shelf_SA_Animation () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "Open Shot" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.5 
@@ -568,6 +552,73 @@ global proc shelf_SA_Animation () {
         -marginWidth 0
         -marginHeight 1
         -command "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 import QtWidgets, QtGui, QtCore\n\nclass ShotFileDialog(QtWidgets.QDialog):\n    \"\"\" A PyQt class for holding the list of shot files \"\"\"\n    def __init__(self, shot_names, parent=None):\n        super(ShotFileDialog, self).__init__(parent)\n        self.setWindowTitle(\"Open Shot File\")\n        \n        layout = QtWidgets.QVBoxLayout()\n        \n        self.shot_list = QtWidgets.QListWidget()\n        layout.addWidget(self.shot_list)\n        \n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n        \n        cancel_button = QtWidgets.QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.reject)\n        layout.addWidget(cancel_button)\n        \n        for shot_name in shot_names:\n            item = QtWidgets.QListWidgetItem(shot_name)\n            self.shot_list.addItem(item)\n        \n        self.setLayout(layout)\n\nclass InfoDialog(QtWidgets.QDialog):\n    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):\n        super(InfoDialog, self).__init__(parent)\n        self.setWindowTitle(dialog_title)\n        \n        layout = QtWidgets.QVBoxLayout()\n\n        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message\n        layout.addWidget(message_label)  # Add the label to the layout\n\n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n\n        if include_cancel_button:\n            cancel_button = QtWidgets.QPushButton(\"Cancel\")\n            cancel_button.clicked.connect(self.reject)\n            layout.addWidget(cancel_button)\n\n        self.setLayout(layout)\n\n\ndef open_file(file_path):\n    \"\"\" Opens a new Maya file \"\"\"\n    cmds.file(file_path, open=True, force=True)\n\ndef create_new_file(file_path):\n    \"\"\" Creates a new Maya file \"\"\"\n    directory = os.path.dirname(file_path)\n    if not os.path.isdir(directory):\n        os.makedirs(directory)\n    cmds.file(new=True, force=True)\n    cmds.file(rename=file_path)\n    cmds.file(save=True)\n    \ndef open_shot_file():\n    unsaved_changes = cmds.file(query=True, modified=True)\n    if unsaved_changes:\n        response = cmds.confirmDialog(\n            title=\"Unsaved Changes\",\n            message=\"The current file has unsaved changes. Continue anyway?\",\n            button=[\"Continue\", \"Cancel\"],\n            defaultButton=\"Cancel\",\n            cancelButton=\"Cancel\",\n            dismissString=\"Cancel\"\n        )\n        if response == \"Cancel\":\n            return\n    \n    shot_names = sorted(pipe.server.get_shot_list())\n    \n    shot_dialog = ShotFileDialog(shot_names)\n    result = shot_dialog.exec_()\n    \n    if result == QtWidgets.QDialog.Accepted:\n        selected_item = shot_dialog.shot_list.currentItem()\n        if selected_item:\n            shot_name = selected_item.text()\n            shot = pipe.server.get_shot(shot_name)\n            \n            file_path = shot.get_maya_shotfile_path()\n            \n            if os.path.isfile(file_path): # If the file exists\n                # Open the file\n                open_file(file_path)\n            else: # Otherwise, open a new tile and save it\n                dialog = InfoDialog(\"Create New File\", \"Shot \" + shot_name + \" does not yet exist. Would you like to create it?\", include_cancel_button=True)\n                response = dialog.exec_()\n                if response == QtWidgets.QDialog.Accepted:\n                    create_new_file(file_path)\n                else:\n                    dialog = InfoDialog(\"Shot not created.\", \"The shot was not created.\")\n                    response = dialog.exec_()\n                    \n\nopen_shot_file()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "animBot Toggle - This will toggle animBot toolbar ON and OFF." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "animBot - animBot Toggle" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/usr/autodesk/ApplicationPlugins/animBot/2.4.1/animBot/_resources/img/icons_shelf/white/create_toggle_button_on_shelf_shelf.png" 
+        -image1 "/usr/autodesk/ApplicationPlugins/animBot/2.4.1/animBot/_resources/img/icons_shelf/white/create_toggle_button_on_shelf_shelf.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from animBot._api.core import CORE as ANIMBOT_CORE; ANIMBOT_CORE.trigger.animBotMenu_toggle();" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Studio Library" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Open Shot" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Studio Library" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "/groups/accomplice/pipeline/lib/studiolibrary/studiolibrary/resource/icons/icon.png" 
+        -image1 "/groups/accomplice/pipeline/lib/studiolibrary/studiolibrary/resource/icons/icon.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import sys\nif '/groups/accomplice/pipeline/lib/studiolibrary' not in sys.path:\n    sys.path.insert(0, '/groups/accomplice/pipeline/lib/studiolibrary')\nimport studiolibrary\nstudiolibrary.setLibraries([{'name': 'Accomplice Poses', 'path': r'/groups/accomplice/anim/pose-library', 'default': True, 'theme': {'accentColor': 'rgb(3,252,211)',},},])\nstudiolibrary.main()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

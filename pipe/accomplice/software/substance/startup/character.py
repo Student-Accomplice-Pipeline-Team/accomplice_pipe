@@ -156,6 +156,10 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             print('no metadata found')
             character.create_metadata()
             meta = character.get_metadata()
+        else:
+            print('metadata found!')
+
+        print(meta.hierarchy)
     
         self.importButton.setEnabled(True)
 
@@ -228,6 +232,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
     def set_file(self):
             global character
+            global meta
             #Set Project Metadata
             data = substance_painter.project.Metadata('accomplice')
             data.set('character', character.name)
