@@ -30,10 +30,12 @@ class EditShader():
 
         if asset_name == None:
             self.asset = None
-            self.materials = {}
+
             self.materialVariant = None
             self.nodes_path = None
             return
+        
+        self.materials = {}
 
         self.asset = pipe.server.get_asset(asset_name)
         
@@ -46,6 +48,8 @@ class EditShader():
 
         for _, material in self.materialVariant.materials.items():
                     self.materials[material] = {}
+
+        #print(self.materials.keys())
 
 
         #self.nodes_path = Path(self.asset.path) / 'maps' / 'metadata' / 'nodes.uti'
@@ -109,7 +113,7 @@ class EditShader():
         matType = MaterialType(mat.matType)
 
         if matType == MaterialType.BASIC:
-            print('creating basic')
+            print(mat.name)
             self.create_basic(mat)
 
         if matType == MaterialType.METAL:
@@ -117,7 +121,7 @@ class EditShader():
             self.create_metal(mat)
 
         if matType == MaterialType.GLASS:
-            print('creating glass')
+            print(mat.name)
             self.create_glass(mat)
 
         if matType == MaterialType.CLOTH:
@@ -144,7 +148,7 @@ class EditShader():
 
     def create_metal(self, mat):
         before = self.matLib().allItems()
-        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/BASIC_MAT.uti')
+        self.matLib().loadItemsFromFile('/groups/accomplice/shading/DEF/METAL_MAT.uti')
         after = self.matLib().allItems()
 
         added = self.get_added_nodes(before, after)
@@ -191,21 +195,27 @@ class EditShader():
         self.materials[mat]['Normal'] = self.matLib().node('normal_map_' + mat.name)
         self.materials[mat]['Presence'] = self.matLib().node('presence_' + mat.name)
         self.materials[mat]['Displacement'] = self.matLib().node('displacement_' + mat.name)
+        
+        self.materials[mat]['BaseColor'] = self.matLib().node('preview_diffuse_color_' + mat.name)
+        self.materials[mat]['Metallic'] = self.matLib().node('preview_metallic_' + mat.name)
+        self.materials[mat]['Roughness'] = self.matLib().node('preview_roughness_' + mat.name)
 
     #put the texture path into each texture node
     def load_textures(self, material):
 
         nodes = self.materials[material]
 
+        #Load Renderman Maps
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
-        print(tex_folder_path)
+        #print(tex_folder_path)
 
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png.tex')
-        print(next(files))
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
+        #print(next(files))
 
         for file in files:
             path = str(file).replace('1001', '<UDIM>')
+            print(path)
             if 'DiffuseColor' in path:
                 channels['DiffuseColor'] = path
             if 'SpecularFaceColor' in path:
@@ -221,13 +231,38 @@ class EditShader():
 
         for channel in channels:
 
-            nodes[channel].parm('filename').set(channels[channel])
+            if channel != 'Normal':
+                nodes[channel].parm('filename').set(channels[channel])
+            else:
+                nodes[channel].parm('b2r_texture').set(channels[channel])
 
-            #setup previs color shader
-            if channel == 'DiffuseColor':
-                
-                self.matLib().node('preview_diffuse_color_' + material.name).parm('file').set(channels[channel])
+        #Load Preview Maps
+        channels = {'BaseColor' : '', 'Metallic' : '', 'Roughness' : ''}
+        tex_folder_path = Path(self.texturesPath + '/PBRMR/')
+
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.png')
+        #print(next(files))
+
+        for file in files:
+            #print(file)
+            path = str(file).replace('1001', '<UDIM>')
+            if 'BaseColor' in path:
+                channels['BaseColor'] = path
+            if 'Metallic' in path:
+                channels['Metallic'] = path
+            if 'Roughness' in path:
+                channels['Roughness'] = path
+
+        for channel in channels:
+
+            nodes[channel].parm('file').set(channels[channel])
+        
             
+            #setup previs roughness texture
+            if channel == 'SpecularRoughness':
+                
+                self.matLib().node('preview_roughness_' + material.name).parm('file').set(channels[channel])
+
     #assign each material to its corresponding named primitive
     def assign_materials(self, value):
         print("assigning")
@@ -245,7 +280,7 @@ class EditShader():
             geo = input.stage()
 
             count = 1
-            print(list(self.materials.keys()))
+            #print(list(self.materials.keys()))
 
             for material in list(self.materials.keys()):
                 
@@ -277,21 +312,111 @@ class EditShader():
         folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Simple)
 
         if material.isPxr:
-            print('is pxr')
+            #print('is pxr')
             controls = self.matLib().node('controls_' + material.name)
 
+            hasIOR = False
+            hasSubSurfCol = False
+            hasFuzzCol = False
+            hasExtCoeff = False
+    
             for parm in controls.allParms():
                 #bypass unneeded parm
                 if parm.name() != 'outputnum':
 
-                    new_name = material.name + '_' + parm.name()
-                    out_parm = hou.FloatParmTemplate(new_name, parm.description(), 1, default_value=[parm.eval()])
-                    out_parm.setMinValue(0)
-                    out_parm.setMaxValue(1)
+                    if 'iorCol' in parm.name():
+                        if not hasIOR:
+                            new_name = material.name + '_iorCol'
 
-                    folder.addParmTemplate(out_parm)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('iorColr'),controls.evalParm('iorColg'),controls.evalParm('iorColb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasIOR = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                        else:
+    
+                            new_name = material.name + '_iorCol' + parm.name().split('iorCol')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                        
+                    elif 'ssc' in parm.name():
+                        
+                        if not hasSubSurfCol:
+                            
+                            new_name = material.name + '_ssc'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('sscr'),controls.evalParm('sscg'),controls.evalParm('sscb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasSubSurfCol = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_ssc' + parm.name().split('ssc')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                    
+                    elif 'extcoeff' in parm.name():
+                        
+                        if not hasExtCoeff:
+                            
+                            new_name = material.name + '_extcoeff'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('extcoeffr'),controls.evalParm('extcoeffg'),controls.evalParm('extcoeffb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasExtCoeff = True
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_extcoeff' + parm.name().split('extcoeff')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                    
+                    elif 'fuzzcolor' in parm.name():
+                        
+                        if not hasFuzzCol:
+                            
+                            new_name = material.name + '_fuzzcolor'
+                            print(new_name)
+                            out_parm = hou.FloatParmTemplate(new_name, parm.description(), 3,
+                                                            default_value=[controls.evalParm('fuzzcolorr'),controls.evalParm('fuzzcolorg'),controls.evalParm('fuzzcolorb')],
+                                                            look=hou.parmLook.ColorSquare, 
+                                                            naming_scheme=hou.parmNamingScheme.RGBA)
+                            out_parm.setMinValue(0)
+                            out_parm.setMaxValue(2)
+                            hasSubSurfCol = hasFuzzCol
+                            parm.setExpression('ch(\"../../' + new_name + 'r\")')
+                            folder.addParmTemplate(out_parm)
+                            
+                        else:
+                            new_name = material.name + '_fuzzcolor' + parm.name().split('fuzzcolor')[1]
+                            parm.setExpression('ch(\"../../' + new_name + '\")')
+                            
+                    elif 'thin' in parm.name():
+                        new_name = material.name + '_' + parm.name()
+                        out_parm = hou.ToggleParmTemplate(new_name, parm.description())
+                        parm.setExpression('ch(\"../../' + new_name + '\")')
+                        folder.addParmTemplate(out_parm)
+                    else:
+                        new_name = material.name + '_' + parm.name()
+                        out_parm = hou.FloatParmTemplate(new_name, parm.description(), 1, default_value=[parm.eval()])
+                        out_parm.setMinValue(0)
+                        out_parm.setMaxValue(1)
+                        expression = 'ch(\"../../' + new_name + '\")'
+                        parm.setExpression(expression)
+                        folder.addParmTemplate(out_parm)
 
-                    parm.setExpression('ch(\"../../' + new_name + '\")')
+
                     hou.node('.').setParmTemplateGroup(group)
             
         group.appendToFolder(('Materials'), folder)
@@ -305,7 +430,7 @@ class EditShader():
         for material in self.materials:
             self.create_parm_group(material, group)
         
-        hou.node('.').setParmTemplateGroup(group)
+        hou.node('.').setParmTemplateGroup(group, True)
 
     #renames a material template
     def rename_nodes(self, added, mat):

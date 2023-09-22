@@ -25,7 +25,6 @@ global proc shelf_SA_Modeling () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "Publish Asset" 
         -overlayLabelColor 2.624876 0.801436 0.012446 
         -overlayLabelBackColor 0.227129 0.227129 0.227129 0.5 
@@ -34,12 +33,11 @@ global proc shelf_SA_Modeling () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "from pipe.asset import publish; publish();"
+        -command "from pipe.asset import publish; publish();" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
     ;
-
     shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
@@ -61,7 +59,6 @@ global proc shelf_SA_Modeling () {
         -flipX 0
         -flipY 0
         -useAlpha 1
-        -font "plainLabelFont" 
         -imageOverlayLabel "Layout" 
         -overlayLabelColor 2.624876 0.801436 0.012446 
         -overlayLabelBackColor 0.227129 0.227129 0.227129 0.5 
@@ -70,7 +67,7 @@ global proc shelf_SA_Modeling () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "from pipe.asset import import_layout; import_layout();"
+        -command "from pipe.asset import import_layout; import_layout();" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

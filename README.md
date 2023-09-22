@@ -34,6 +34,23 @@ Since all of the film's files are on the department's fileserver and mounted at 
    git push --set-upstream origin yourname-dev
    ```
 
+### Using your personal dev environment
+1. Make changes the code. Edit the pipe code, modify some shelf tools, whatever your heart desires.
+1. If you want, you can periodically take snapshots of your work with `git commit`.
+   1. Save your work
+   1. Stage your changes with `git add path/to/file1 path/to/file2 ...`
+   1. Commit your chages with `git commit -m "Message explaining what changes I made"`
+   1. Push your changes up to GitHub with `git push`
+1. *Test* your changes. Make sure everything works the way you think it should and that nothing new is broken. 
+1. When your changes are ready to be added to production, create a *pull request* to merge your code into the `prod` branch of the GitHub repository:
+   1. Make sure that your changes don't conflict with changes someone else has already made. Run `git pull origin prod` to make sure you have the most recent chages to the `prod` branch downloaded.
+      - If git encounters an error downloading the most recent changes, it will tell you what the problem is and you'll need to resolve it before continuing.
+   1. Once you have successfully run `git pull origin prod`, commit and push all your changes if you haven't already done so (see step 2)
+   1. Next, go to the project page on GitHub and switch from `prod` to your dev branch (top left, underneath the name of the repo). If you have committed and pushed correctly, you should see a message that says something like "This branch is *X commit(s) ahead of prod.". Click on the *Contribute* button and press *Open pull request*
+   1. Name your pull request and write a small description of what changes you are making. 
+   1. Make sure the merge mode is set to *Squash and merge*, then click the big green button to merge your changes into `prod`.
+   1. Finally, navigate to `/groups/accomplice/pipeline` and run `git pull` to update production code with your changes.
+
 ## Table of Contents
 - [Usage and features](#usage--features) (for artists)
   - [Maya](#maya)

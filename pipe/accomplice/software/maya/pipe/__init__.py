@@ -21,6 +21,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # Load the pipeline's shelves once the UI has finished loading
+print('LOADING SHELVES')
 cmds.evalDeferred("pipe.shelves.load()")
 
 server = get_proxy()

@@ -19,8 +19,8 @@ from typing import Mapping, Any, MutableSet, MutableSequence
 
 from baseclass import SimplePipe
 
-#from .sg_config import SG_CONFIG
-#from database.ShotGridDatabase import ShotGridDatabase
+from .sg_config import SG_CONFIG
+from database.ShotGridDatabase import ShotGridDatabase
 
 from . import software
 from .software.interface import SoftwareProxyInterface
@@ -105,6 +105,19 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                     asset_data = asset_data[:-1]
 
                 self.wfile.write(asset_data.encode('utf-8'))
+            elif url.path == '/characters':
+                characters = self.pipe.get_characters(parse_qs(url.query))
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+
+                character_data = ''
+                for character in characters:
+                    character_data += character + ','
+                if character_data.endswith(','):
+                    character_data = character_data[:-1]
+
+                self.wfile.write(character_data.encode('utf-8'))
             elif url.path == '/shots':
                 shots = self.pipe.get_shots(parse_qs(url.query))
                 self.send_response(HTTPStatus.OK)
@@ -146,6 +159,13 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
 class AccomplicePipe(SimplePipe):
     """BYU's Student Accomplice (2024) pipeline."""
+
+    character_lookup: dict = {
+        'letty':        '/characters/letty',
+        'ed':           '/characters/ed',
+        'vaughn':       '/characters/vaughn',
+        'studentcar':   '/assets/vehicles/studentcar'
+    }
 
     asset_lookup: dict = {
         ### Props
@@ -202,26 +222,26 @@ class AccomplicePipe(SimplePipe):
         'sewerlid':         '/environment/ground/components/sewerlid',
         
         # Setdressing
-        'bench':            '/environments/setdressing/bench',
-        'bicyclerack':      '/environments/setdressing/bicyclerack',
-        'chair':            '/environments/setdressing/chair',
-        'cinderblock':      '/environments/setdressing/cinderblock',
-        'dumpster':         '/environments/setdressing/dumpster',
-        'firehydrant':      '/environments/setdressing/firehydrant',
-        'lamp':             '/environments/setdressing/lamp',
-        'mailbox':          '/environments/setdressing/mailbox',
-        'parkingmeter':     '/environments/setdressing/parkingmeter',
-        'recyclebin':       '/environments/setdressing/recyclebin',
-        'shrub':            '/environments/setdressing/shrub',
-        'sign':             '/environments/setdressing/sign',
-        'stoplight':        '/environments/setdressing/stoplight',
-        'table':            '/environments/setdressing/table',
-        'trafficcone':      '/environments/setdressing/trafficcone',
-        'trash':            '/environments/setdressing/trash',
-        'trashbag':         '/environments/setdressing/trashbag',
-        'trashcan':         '/environments/setdressing/trashcan',
-        'tree':             '/environments/setdressing/tree',
-        'treebase':         '/environments/setdressing/treebase',
+        'bench':            '/environment/setdressing/bench',
+        'bicyclerack':      '/environment/setdressing/bicyclerack',
+        'chair':            '/environment/setdressing/chair',
+        'cinderblock':      '/environment/setdressing/cinderblock',
+        'dumpster':         '/environment/setdressing/dumpster',
+        'firehydrant':      '/environment/setdressing/firehydrant',
+        'lamp':             '/environment/setdressing/lamp',
+        'mailbox':          '/environment/setdressing/mailbox',
+        'parkingmeter':     '/environment/setdressing/parkingmeter',
+        'recyclebin':       '/environment/setdressing/recyclebin',
+        'shrub':            '/environment/setdressing/shrub',
+        'sign':             '/environment/setdressing/sign',
+        'stoplight':        '/environment/setdressing/stoplight',
+        'table':            '/environment/setdressing/table',
+        'trafficcone':      '/environment/setdressing/trafficcone',
+        'trash':            '/environment/setdressing/trash',
+        'trashbag':         '/environment/setdressing/trashbag',
+        'trashcan':         '/environment/setdressing/trashcan',
+        'tree':             '/environment/setdressing/tree',
+        'treebase':         '/environment/setdressing/treebase',
 
         ### Vehicles
         'backgroundcar':    '/vehicles/backgroundcar',
@@ -276,12 +296,12 @@ class AccomplicePipe(SimplePipe):
 
     _data_root = "/groups/accomplice/pipeline/production"
 
-#    _database = ShotGridDatabase(
-#        SG_CONFIG['SITE_NAME'],
-#        SG_CONFIG['SCRIPT_NAME'],
-#        SG_CONFIG['SCRIPT_KEY'],
-#        SG_CONFIG['ACCOMPLICE_ID']
-#    )
+    _database = ShotGridDatabase(
+        SG_CONFIG['SITE_NAME'],
+        SG_CONFIG['SCRIPT_NAME'],
+        SG_CONFIG['SCRIPT_KEY'],
+        SG_CONFIG['ACCOMPLICE_ID']
+    )
 
     @property
     def port(self) -> int:
@@ -363,28 +383,40 @@ class AccomplicePipe(SimplePipe):
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                return self.asset_lookup.keys()
-                #return self._database.get_asset_list()
+                # return self.asset_lookup.keys()
+                return self._database.get_asset_list()
 
         # Get the specified assets
         if 'name' in query:
-            return set([self.asset_lookup.get(asset) for asset in query.get('name')])
-            #return set(self._database.get_assets(query.get('name')))
-        
-        return self.asset_lookup
+            # return set([self.asset_lookup.get(asset) for asset in query.get('name')])
+            return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
+        raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
+        # return self.asset_lookup
+
+    '''Temporary character pipeline'''
+    def get_characters(self, query: Mapping[str, Any]) -> MutableSet:
+        log.info('doing the things')
+        log.info(self.character_lookup.keys())
+        if 'list' in query:
+            list_type = query.get('list')
+            if 'name' in list_type:
+                return self.character_lookup.keys()
+
+        if 'name' in query:
+            return set([self.character_lookup.get(asset) for asset in query.get('name')])
     
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all shots
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                return self.shot_lookup.keys()
-                #return self._database.get_shot_list()
+                # return self.shot_lookup.keys()
+                return self._database.get_shot_list()
 
         # Get the specified shots
         if 'name' in query:
-            return set([self.shot_lookup.get(shot) for shot in query.get('name')])
-            #return set(self._database.get_assets(query.get('name')))
+            # return set([self.shot_lookup.get(shot) for shot in query.get('name')])
+            return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
         
         return self.shot_lookup
 

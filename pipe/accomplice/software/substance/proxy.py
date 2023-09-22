@@ -16,7 +16,8 @@ class SubstanceProxy(HTTPSoftwareProxy):
     pipe_dir = substance_plugin_path.parent.parent
 
     # TODO: Define colorspace variables to force the correct colorspace
-    substance_env_vars = {'SUBSTANCE_PAINTER_PLUGINS_PATH': substance_plugin_path}
+    substance_env_vars = {'SUBSTANCE_PAINTER_PLUGINS_PATH': substance_plugin_path,
+                            'QT_PLUGIN_PATH':           '',}
 
     def __init__(
         self,

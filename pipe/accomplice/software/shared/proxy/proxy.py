@@ -8,7 +8,7 @@ from typing import Any, Iterable, Type, Union
 
 from .. import env
 from ..exception import ServerError
-from ..object import Asset, JsonSerializable, Shot
+from ..object import Asset, JsonSerializable, Shot, Character
 from .interface import PipeProxyInterface
 
 log = logging.getLogger(__name__)
@@ -137,10 +137,23 @@ class _PipeProxy(PipeProxyInterface):
 
     def get_asset(self, name: str) -> Asset:
         """Get an asset's data from the pipe."""
-        asset = Asset(name)
-        asset.path = '/groups/accomplice/pipeline/production/assets' + self._get_data(f'/assets?name={name}', Asset).strip()
+        sg_path = self._get_data(f'/assets?name={name}'.replace(" ", "+"), Asset).strip()
+        split_path = sg_path.split("/")
+        file_name = split_path[len(split_path) - 1]
+        asset = Asset(file_name)
+        asset.path = '/groups/accomplice/pipeline/production/assets' + sg_path
         return asset
-        #return self._get_data(f'/assets?name={name}', Asset)
+
+    def get_character(self, name: str) -> Character:
+        """Get a character's data from the pipe"""
+        pipe_path = self._get_data(f'/characters?name={name}', Character).strip()
+        character = Character(name)
+        character._path = '/groups/accomplice/pipeline/production' + pipe_path
+        return character
+
+    def get_character_list(self) -> Iterable[str]:
+        """Get a list of all characters from the pipe."""
+        return self._get_data('/characters?list=name', str).split(',')
 
     def get_asset_list(self) -> Iterable[str]:
         """Get a list of all assets from the pipe."""
@@ -160,7 +173,7 @@ class _PipeProxy(PipeProxyInterface):
     def get_shot(self, name: str) -> Shot:
         """Get a shot's data from the pipe."""
         shot = Shot(name)
-        shot.path = '/groups/accomplice/pipeline/production/sequences' + self._get_data(f'/shots?name={name}', Shot).strip()
+        shot.path = f'/groups/accomplice/pipeline/production/sequences/{name[0]}/shots/{name[2:]}'
         return shot
 
     def get_shot_list(self) -> Iterable[str]:

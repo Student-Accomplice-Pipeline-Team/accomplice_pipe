@@ -5,28 +5,28 @@ import maya.cmds as cmds
 import maya.mel as mel
 import pymel.core as pymelc
 
-shelf_file_prefix = 'shelf_'
-shelf_file_ext = '.mel'
+SHELF_FILE_PREFIX = 'shelf_'
+SHELF_FILE_EXTENSION = '.mel'
 
 
 def load():
     # Get the paths to any existing shelf files
     shelves_path = Path(__file__).resolve().parent
     shelf_filepaths = [file for file in os.listdir(shelves_path)
-                       if file.startswith(shelf_file_prefix) and
-                       file.endswith(shelf_file_ext)]
+                       if file.startswith(SHELF_FILE_PREFIX) and
+                       file.endswith(SHELF_FILE_EXTENSION)]
 
     # Load each shelf
     for filename in shelf_filepaths:
         print(f"Loading {filename}")
-        _load_shelf(filename)
+        # _load_shelf(filename) # TODO: Fix this, I temporarily commented this out to see if that will keep Maya from deleting the shelf tools.
 
     print("Done loading")
 
 
 def _get_shelf_name(filename: str):
     # Strip the prefix and file extension
-    return filename[len(shelf_file_prefix):-len(shelf_file_ext)]
+    return filename[len(SHELF_FILE_PREFIX):-len(SHELF_FILE_EXTENSION)]
 
 
 def _load_shelf(filename: str):
@@ -39,6 +39,7 @@ def _load_shelf(filename: str):
     # Load the shelf
     mel.eval(f"loadNewShelf {filename}")
 
+    # NOTE: My (Anson's) thoughts are that this is a wonky idea because Maya might crash unexpectedly and junk like that... 
     # Create a job to clean up the shelf when Maya exits
     cmds.scriptJob(
         event=['quitApplication',

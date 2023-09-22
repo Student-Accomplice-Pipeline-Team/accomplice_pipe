@@ -49,7 +49,7 @@ if __name__ == "__main__":
 def launch_exporter():
 
     if not substance_painter.project.is_open():
-        QtWidgets.QMessageBox.warning(None, "No project open", "Please open a project before trying to publish, IDIOT!!!")
+        QtWidgets.QMessageBox.warning(None, "No project open", "Please open a project before trying to publish.")
         return
     
     # Check for existing windows and close them before opening a new one
@@ -226,33 +226,64 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
     def do_export(self):
 
         data = substance_painter.project.Metadata('accomplice')
-        asset = pipe.server.get_asset(data.get('asset'))
-        geo_variant = data.get('geo_variant')
+        character = data.get('character')
+        if character:
+            asset = pipe.server.get_character(character)
+            asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
 
-        asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
+            export_path = asset_path / 'textures' / asset.name
+            tmp_path = asset_path / 'textures' / asset.name / 'tmp'
 
-        material_variant = data.get('material_variant')
+        else:
+            asset = pipe.server.get_asset(data.get('asset'))
+            geo_variant = data.get('geo_variant')
+            material_variant = data.get('material_variant')
+
+            asset_path = pathlib.Path(asset.path.replace('/groups/', 'G:\\'))
+
+            export_path = asset_path / 'textures' / geo_variant / material_variant
+            tmp_path = asset_path / 'textures' / geo_variant / material_variant / 'tmp'
+
+       
 
         materials = {}
 
         print(asset.name)
         print(asset_path)
+        print('this works?')
 
         resource_dir = pathlib.Path().cwd() / 'resources'
 
-        export_path = asset_path / 'textures' / geo_variant / material_variant
+
   
         if not os.path.exists(str(export_path)):
             os.makedirs(str(export_path))
+
+        if not os.path.exists(str(tmp_path)):
+            os.makedirs(str(tmp_path))
+
+        print(tmp_path)
         
         meta = asset.get_metadata()
+        if not meta:
+            print('no metadata found')
+            asset.create_metadata()
+            meta = asset.get_metadata()
+
+        print(meta.hierarchy)
+
+        if not meta:
+            QtWidgets.QMessageBox.warning(self, "Error", "Missing Metadata file")
+            return
+
         metadata_path = asset.get_metadata_path()
 
-        if not os.path.exists(str(metadata_path)):
-            os.makedirs(str(metadata_path))
+        #Define RenderMan export preset
+        RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
+            substance_painter.resource.Usage.EXPORT)
 
         #Define export preset
-        RMAN_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "RMAN-ACCOMP.spexp"),
+        PBRMR_preset = substance_painter.resource.import_project_resource(os.path.join(resource_dir, "PBRMR_ACCOMP.spexp"),
             substance_painter.resource.Usage.EXPORT)
 
         create_version(str(export_path))
@@ -285,7 +316,7 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
             
             RMAN_config = {
                 "exportShaderParams" 	: False,
-                "exportPath" 			: str(export_path),
+                "exportPath" 			: str(tmp_path),
                 "exportList"			: [ { "rootPath" : str(stack) } ],
                 "exportPresets" 		: [ { "name" : "default", "maps" : [] } ],
                 "defaultExportPreset" 	: RMAN_preset.identifier().url(),
@@ -299,23 +330,64 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
                 ]
             }
 
+            PBRMR_config = {
+                "exportShaderParams" 	: False,
+                "exportPath" 			: str(export_path),
+                "exportList"			: [ { "rootPath" : str(stack) } ],
+                "exportPresets" 		: [ { "name" : "default", "maps" : [] } ],
+                "defaultExportPreset" 	: PBRMR_preset.identifier().url(),
+                "exportParameters" 		: [
+                    {
+                        "parameters"	: 
+                            {
+                                "paddingAlgorithm": "infinite" ,
+                            }
+                    }
+                ]
+            }
+
             error = False
 
             try:
-                substance_painter.export.export_project_textures(RMAN_config)
+                substance_painter.export.export_project_textures(PBRMR_config)
+            except Exception as e:
+                error = True
+                print(e)
+                QtWidgets.QMessageBox.warning(self, "Error",
+                "An error occurred while exporting PBRMR textures. Please check the console for more information.")
 
+            try:
+                substance_painter.export.export_project_textures(RMAN_config)
 
             except Exception as e:
                 error = True
                 print(e)
                 QtWidgets.QMessageBox.warning(self, "Error",
-                                            "You screwed up maaaaaan")
+                                            "An error occurred while exporting RMAN textures. Please check the console for more information.")
             
             if error:
                 QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
                 return
             
-        meta.hierarchy[geo_variant][material_variant].materials = materials
+        #Convert to tex
+        try:
+            txmake(export_path, tmp_path)
+            shutil.rmtree(tmp_path)
+        except Exception as e:
+            error = True
+            print(e)
+            QtWidgets.QMessageBox.warning(self, "Error",
+                                            "Oh whoops, I screwed up")
+        
+        if error:
+                QtWidgets.QMessageBox.warning(self, "Error", "An error occurred while exporting textures. Please check the console for more information.")
+                return
+
+        if character:
+            meta.hierarchy['Standard'][asset.name].materials = materials
+        else:
+            meta.hierarchy[geo_variant][material_variant].materials = materials
+
 
         with open(metadata_path, 'w') as outfile:
             toFile = meta.to_json()
@@ -324,6 +396,65 @@ class SubstanceExporterWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(self, "Export complete", "Textures exported successfully.")
 
         self.close()
+
+def startupInfo():
+    """Returns a Windows-only object to make sure tasks launched through
+    subprocess don't open a cmd window.
+
+    Returns:
+        subprocess.STARTUPINFO -- the properly configured object if we are on
+                                  Windows, otherwise None
+    """
+    startupinfo = None
+    if str(os.name) == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    return startupinfo
+
+def txmake(export_path, tmp_path):
+    rmantree = os.environ['RMANTREE']
+    binary = os.path.join(rmantree,'bin', 'txmake.exe')
+    cmd = [binary]
+
+    cmd += ['-resize', 'round-',
+            '-mode', 'clamp',
+            '-format', 'pixar',
+            '-compression', 'lossless',
+            '-newer',
+            'src', 'dst']
+    b2r_command = [binary]
+    
+    b2r_command += ['-resize', 'round-',
+                    '-mode', 'periodic',
+                    '-filter', 'box',
+                    '-mipfilter', 'box',
+                    '-bumprough', '2', '0', '1', '0', '0','1',
+                    '-newer',
+                    'src', 'dst']
+    
+    for img in os.listdir(tmp_path):
+
+        dirname, filename = os.path.split(img)
+        if 'Normal' in filename:
+            print("Converting " + filename + " to .b2r! Be Patient!")
+            b2rfile = os.path.splitext(filename)[0] + '.b2r'
+            b2r_command[-1] = os.path.join(export_path, b2rfile)
+            b2r_command[-2] = os.path.join(tmp_path, img)
+
+            p = subprocess.Popen(b2r_command, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            startupinfo=startupInfo())
+            p.wait()
+        else:
+            print("Converting " + filename + " to .tex! Be Patient!")
+            texfile = os.path.splitext(filename)[0] + '.tex'
+            cmd[-1] = os.path.join(export_path, texfile)
+            cmd[-2] = os.path.join(tmp_path, img)
+        
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                startupinfo=startupInfo())
+            p.wait()
 
 def create_version(path):
     #print(path)

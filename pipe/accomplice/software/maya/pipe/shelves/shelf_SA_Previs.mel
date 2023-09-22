@@ -31,7 +31,7 @@ global proc shelf_SA_Previs () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "print('Rig exporter to Unreal')"
+        -command "print('Rig exporter to Unreal')" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -67,6 +67,41 @@ global proc shelf_SA_Previs () {
         -marginWidth 0
         -marginHeight 1
         -command "from pipe.animation import PlayblastExporter\nexp = PlayblastExporter('previs')\nexp.run()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "INSTRUCTIONS: Select the camera that you would like to export, the shot you are exporting for, and the frame range you'd like to export." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Camera Exporter" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Camera Exporter" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.3 
+        -image "/groups/accomplice/pipeline/icons/accomplice/disappointed_zach.png" 
+        -image1 "/groups/accomplice/pipeline/icons/accomplice/disappointed_zach.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.previs import CameraExporter\n\ncam = CameraExporter()\n\ncam.run()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

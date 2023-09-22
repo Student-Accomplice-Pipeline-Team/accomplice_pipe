@@ -103,6 +103,8 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         #######Asset List#######
         self.comboBox = QComboBox()
+        self.comboBox2 = QComboBox()
+
         self.comboBox.setInsertPolicy(QComboBox.InsertAlphabetically)
         self.comboBox.currentIndexChanged.connect(self.on_change)
 
@@ -110,7 +112,6 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         self.comboBox.addItems(assets)
 
         #######Geo Variant List###########
-        self.comboBox2 = QComboBox()
         self.comboBox2.setInsertPolicy(QComboBox.InsertAlphabetically)
         self.comboBox2.currentIndexChanged.connect(self.on_change_variant)
 
@@ -150,6 +151,9 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         self.matvar_warn = QtWidgets.QMessageBox()
         self.matvar_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.matvar_warn.buttonClicked.connect(self.msgbtn)
+
+        self.mesh_warn = QtWidgets.QMessageBox()
+        self.mesh_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 
         #Called when the asset combo box changes
     def on_change(self, newIndex):
@@ -202,8 +206,16 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         else:
             mesh_path = asset.get_shader_geo_path(geo_variant)
-            save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
 
+            if not os.path.isfile(mesh_path):
+                self.mesh_warn.setWindowTitle('Mesh not found.')
+                self.mesh_warn.setText('The mesh file at ' + mesh_path + ' does not exist. Make sure you have exported from Studini.')
+                self.mesh_warn.setStandardButtons(QMessageBox.Cancel)
+                self.mesh_warn.show()
+                return
+
+            save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
+            print(save_path)
             #move current version out of the way
             if os.path.isfile(save_path):
                 new_version(save_path)
@@ -214,12 +226,13 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
                 default_texture_resolution=2048
             )
 
+            
             substance_painter.project.create(
                 mesh_file_path=mesh_path,
                 settings=project_settings
             )
 
-            substance_painter.project.save_as(save_path)
+            #substance_painter.project.save_as(save_path)
 
             #Set Project Metadata
             data = substance_painter.project.Metadata('accomplice')
@@ -233,8 +246,13 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             with open(metadata_path, 'w') as outfile:
                 toFile = meta.to_json()
                 outfile.write(toFile)
+                outfile.close()
 
             self.close()
+            #substance_painter.project.execute_when_not_busy(substance_painter.project.save())
+
+    def close_window(self):
+        self.close()
 
     def import_button(self):
 

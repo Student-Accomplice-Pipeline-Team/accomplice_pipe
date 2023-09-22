@@ -7,6 +7,7 @@
 
   <shelfSet name="accomplice_1" label="Accomplice Geometry">
     <memberToolshelf name="accomp_files"/>
+    <memberToolshelf name="accomplice_fx"/>
     <memberToolshelf name="test_geometry"/>
     <memberToolshelf name="RenderManRIS"/>
     <memberToolshelf name="RenderMan25"/>
@@ -14,9 +15,16 @@
     <memberToolshelf name="hairtools"/>
     <memberToolshelf name="guidemodify"/>
     <memberToolshelf name="groomtools"/>
+    <memberToolshelf name="create"/>
+    <memberToolshelf name="model"/>
+    <memberToolshelf name="labs_toolset"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">
-    <memberToolshelf name="lop_lights_and_cameras"/>
+    <memberToolshelf name="sparse_pyro_dynamics"/>
+    <memberToolshelf name="particles"/>
+    <memberToolshelf name="labs_toolset"/>
+    <memberToolshelf name="topstools"/>
+    <memberToolshelf name="constraints"/>
   </shelfSet>
 </shelfDocument>
