@@ -309,7 +309,7 @@ class EditShader():
     #translates specified parameters to stage layer
     def create_parm_group(self, material, group):
 
-        folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Simple)
+        folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Collapsible)
 
         if material.isPxr:
             #print('is pxr')
@@ -394,7 +394,7 @@ class EditShader():
                                                             naming_scheme=hou.parmNamingScheme.RGBA)
                             out_parm.setMinValue(0)
                             out_parm.setMaxValue(2)
-                            hasSubSurfCol = hasFuzzCol
+                            hasFuzzCol = True
                             parm.setExpression('ch(\"../../' + new_name + 'r\")')
                             folder.addParmTemplate(out_parm)
                             
