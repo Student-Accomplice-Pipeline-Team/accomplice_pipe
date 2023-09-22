@@ -369,8 +369,8 @@ class Shot(JsonSerializable):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
     def get_playblast_path(self, destination):
-        sequence = self.name.split('_')[0]
-        return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, self.name + '.mov')
+        sequence, shot = self.name.split('_')
+        return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, shot, self.name + '.mov')
     
     def get_name(self):
         return self.name
