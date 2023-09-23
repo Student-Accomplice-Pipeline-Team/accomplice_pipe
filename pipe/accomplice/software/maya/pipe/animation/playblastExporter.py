@@ -28,7 +28,7 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         #print(self.baseDir)
 
         #self.sequences = self.getSequences()
-        self.shots = pipe.server.get_shot_list()
+        self.shots = sorted(pipe.server.get_shot_list())
 
         self.setupUI()
 
@@ -105,7 +105,7 @@ class PlayblastExporter(QtWidgets.QMainWindow):
 
         currentSequence = self.sequenceListWidget.currentItem().text()[-1]
         # shots = os.listdir(os.path.join(self.baseDir, currentSequence))
-        shots = pipe.server.get_shot_list()
+        shots = sorted(pipe.server.get_shot_list())
         shots = [shot for shot in shots if shot.startswith(currentSequence)]
         shots.sort()
         return shots

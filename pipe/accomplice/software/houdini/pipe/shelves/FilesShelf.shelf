@@ -8,5 +8,6 @@
   <toolshelf name="accomp_files" label="Accomplice Files">
     <memberTool name="open_asset_file"/>
     <memberTool name="open_shot_file"/>
+    <memberTool name="open_character"/>
   </toolshelf>
 </shelfDocument>
