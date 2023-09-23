@@ -28,7 +28,7 @@ class ShotGridDatabaseTest(unittest.TestCase):
         self.assertTrue(asset.path.endswith('tree'))
     
     def test_get_asset_id(self):
-        # Originally I was going to use letty here, but by default the assets don't include the characters.
+        # Originally I was going to use letty here, but by default the assets exclude the characters in their filters.
         asset_id = self.db.get_asset_id('clipboard')
         self.assertEqual(asset_id, id_database['clipboard'])
 
