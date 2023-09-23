@@ -120,34 +120,19 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                 assets = self.pipe.get_assets(parse_qs(url.query))
                 self.send_okay()
 
-                asset_data = ''
-                for asset in assets:
-                    asset_data += asset + ','
-                if asset_data.endswith(','):
-                    asset_data = asset_data[:-1]
-
+                asset_data = ','.join(assets)
                 self.wfile.write(asset_data.encode('utf-8'))
             elif url.path == '/characters':
                 characters = self.pipe.get_characters(parse_qs(url.query))
                 self.send_okay()
 
-                character_data = ''
-                for character in characters:
-                    character_data += character + ','
-                if character_data.endswith(','):
-                    character_data = character_data[:-1]
-
+                character_data = ','.join(characters)
                 self.wfile.write(character_data.encode('utf-8'))
             elif url.path == '/shots':
                 shots = self.pipe.get_shots(parse_qs(url.query))
                 self.send_okay()
 
-                shot_data = ''
-                for shot in shots:
-                    shot_data += shot + ','
-                if shot_data.endswith(','):
-                    shot_data = shot_data[:-1]
-
+                shot_data = ','.join(shots)
                 self.wfile.write(shot_data.encode('utf-8'))
             else:
                 self.send_response(HTTPStatus.NOT_IMPLEMENTED)

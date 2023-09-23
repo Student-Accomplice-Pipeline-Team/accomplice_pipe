@@ -112,6 +112,8 @@ class _PipeProxy(PipeProxyInterface):
         elif content_type == 'text/plain':
             return content.decode('utf-8')
 
+        # TODO: with latest PR, there are now requests coming back with 'text/html' content type
+
     def _do_exchange(self, method: str, url: str, body=None):
         # Send the request to the pipe
         self._conn.request(method, url, body)
@@ -139,7 +141,9 @@ class _PipeProxy(PipeProxyInterface):
     
     def _get_data(self, url: str, item_type: type):
         # Request the item from the pipe
+        import pdb
         response = self._do_exchange(HTTPMethod.GET, url)
+        pdb.set_trace()
 
         # Parse and return the item
         self._check_response_status(response)
