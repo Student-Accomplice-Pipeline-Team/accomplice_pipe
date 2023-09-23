@@ -1,6 +1,7 @@
 import os
 import logging as log
-from typing import Iterable, Set, Sequence, Union
+import pdb
+from typing import Iterable, Set, Sequence, Optional
 from abc import ABC, abstractmethod
 
 from .baseclass import Database
@@ -34,7 +35,7 @@ class ShotGridDatabase(Database):
         sg_path = asset['sg_path']
         asset_name = os.path.basename(sg_path)
         assert name.lower() == asset_name
-        return Asset(asset_name, path = asset['sg_path'])
+        return Asset(asset_name, path = asset['sg_path'], id = asset['id'])
         
     def get_assets(self, names: Iterable[str]) -> Set[Asset]:
         assets = GetAllAssetsByName(self, names).get()
@@ -136,16 +137,24 @@ class ShotGridDatabase(Database):
         shot_id = self.get_shot_id(shot)
         self.sg.update("Shot", shot_id, data)
     
-    def create_asset(self, name, asset_type, asset_path, parent_name=None) -> dict:
-        id = self.get_asset_id(parent_name) # TODO: we need to guarantee that this always returns the ID of the parent asset, not the ID of the first asset with the same name!
+    def create_asset(self, name, asset_path, asset_type='Environment', parent_id: Optional[int]=None) -> dict:
         data = {
             'project': {'type': 'Project', 'id': self.PROJECT_ID},
             'code': name,
             'sg_asset_type': asset_type,
             'sg_path': asset_path,
-            'parents': [{'type': 'Asset', 'id':id}]
         }
+
+        if parent_id is not None:
+            data['parents'] = [{'type': 'Asset', 'id': parent_id}]
+
         return self.sg.create('Asset', data)
+    
+    def create_variant(self, name, parent_name) -> dict:
+        parent = self.get_asset(parent_name)
+        asset_path = parent.path
+        parent_id = parent.id
+        return self.create_asset(name, asset_path, parent_id=parent_id)
 
     def delete_asset_by_id(self, id: int):
         self.sg.delete('Asset', id)
@@ -204,6 +213,7 @@ class ShotGridQueryHelper(ABC):
         return [
             'code',
             'sg_path',
+            'id',
             'parents' # Parents are now included by default so that we can filter for everything that doesn't have parents.
         ]
     
