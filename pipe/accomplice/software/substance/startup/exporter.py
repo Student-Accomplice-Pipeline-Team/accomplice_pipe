@@ -422,18 +422,39 @@ def txmake(export_path, tmp_path):
             '-compression', 'lossless',
             '-newer',
             'src', 'dst']
+    b2r_command = [binary]
+    
+    b2r_command += ['-resize', 'round-',
+                    '-mode', 'periodic',
+                    '-filter', 'box',
+                    '-mipfilter', 'box',
+                    '-bumprough', '2', '0', '1', '0', '0','1',
+                    '-newer',
+                    'src', 'dst']
     
     for img in os.listdir(tmp_path):
-        cmd[-2] = os.path.join(tmp_path, img)
+
         dirname, filename = os.path.split(img)
-        print("Converting " + filename + " to .tex! Be Patient!")
-        texfile = os.path.splitext(filename)[0] + '.tex'
-        cmd[-1] = os.path.join(export_path, texfile)
+        if 'Normal' in filename:
+            print("Converting " + filename + " to .b2r! Be Patient!")
+            b2rfile = os.path.splitext(filename)[0] + '.b2r'
+            b2r_command[-1] = os.path.join(export_path, b2rfile)
+            b2r_command[-2] = os.path.join(tmp_path, img)
+
+            p = subprocess.Popen(b2r_command, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            startupinfo=startupInfo())
+            p.wait()
+        else:
+            print("Converting " + filename + " to .tex! Be Patient!")
+            texfile = os.path.splitext(filename)[0] + '.tex'
+            cmd[-1] = os.path.join(export_path, texfile)
+            cmd[-2] = os.path.join(tmp_path, img)
         
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             startupinfo=startupInfo())
-        p.wait()
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                startupinfo=startupInfo())
+            p.wait()
 
 def create_version(path):
     #print(path)

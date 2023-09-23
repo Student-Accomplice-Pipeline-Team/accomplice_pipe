@@ -297,10 +297,10 @@ class AccomplicePipe(SimplePipe):
     _data_root = "/groups/accomplice/pipeline/production"
 
     _database = ShotGridDatabase(
-    SG_CONFIG['SITE_NAME'],
-    SG_CONFIG['SCRIPT_NAME'],
-    SG_CONFIG['SCRIPT_KEY'],
-    SG_CONFIG['ACCOMPLICE_ID']
+        SG_CONFIG['SITE_NAME'],
+        SG_CONFIG['SCRIPT_NAME'],
+        SG_CONFIG['SCRIPT_KEY'],
+        SG_CONFIG['ACCOMPLICE_ID']
     )
 
     @property

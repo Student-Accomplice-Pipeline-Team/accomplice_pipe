@@ -2,6 +2,7 @@ import maya.cmds as cmds
 import pymel.core as pm
 from pathlib import Path
 import os, shutil
+import pipe.shared.permissions as p
 
 import pipe
 from pxr import Sdf
@@ -44,7 +45,7 @@ class Exporter():
     
     #This is a GUI that presents four options of what you are exporting. The one selected will determine the location that the object is created in    
     def object_select_gui(self):
-        object_list = ["Letty", "Vaughn", "Ed", "Car", "other"]
+        object_list = ["letty", "vaughn", "ed", "studentcar", "other"]
     
         if cmds.window("ms_selectObject_GUI", exists=True):
             cmds.deleteUI("ms_selectObject_GUI")
@@ -191,7 +192,8 @@ class Exporter():
         
         anim_filepath = shot.path + '/anim'
         if not self.dir_exists(anim_filepath):
-            os.mkdir(self.anim_filepath)
+            os.mkdir(anim_filepath)
+            p.set_RWE(anim_filepath)
 
         self.usd_filepath = anim_filepath + '/' + asset + '/' + asset + '.usd'
         print(self.usd_filepath)
@@ -232,14 +234,14 @@ class Exporter():
         
         self.alem_filepath = save_name
         
-        command = "-frameRange " + start + " " + end + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + save_name
+        command = "-frameRange " + start + " " + end + " -attr shop_materialpath" + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + save_name
         print("command: " + command)
         return command
     
     #Exports and versions the alembic
     def version_alembic(self, command):
         #Export alembic to $TEMP_DIR
-        cmds.AbcExport( j=command)
+        cmds.AbcExport(j=command)
 
 
         #Get new version number
