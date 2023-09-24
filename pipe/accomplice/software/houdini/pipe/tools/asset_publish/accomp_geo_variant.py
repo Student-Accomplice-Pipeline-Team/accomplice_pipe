@@ -1,7 +1,6 @@
 import hou
 import os
 import pipe
-import pdb
 
 
 def on_created_callback(node):
@@ -133,7 +132,6 @@ def save():
 def save_as():
     asset_name = hou.pwd().evalParm("asset")
     print('This is the asset name!', asset_name)
-    pdb.set_trace()
 
     if asset_name:
         response = hou.ui.displayMessage(
@@ -170,8 +168,7 @@ def save_as():
                     return
                 
                 # asset = pipe.server.get_asset(asset_name)
-                variant = pipe.server.create_variant(variant_name, asset_name)
-                pdb.set_trace()
+                variant = pipe.server.create_asset(variant_name, asset_name)
                 save_path = variant.get_geo_path() + variant_name + ".usdc"
                 
                 if not os.path.exists(variant.get_geo_path()):
@@ -181,7 +178,7 @@ def save_as():
                 for file in files:
                     if variant_name == file.split(".")[0]:
                         hou.ui.displayMessage(
-                            f"A variant named \"{variant_name}\" already exists for asset \"{asset.name}.\"",
+                            f"A variant named \"{variant_name}\" already exists for asset \"{variant.name}.\"",
                             severity=hou.severityType.Error
                         )
                         return

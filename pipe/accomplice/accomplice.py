@@ -26,7 +26,6 @@ from database.ShotGridDatabase import ShotGridDatabase
 from . import software
 from .software.interface import SoftwareProxyInterface
 from urllib.parse import urlparse, parse_qs
-import pdb
 
 log = logging.getLogger(__name__)
 
@@ -86,7 +85,7 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
     def send_okay(self):
         self.send_response(HTTPStatus.OK)
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type', 'text/plain')
         self.end_headers()
     
     def send_not_implemented_error(self):

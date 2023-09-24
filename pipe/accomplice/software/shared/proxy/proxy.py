@@ -112,8 +112,6 @@ class _PipeProxy(PipeProxyInterface):
         elif content_type == 'text/plain':
             return content.decode('utf-8')
 
-        # TODO: with latest PR, there are now requests coming back with 'text/html' content type
-
     def _do_exchange(self, method: str, url: str, body=None):
         # Send the request to the pipe
         self._conn.request(method, url, body)
@@ -143,7 +141,6 @@ class _PipeProxy(PipeProxyInterface):
         # Request the item from the pipe
         import pdb
         response = self._do_exchange(HTTPMethod.GET, url)
-        pdb.set_trace()
 
         # Parse and return the item
         self._check_response_status(response)
@@ -167,7 +164,8 @@ class _PipeProxy(PipeProxyInterface):
         """Create an asset in the pipe."""
         params = {'asset_name': asset_name, 'parent_name': parent_name}
         query_string = self._generate_query_string('create_asset', params)
-        return self._post_data(query_string, return_type=Asset)
+        result_string = self._post_data(query_string)
+        return Asset(result_string['code'], result_string['sg_path'], result_string['id'])
         
     
     def get_character(self, name: str) -> Character:
