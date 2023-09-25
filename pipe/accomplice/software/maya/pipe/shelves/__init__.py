@@ -19,7 +19,7 @@ def load():
     # Load each shelf
     for filename in shelf_filepaths:
         print(f"Loading {filename}")
-        # _load_shelf(filename) # TODO: Fix this, I temporarily commented this out to see if that will keep Maya from deleting the shelf tools.
+        _load_shelf(filename)
 
     print("Done loading")
 
@@ -50,5 +50,5 @@ def _load_shelf(filename: str):
 
 def _delete_shelf(name: str):
     # Check if the shelf exists
-    if pymelc.shelfLayout(name, exists=True):
+    if pymelc.shelfLayout(name, query=True, exists=True):
         mel.eval(f"silentDeleteShelfTab {name}")

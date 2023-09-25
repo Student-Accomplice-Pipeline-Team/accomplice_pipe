@@ -11,6 +11,7 @@ import logging
 import os
 import time
 import glob
+import json
 from enum import Enum
 from http.server import HTTPServer, HTTPStatus
 from queue import Queue
@@ -78,13 +79,35 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
     pipe = None
 
     def __init__(self, pipe: SimplePipe, *args) -> None:
+        # TODO: pipe was initially an instance of SimplePipe, but it might make sense to somewhere cast it to AccomplicePipe because this class calls several methods specific to AccomplicePipe
         self.pipe = pipe
         super().__init__(*args)
 
     def send_okay(self):
         self.send_response(HTTPStatus.OK)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+    
+    def send_not_implemented_error(self):
+        self.send_response(HTTPStatus.NOT_IMPLEMENTED)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
+
+    def do_POST(self):
+        log.info(f"Handling POST request with path {self.path}")
+        try:
+            url=urlparse(self.path)
+
+            if url.path == '/create_asset':
+                asset_dict = self.pipe.create_asset(parse_qs(url.query))
+                self.send_okay()
+                asset_string = json.dumps(asset_dict)
+                self.wfile.write(asset_string.encode('utf-8')) # Send back the asset that was created
+
+            else:
+                self.send_not_implemented_error()
+        except Exception as ex:
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, message=ex.__str__)
 
     def do_GET(self):
         log.info(f"Handling GET request with path {self.path}")
@@ -94,42 +117,21 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
             if url.path == '/assets':
                 assets = self.pipe.get_assets(parse_qs(url.query))
-                self.send_response(HTTPStatus.OK)
-                self.send_header('Content-type', 'text/plain')
-                self.end_headers()
+                self.send_okay()
 
-                asset_data = ''
-                for asset in assets:
-                    asset_data += asset + ','
-                if asset_data.endswith(','):
-                    asset_data = asset_data[:-1]
-
+                asset_data = ','.join(assets)
                 self.wfile.write(asset_data.encode('utf-8'))
             elif url.path == '/characters':
                 characters = self.pipe.get_characters(parse_qs(url.query))
-                self.send_response(HTTPStatus.OK)
-                self.send_header('Content-type', 'text/plain')
-                self.end_headers()
+                self.send_okay()
 
-                character_data = ''
-                for character in characters:
-                    character_data += character + ','
-                if character_data.endswith(','):
-                    character_data = character_data[:-1]
-
+                character_data = ','.join(characters)
                 self.wfile.write(character_data.encode('utf-8'))
             elif url.path == '/shots':
                 shots = self.pipe.get_shots(parse_qs(url.query))
-                self.send_response(HTTPStatus.OK)
-                self.send_header('Content-type', 'text/plain')
-                self.end_headers()
+                self.send_okay()
 
-                shot_data = ''
-                for shot in shots:
-                    shot_data += shot + ','
-                if shot_data.endswith(','):
-                    shot_data = shot_data[:-1]
-
+                shot_data = ','.join(shots)
                 self.wfile.write(shot_data.encode('utf-8'))
             else:
                 self.send_response(HTTPStatus.NOT_IMPLEMENTED)
@@ -137,24 +139,6 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
         except Exception as ex:
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, message=ex.__str__)
-            
-
-        # Get the request content, if any
-        # content_len = int(self.headers.get('Content-Length', failobj=0))
-        # if content_len > 0:
-        #     content = self.rfile.read(content_len)
-        #     try:
-        #         encoding = self.headers.get('Content-Encoding', 'utf-8')
-        #         content = content.decode(encoding)
-        #     except UnicodeDecodeError:
-        #         log.error("Could not decode data", exc_info=True)
-        #         self.send_error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
-        #         return
-
-        # self.send_response(200)
-        # self.send_header('Content-type', 'text/html')
-        # self.end_headers()
-        # log.info(f"GET request, Path: {self.path}\nHeaders:\n{self.headers}\n")
 
 
 class AccomplicePipe(SimplePipe):
@@ -165,89 +149,6 @@ class AccomplicePipe(SimplePipe):
         'ed':           '/characters/ed',
         'vaughn':       '/characters/vaughn',
         'studentcar':   '/assets/vehicles/studentcar'
-    }
-
-    asset_lookup: dict = {
-        ### Props
-        # Hero
-        'clipboard':    '/props/hero/clipboard',
-        'gun':          '/props/hero/gun',
-        'moneybag':     '/props/hero/moneybag',
-        'pen':          '/props/hero/pen',
-        'trashcan':     '/props/hero/trashcan',
-        'trashcanlid':  '/props/hero/trashcanlid',
-
-        # Generic
-        'broom':        '/props/generic/broom',
-
-        ### Environment
-        # Buildings: Hero
-        'bank':             '/environment/buildings/hero/bank',
-        'policestation':    '/environment/buildings/hero/policestation',
-
-        # Buildings: Generic
-        'bookshop':         '/environment/buildings/generic/bookshop',
-        'chickenshop':      '/environment/buildings/generic/chickenshop',
-        'coffeeshop':       '/environment/buildings/generic/coffeeshop',
-        'flowershop':       '/environment/buildings/generic/flowershop',
-        'movietheatre':     '/environment/buildings/generic/movietheatre',
-        'oystershop':       '/environment/buildings/generic/oystershop',
-
-        # Buildings: Components
-        'entrance':         '/environment/buildings/components/entrance',
-        'door':             '/environment/buildings/components/door',
-        'cornerbase':       '/environment/buildings/components/cornerbase',
-        'cornermiddle':     '/environment/buildings/components/cornermiddle',
-        'cornertop':        '/environment/buildings/components/cornertop',
-        'ledgebottom':      '/environment/buildings/components/ledgebottom',
-        'ledgemiddle':      '/environment/buildings/components/ledgemiddle',
-        'ledgetop':         '/environment/buildings/components/ledgetop',
-        'steps':            '/environment/buildings/components/steps',
-        'window':           '/environment/buildings/components/window',
-
-        # Buildings: Ornaments
-        'acroofbox':            '/environment/buildings/ornaments/acroofbox',
-        'acwindowbox':          '/environment/buildings/ornaments/acwindowbox',
-        'chimney':              '/environment/buildings/ornaments/chimney',
-        'electricalbox':        '/environment/buildings/ornaments/electricalbox',
-        'sign':                 '/environment/buildings/ornaments/sign',
-        'stormdrain':           '/environment/buildings/ornaments/stormdrain',
-        'tvantenna':            '/environment/buildings/ornaments/tvantenna',
-        'tvdish':               '/environment/buildings/ornaments/tvdish',
-        'windowbase':           '/environment/buildings/ornaments/windowbase',
-        'windowdecoration':     '/environment/buildings/ornaments/windowdecoration',
-
-        # Ground: Components
-        'sewergrate':       '/environment/ground/components/sewergrate',
-        'sewerlid':         '/environment/ground/components/sewerlid',
-        
-        # Setdressing
-        'bench':            '/environment/setdressing/bench',
-        'bicyclerack':      '/environment/setdressing/bicyclerack',
-        'chair':            '/environment/setdressing/chair',
-        'cinderblock':      '/environment/setdressing/cinderblock',
-        'dumpster':         '/environment/setdressing/dumpster',
-        'firehydrant':      '/environment/setdressing/firehydrant',
-        'lamp':             '/environment/setdressing/lamp',
-        'mailbox':          '/environment/setdressing/mailbox',
-        'parkingmeter':     '/environment/setdressing/parkingmeter',
-        'recyclebin':       '/environment/setdressing/recyclebin',
-        'shrub':            '/environment/setdressing/shrub',
-        'sign':             '/environment/setdressing/sign',
-        'stoplight':        '/environment/setdressing/stoplight',
-        'table':            '/environment/setdressing/table',
-        'trafficcone':      '/environment/setdressing/trafficcone',
-        'trash':            '/environment/setdressing/trash',
-        'trashbag':         '/environment/setdressing/trashbag',
-        'trashcan':         '/environment/setdressing/trashcan',
-        'tree':             '/environment/setdressing/tree',
-        'treebase':         '/environment/setdressing/treebase',
-
-        ### Vehicles
-        'backgroundcar':    '/vehicles/backgroundcar',
-        'licenseplate':     '/vehicles/licenseplate',
-        'policecar':        '/vehicles/policecar',
-        'studentcar':       '/vehicles/studentcar',
     }
 
     shot_lookup = {
@@ -276,18 +177,6 @@ class AccomplicePipe(SimplePipe):
         'F_010': '/F/shots/010',
         'G_010': '/G/shots/010',
     }
-
-    ### Temp script for creating paths:
-    # import os
-    #
-    # pipe_path = "/groups/accomplice/pipeline/production/asset"
-    #
-    # for key in asset_lookup:
-    #     path = pipe_path + asset_lookup[key]
-    #     if not os.path.exists(path):
-    #         os.makedirs(path)
-    #         print(path)
-    
 
     _proxies: dict = {}
     """Maps software names to their respective proxy instance."""
@@ -349,15 +238,6 @@ class AccomplicePipe(SimplePipe):
                 log.info("Exiting software")
                 self._get_proxy(name).exit()
 
-        # Check if any software was specified
-        # if software is not None:
-            # Launch the software
-        #    for name in software:
-        #        self.launch_software(name)
-                # if name == 'maya':
-                #     time.sleep(30)
-                #     self._get_proxy(name).exit()
-
     def _get_proxy(self, name: str) -> SoftwareProxyInterface:
         """Return a proxy object for the given software."""
         # Check if a proxy already exists or not
@@ -377,6 +257,16 @@ class AccomplicePipe(SimplePipe):
         """
         log.info(f"Launching {name.capitalize()}")
         self._get_proxy(name).launch()
+    
+    def create_asset(self, query: Mapping[str, Any]) -> dict:
+        """Create an asset with the given name."""
+        parent_name = query.get('parent_name')[0]
+        asset_name = query.get('asset_name')[0]
+        if parent_name != '':
+            return self._database.create_variant(asset_name, parent_name)
+        else:
+            asset_path = query.get('asset_path')[0]
+            return self._database.create_asset(asset_name, asset_path=asset_path)
     
     def get_assets(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all assets
@@ -465,88 +355,3 @@ class AccomplicePipe(SimplePipe):
     class FilmItemType(Enum):
         ASSET = 1
         SHOT = 2
-
-    # def reference_asset(self, software, pid, asset, category, hero):
-    #     # Get pathing
-
-    #     proxy.reference_usd(pid, asset, category, hero)
-
-    # def publish_geo(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.publish_geo()"""
-    #     pass
-
-    # def publish_material(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.publish_material()"""
-    #     pass
-
-    # def publish_rig(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.publish_rig()"""
-    #     pass
-
-    # def publish_asset(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.publish_asset()"""
-    #     pass
-
-    # # Multiple animations per shot?
-    # def publish_anim(self, shot_name):
-    #     """Overrides PipeInterface.publish_anim()"""
-    #     pass
-
-    # def publish_camera(self, shot_name):
-    #     """Overrides PipeInterface.publish_camera()"""
-    #     pass
-
-    # # Multiple fx per shot?
-    # def publish_fx(self, shot_name):
-    #     """Overrides PipeInterface.publish_fx()"""
-    #     pass
-
-    # def publish_layout(self, shot_name):
-    #     """Overrides PipeInterface.publish_layout()"""
-    #     pass
-
-    # def publish_lighting(self, shot_name):
-    #     """Overrides PipeInterface.publish_lighting()"""
-    #     pass
-
-    # def checkout_geo(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.checkout_geo()"""
-    #     pass
-
-    # def checkout_material(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.checkout_material()"""
-    #     pass
-
-    # def checkout_rig(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.checkout_rig()"""
-    #     pass
-
-    # def checkout_asset(self, asset_name, is_hero=False):
-    #     """Overrides PipeInterface.checkout_asset()"""
-    #     pass
-
-    # # Multiple animations per shot?
-    # def checkout_anim(self, shot_name):
-    #     """Overrides PipeInterface.checkout_anim()"""
-    #     pass
-
-    # def checkout_camera(self, shot_name):
-    #     """Overrides PipeInterface.checkout_camera()"""
-    #     pass
-
-    # # Multiple fx per shot?
-    # def checkout_fx(self, shot_name):
-    #     """Overrides PipeInterface.checkout_fx()"""
-    #     pass
-
-    # def checkout_layout(self, shot_name):
-    #     """Overrides PipeInterface.checkout_layout()"""
-    #     pass
-
-    # def checkout_lighting(self, shot_name):
-    #     """Overrides PipeInterface.checkout_lighting()"""
-    #     pass
-
-    # def reference_rig(self, asset_type, asset_name):
-    #     """Overrides PipeInterface.reference_rig()"""
-    #     pass
