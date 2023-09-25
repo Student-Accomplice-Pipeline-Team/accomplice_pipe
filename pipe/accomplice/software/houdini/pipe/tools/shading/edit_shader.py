@@ -210,7 +210,7 @@ class EditShader():
         tex_folder_path = Path(self.texturesPath + '/')
         #print(tex_folder_path)
 
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.*')
         #print(next(files))
 
         for file in files:
@@ -234,6 +234,8 @@ class EditShader():
             if channel != 'Normal':
                 nodes[channel].parm('filename').set(channels[channel])
             else:
+                print('assigning b2r')
+                print(channels[channel])
                 nodes[channel].parm('b2r_texture').set(channels[channel])
 
         #Load Preview Maps
