@@ -302,7 +302,7 @@ nodes_to_layout = [merge_node] + refernece_nodes
 usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
 usd_rop_node.setInput(0, merge_node)
 usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
-full_fx_usd_path = HoudiniPathUtils.get_entire_shot_fx_usd_path()
+full_fx_usd_path = HoudiniPathUtils.get_shot_for_file().get_shot_fx_usd_path()
 relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
 # Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
 usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)

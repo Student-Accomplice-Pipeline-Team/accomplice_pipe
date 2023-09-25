@@ -1,9 +1,12 @@
 import hou
 import os
 from pathlib import Path
-from pipe.shared.proxy import proxy
+import pipe
+from ...object import Shot
+# from pipe.shared.proxy import proxy
 
-server = proxy.get_proxy()
+# server = proxy.get_proxy()
+server = pipe.server
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
@@ -55,16 +58,14 @@ class HoudiniPathUtils():
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
     
+class HoudiniUtils:
     @staticmethod
-    def get_entire_shot_fx_usd_path():
-        shot_name = HoudiniPathUtils.get_shot_name()
-        if shot_name is None:
-            return None
-        shot = server.get_shot(shot_name)
-        return shot.get_shot_fx_usd_path()
-    
-    @staticmethod
-    def get_shot_name():
+    def get_shot_name() -> str:
+        """ Returns the shot name based on the current Houdini session's file path """
         my_path = hou.hipFile.path()
         from .file_path_utils import FilePathUtils
         return FilePathUtils.get_shot_name_from_file_path(my_path)
+    
+    @staticmethod
+    def get_shot_for_file() -> Shot:
+        return server.get_shot(HoudiniPathUtils.get_shot_name())

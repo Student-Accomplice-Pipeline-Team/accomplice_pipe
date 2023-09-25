@@ -10,14 +10,10 @@
     <script scriptType="python"><![CDATA[import os
 import pipe
 import hou
+from pathlib import Path
+from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
 
-
-def open_shot_file():
-    # hou.ui.displayMessage(
-    #     "This button is currently being updated."
-    # )
-    # return
-    
+def check_for_unsaved_changes():
     if hou.hipFile.hasUnsavedChanges():
         warning_response = hou.ui.displayMessage(
             "The current file has not been saved. Continue anyways?",
@@ -25,11 +21,10 @@ def open_shot_file():
             severity=hou.severityType.ImportantMessage,
             default_choice=1
         )
-        if warning_response == 1:
-            return
-    
+        return warning_response
+
+def prompt_user_for_shot():
     shot_names = pipe.server.get_shot_list()
-    
     shot_response = hou.ui.selectFromList(
         shot_names,
         exclusive=True,
@@ -37,33 +32,59 @@ def open_shot_file():
         title="Open Shot File",
         column_header="Shots"
     )
-    
     if shot_response:
         shot_name = shot_names[shot_response[0]]
         shot = pipe.server.get_shot(shot_name)
-        
-        subfile_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
-        subfile_response = hou.ui.selectFromList(
-            subfile_types,
-            exclusive=True,
-            message="Select the Shot Subfile that you'd like to open.",
-            title="Open Shot Subfile",
-            column_header="Shot Subfiles"
-        )
-        
-        if subfile_response:
-            subfile_type = subfile_types[subfile_response[0]]
+        return shot
+    return None
+    
+def prompt_user_for_subfile_type():
+    subfile_types = FilePathUtils.subfile_types
+    subfile_response = hou.ui.selectFromList(
+        subfile_types,
+        exclusive=True,
+        message="Select the Shot Subfile that you'd like to open.",
+        title="Open Shot Subfile",
+        column_header="Shot Subfiles"
+    )
+    if subfile_response:
+        subfile_type = subfile_types[subfile_response[0]]
+        return subfile_type
+    return None
+
+def import_layout():
+    stage = hou.node("stage")
+    layout_node = stage.createNode("accomp_import_layout")
+    stage.layoutChildren()
+
+def configure_new_shot_file():
+    import_layout()
+
+def open_shot_file():
+    if check_for_unsaved_changes() == 1:
+        return
+    
+    shot = prompt_user_for_shot()
+    
+    if shot:
+        subfile_type = prompt_user_for_subfile_type()
+
+        if subfile_type:
             file_path = shot.get_shotfile(type=subfile_type)
             
+            # If the file already exists, go ahead and load it!
             if os.path.isfile(file_path):
                 hou.hipFile.load(file_path, suppress_save_prompt=True)
+            
+            # Otherwise create a new file and save it!
             else:
+                # Ensure directory exists
+                Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+                
                 hou.hipFile.clear(suppress_save_prompt=True)
                 hou.hipFile.save(file_path)
                 
-                stage = hou.node("stage")
-                layout_node = stage.createNode("accomp_import_layout")
-                stage.layoutChildren()
+                configure_new_shot_file()
                 
                 hou.hipFile.save(file_path)
 
