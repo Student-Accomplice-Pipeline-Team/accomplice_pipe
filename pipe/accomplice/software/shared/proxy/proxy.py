@@ -127,13 +127,29 @@ class _PipeProxy(PipeProxyInterface):
             HTTPMethod.POST, '/register', bytes(os.getpid()))
         return self._check_response_status(response)
 
+    def _post_data(self, url: str, data_payload: JsonSerializable=None, return_type: type=None):
+        """Post data to the pipe."""
+        # TODO: you could also add support for a data payload:
+        if data_payload is None:
+            response = self._do_exchange(HTTPMethod.POST, url)
+        else:
+            response = self._do_exchange(HTTPMethod.POST, url, data_payload.to_json())
+        self._check_response_status(response)
+        return self._parse_response_content(response, content_class=return_type)
+    
     def _get_data(self, url: str, item_type: type):
         # Request the item from the pipe
+        import pdb
         response = self._do_exchange(HTTPMethod.GET, url)
 
         # Parse and return the item
         self._check_response_status(response)
         return self._parse_response_content(response, item_type)
+    
+    def _generate_query_string(self, endpoint_name:str, params_dict:dict): # TODO: you can update functions to use this
+        query_string = '/' + endpoint_name + '?'
+        query_string += '&'.join([f'{key}={value}' for key, value in params_dict.items()])
+        return query_string
 
     def get_asset(self, name: str) -> Asset:
         """Get an asset's data from the pipe."""
@@ -144,6 +160,14 @@ class _PipeProxy(PipeProxyInterface):
         asset.path = '/groups/accomplice/pipeline/production/assets' + sg_path
         return asset
 
+    def create_asset(self, asset_name, parent_name='') -> Asset:
+        """Create an asset in the pipe."""
+        params = {'asset_name': asset_name, 'parent_name': parent_name}
+        query_string = self._generate_query_string('create_asset', params)
+        result_string = self._post_data(query_string)
+        return Asset(result_string['code'], result_string['sg_path'], result_string['id'])
+        
+    
     def get_character(self, name: str) -> Character:
         """Get a character's data from the pipe"""
         pipe_path = self._get_data(f'/characters?name={name}', Character).strip()

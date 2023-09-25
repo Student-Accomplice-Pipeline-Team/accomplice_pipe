@@ -29,10 +29,18 @@ class HoudiniProxy(HTTPSoftwareProxy):
         #'HOUDINI_ASSETGALLERY_DB_FILE': <insert asset gallery db file>
     }
 
+    is_headless = os.getenv('PIPE_IS_HEADLESS') == '1'
+    launch_command = ('/opt/hfs19.5/bin/hython'
+                        if is_headless
+                     else '/opt/hfs19.5/bin/houdinifx' 
+                        if sys.platform.startswith('linux') 
+                     else 'C:\\Program Files\\Side Effects Software\\Houdini 19.5.640\\bin\\houdinifx.exe')
+    launch_args = [] if is_headless else ["-foreground"]
+
     def __init__(self,
                  pipe_port: int,
-                 command: str = ('/opt/hfs19.5/bin/houdinifx' if sys.platform.startswith('linux') else 'C:\\Program Files\\Side Effects Software\\Houdini 19.5.640\\bin\\houdinifx.exe'),
-                 args: Optional[Sequence[str]] = ["-foreground"],
+                 command: str = launch_command,
+                 args: Optional[Sequence[str]] = launch_args,
                  env_vars: Mapping[str, Optional[str]] = houdini_env_vars,
                  ) -> None:
         super().__init__(pipe_port, command, args, env_vars)
