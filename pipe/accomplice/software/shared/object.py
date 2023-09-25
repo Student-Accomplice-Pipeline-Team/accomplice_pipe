@@ -305,19 +305,29 @@ class MaterialVariant(JsonSerializable):
         return obj
 
 class Shot(JsonSerializable):
-    name = None
-    path = None
+    available_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
     checked_out = False
 
-    def __init__(self, name: str, path: Optional[str] = None) -> None:
+    def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
         self.name = name
-        self.path = path
+        self.path = self._get_path_from_name(name)
+        self.cut_in = cut_in
+        self.cut_out = cut_out
+        
+    def _get_path_from_name(self, name):
+        name_components = name.split('_')
+        # TODO: obviously, this isn't super modular to have the path hardcoded like this, but the benefits seem to outweight the costs in my mind
+        # Ideally, there would be a single file that holds all of the base folders.
+        return f'/groups/accomplice/pipeline/production/sequences/{name_components[0]}/shots/{name_components[1]}'
+    
+    def get_total_frames_in_shot(self):
+        return self.cut_out - self.cut_in + 1
     
     def get_shotfile_folder(self, type: Optional[str] = None) -> str:
-        if type not in [None, 'main', 'anim', 'camera', 'fx', 'layout', 'lighting']:
-            raise ValueError('type must be one of "main", "anim", "camera", "fx", "layout", "lighting"')
         if type == 'main' or type == None:
             return self.path 
+        elif type not in self.available_types:
+            raise ValueError('type must be one of ' + ', '.join(self.available_types))
         else:
             return os.path.join(self.path, type)
 

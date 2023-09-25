@@ -45,7 +45,7 @@ class ShotGridDatabaseTest(unittest.TestCase):
     def test_get_asset_list(self):
         asset_list = self.db.get_asset_list()
         self.assertTrue(len(asset_list) > 0)
-        self.assertEqual(len(asset_list), len(set(asset_list))) # Check for duplicates
+        self.assertEqual(len(asset_list), len(set(asset_list)), "Duplicate values are: " + str([asset for asset in asset_list if asset_list.count(asset) > 1])) # Check for duplicates
 
 class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp

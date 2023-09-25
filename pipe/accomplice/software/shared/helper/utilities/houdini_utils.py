@@ -39,7 +39,7 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
 class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
-        shot_name = HoudiniPathUtils.get_shot_name()
+        shot_name = HoudiniUtils.get_shot_name()
         if shot_name is None:
             return None
         shot = server.get_shot(shot_name)
@@ -68,4 +68,4 @@ class HoudiniUtils:
     
     @staticmethod
     def get_shot_for_file() -> Shot:
-        return server.get_shot(HoudiniPathUtils.get_shot_name())
+        return server.get_shot(HoudiniUtils.get_shot_name())

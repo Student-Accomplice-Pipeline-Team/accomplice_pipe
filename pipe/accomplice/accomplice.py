@@ -127,6 +127,12 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
                 character_data = ','.join(characters)
                 self.wfile.write(character_data.encode('utf-8'))
+            elif url.path == '/shot':
+                shot = self.pipe.get_shot(parse_qs(url.query))
+                self.send_okay()
+                shot_string = json.dumps(shot)
+                self.wfile.write(shot_string.encode('utf-8'))
+            
             elif url.path == '/shots':
                 shots = self.pipe.get_shots(parse_qs(url.query))
                 self.send_okay()
@@ -246,15 +252,12 @@ class AccomplicePipe(SimplePipe):
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                # return self.asset_lookup.keys()
                 return self._database.get_asset_list()
 
         # Get the specified assets
         if 'name' in query:
-            # return set([self.asset_lookup.get(asset) for asset in query.get('name')])
             return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
         raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
-        # return self.asset_lookup
 
     '''Temporary character pipeline'''
     def get_characters(self, query: Mapping[str, Any]) -> MutableSet:
@@ -268,17 +271,22 @@ class AccomplicePipe(SimplePipe):
         if 'name' in query:
             return set([self.character_lookup.get(asset) for asset in query.get('name')])
     
+    def get_shot(self, query: Mapping[str, Any]) -> dict:
+        # Get the specified shot
+        if 'name' in query:
+            shot =  self._database.get_shot(query.get('name')[0])
+            return shot
+        raise ValueError('NAME NOT FOUND IN QUERY')
+    
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all shots
         if 'list' in query:
             list_type = query.get('list')
             if 'name' in list_type:
-                # return self.shot_lookup.keys()
                 return self._database.get_shot_list()
 
         # Get the specified shots
         if 'name' in query:
-            # return set([self.shot_lookup.get(shot) for shot in query.get('name')])
             return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
         
         return []

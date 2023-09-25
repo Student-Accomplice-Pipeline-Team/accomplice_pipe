@@ -11,7 +11,9 @@
 import pipe
 import hou
 from pathlib import Path
+import sys
 from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
+from pipe.shared.object import Shot
 
 def check_for_unsaved_changes():
     if hou.hipFile.hasUnsavedChanges():
@@ -34,7 +36,7 @@ def prompt_user_for_shot():
     )
     if shot_response:
         shot_name = shot_names[shot_response[0]]
-        shot = pipe.server.get_shot(shot_name)
+        shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)
         return shot
     return None
     
@@ -57,8 +59,13 @@ def import_layout():
     layout_node = stage.createNode("accomp_import_layout")
     stage.layoutChildren()
 
-def configure_new_shot_file():
+def set_end_frame(shot: Shot):
+    hou.playbar.setPlaybackRange(1, shot.get_total_frames_in_shot())
+    hou.playbar.setFrameRange(1, shot.get_total_frames_in_shot())
+
+def configure_new_shot_file(shot: Shot):
     import_layout()
+    set_end_frame(shot)
 
 def open_shot_file():
     if check_for_unsaved_changes() == 1:
@@ -84,7 +91,7 @@ def open_shot_file():
                 hou.hipFile.clear(suppress_save_prompt=True)
                 hou.hipFile.save(file_path)
                 
-                configure_new_shot_file()
+                configure_new_shot_file(shot)
                 
                 hou.hipFile.save(file_path)
 

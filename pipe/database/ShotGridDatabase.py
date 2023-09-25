@@ -1,11 +1,11 @@
 import os
 import logging as log
-import pdb
 from typing import Iterable, Set, Sequence, Optional
 from abc import ABC, abstractmethod
 
 from .baseclass import Database
-from shared.object import Asset
+from shared.object import Asset # I think this one works, but for some reason the IDE wasn't getting it
+# from ..accomplice.software.shared.object import Shot, Asset
 
 import sys
 if str(os.name) == "nt":
@@ -17,6 +17,7 @@ else:
 import shotgun_api3 # Here's some good API reference: https://developer.shotgridsoftware.com/python-api/reference.html
 
 # TODO: One thing that's a little messy about this class is that it handles both the JSON/dictionaries and the Asset objects. It would be nice to separate these out.
+# It seems like much of the object creation is being done in the proxy.py file
 
 class ShotGridDatabase(Database):
     def __init__(self,
@@ -45,22 +46,16 @@ class ShotGridDatabase(Database):
                 path = asset['sg_path']
             ) for asset in assets
         )
+    
+    def get_shot(self, name: str) -> dict:
+        shot_dictionary = GetOneShotByName(self, name).get()
+        return shot_dictionary
 
     def get_asset_id(self, name: str) -> int:
-        return GetOneAssetByName(self, name, ['id']).get()['id']
+        return GetOneAssetByName(self, name).get()['id']
 
-    def get_shot_id(self, name: str): # TODO: update to use query helper if you have time to avoid code duplication :)
-        filters = [
-            [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
-            [ 'sg_status_list', 'is_not', 'oop' ],
-            [ 'code', 'is', name ]
-        ]
-        fields = [
-            'code',
-            'id'
-        ]
-        shot = self.sg.find_one('Shot', filters, fields)
-        return shot['id']
+    def get_shot_id(self, name: str):
+        return GetOneShotByName(self, name).get()['id']
 
     def get_asset_list(self) -> Sequence[str]:
 
@@ -169,26 +164,19 @@ class ShotGridQueryHelper(ABC):
                         'Tool', 
                         'Font'
                     ]
-    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False, filter_out_variants=True):
+    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False):
         self.shot_grid_database = database
         self.shot_grid = database.sg
         self.fields = self._construct_all_fields(additional_fields, override_fields)
-        self.filter_out_variants = filter_out_variants
-        self.filters = self._create_base_filter()
+        base_filters = self._create_base_filter()
+        base_filters.insert(0, [ 'project', 'is', { 'type': 'Project', 'id': self.shot_grid_database.PROJECT_ID } ]) # The project filter is common to all queries
+        self.filters = base_filters
         
     def _construct_all_fields(self, additional_fields: list = [], override_fields=False):
         if override_fields:
             return additional_fields
         else:
             return list(set(self._create_base_fields() + additional_fields)) # Remove duplicates
-    
-    def _get_path_name_filter(self, names: Iterable[str]) -> dict:
-        return {
-            'filter_operator': 'any',
-            'filters': [
-                [ 'sg_path', 'ends_with', name.lower() ] for name in names
-            ],
-        }
     
     def _get_code_name_filter(self, names: Iterable[str]) -> dict:
         return {
@@ -197,10 +185,37 @@ class ShotGridQueryHelper(ABC):
                 [ 'code', 'is', name ] for name in names # You could also lowercase it, but in my tests it didn't matter
             ],
         }
+
+    @abstractmethod
+    def _create_base_filter(self) -> list:
+        pass
+
+    @abstractmethod
+    def _create_base_fields(self) -> list:
+        pass
+
+    @abstractmethod
+    def get(self):
+        pass
     
+
+class AssetQueryHelper(ShotGridQueryHelper):
+    """ An abstract class containing shared methods for querying assets."""
+    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False, filter_out_variants=True):
+        self.filter_out_variants = filter_out_variants
+        super().__init__(database, additional_fields, override_fields)
+
+    # Override
+    def _create_base_fields(self) -> list:
+        return [
+            'code',
+            'sg_path',
+            'id',
+            'parents' # Parents are now included by default so that we can filter for everything that doesn't have parents.
+        ]
+    # Override
     def _create_base_filter(self) -> list:
         return [
-            [ 'project', 'is', { 'type': 'Project', 'id': self.shot_grid_database.PROJECT_ID } ],
             [ 'sg_status_list', 'is_not', 'oop' ],
             { 
                 'filter_operator': 'all',
@@ -209,20 +224,14 @@ class ShotGridQueryHelper(ABC):
                 ], 
             },
         ]
-    def _create_base_fields(self) -> list:
-        return [
-            'code',
-            'sg_path',
-            'id',
-            'parents' # Parents are now included by default so that we can filter for everything that doesn't have parents.
-        ]
-    
 
-    def _construct_filter_by_path_end_name(self, name: str) -> list:
-        return self._get_path_name_filter([name])
-    
-    def _construct_filter_by_path_end_names(self, names: Iterable[str]) -> list:
-        return self._get_path_name_filter(names)
+    def _get_path_name_filter(self, names: Iterable[str]) -> dict:
+        return {
+            'filter_operator': 'any',
+            'filters': [
+                [ 'sg_path', 'ends_with', name.lower() ] for name in names
+            ],
+        }
     
     def _get_all_asset_json(self):
         assets = self.shot_grid.find('Asset', self.filters, self.fields)
@@ -233,11 +242,14 @@ class ShotGridQueryHelper(ABC):
     def _filter_out_child_assets(self, assets):
         return [asset for asset in assets if asset['parents'] == []] # Filter out child assets (variants)
     
-    @abstractmethod
-    def get(self):
-        pass
+    def _construct_filter_by_path_end_name(self, name: str) -> list:
+        return self._get_path_name_filter([name])
     
-class GetAllAssetsByName(ShotGridQueryHelper):
+    def _construct_filter_by_path_end_names(self, names: Iterable[str]) -> list:
+        return self._get_path_name_filter(names)
+    
+    
+class GetAllAssetsByName(AssetQueryHelper):
     def __init__(self, database: ShotGridDatabase, names: Iterable[str], additional_fields: list = [], override_fields=False, filter_out_variants=True):
         self.names = names
         super().__init__(database, additional_fields, override_fields, filter_out_variants)
@@ -277,7 +289,7 @@ class GetOneAssetByName(GetAllAssetsByName):
     def get(self):
         return self._get_one_asset_by_name(self.name)
     
-class GetAllAssets(ShotGridQueryHelper):
+class GetAllAssets(AssetQueryHelper):
     def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False, filter_out_variants=True):
         super().__init__(database, additional_fields, override_fields, filter_out_variants)
 
@@ -290,19 +302,41 @@ class GetAllAssets(ShotGridQueryHelper):
     
 
 # If we had all the time in the world, you could go ahead and continue writing classes like this one...
-# class GetOneShotByName(ShotGridQueryHelper):
-#     def __init__(self, database: ShotGridDatabase, name: Iterable[str], additional_fields: list = [], override_fields=False):
-#         super().__init__(database, additional_fields, override_fields)
+class ShotQueryHelper(ShotGridQueryHelper):
+    def __init__(self, database: ShotGridDatabase, additional_fields: list = [], override_fields=False):
+        super().__init__(database, additional_fields, override_fields)
 
-#     def _get_one_shot_by_name(self, name: str):
-#         filters = self._construct_code_name_filter(name)
-#         fields = [
-#             'code',
-#             'id'
-#         ]
-#         shot = self.sg.find_one('Shot', filters, fields)
-#         return shot
+    # Override
+    def _create_base_filter(self) -> list:
+        return [
+            [ 'sg_status_list', 'is_not', 'oop' ],
+        ]
+
+    # Override
+    def _create_base_fields(self) -> list:
+        return [
+            'code',
+            'id',
+            'sg_cut_in',
+            'sg_cut_out'
+        ]
     
-#     def get(self):
-#         pass
-# ...
+    def _get_all_shot_json(self):
+        return self.shot_grid.find('Shot', self.filters, self.fields)
+    
+    def _get_all_shots_by_code_names(self, names: Iterable[str]):
+        self.filters.append(self._get_code_name_filter(names))
+        return self._get_all_shot_json()
+
+class GetOneShotByName(ShotQueryHelper):
+    def __init__(self, database: ShotGridDatabase, shot_name, additional_fields: list = [], override_fields=False):
+        self.shot_name = shot_name
+        super().__init__(database, additional_fields, override_fields)
+
+    def _get_one_shot_by_name(self):
+        shots = self._get_all_shots_by_code_names([self.shot_name])
+        assert len(shots) == 1 # Make sure we only get one shot
+        return shots[0]
+    
+    def get(self):
+        return self._get_one_shot_by_name()
