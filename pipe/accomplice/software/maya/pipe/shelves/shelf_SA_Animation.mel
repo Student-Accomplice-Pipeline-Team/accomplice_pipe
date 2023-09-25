@@ -623,5 +623,71 @@ global proc shelf_SA_Animation () {
         -commandRepeatable 1
         -flat 1
     ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "select -tgl ed:Pen_CTRL ed:FK_finger_04_02_CTRL_R ed:FK_finger_02_04_CTRL_R ed:FK_finger_01_03_CTRL_R ed:FK_finger_05_04_CTRL_R ed:FK_finger_03_04_CTRL_R ed:FK_finger_04_01_CTRL_R ed:FK_finger_02_01_CTRL_R ed:FK_finger_03_02_CTRL_R ed:FK_wrist_CTRL_R ed:FK_finger_01_01_CTRL_R ed:FK_finger_05_02_CTRL_R ed:FK_finger_02_02_CTRL_R ed:FK_finger_02_03_CTRL_R ed:FK_finger_04_04_CTRL_R ed:FK_finger_03_01_CTRL_R ed:FK_finger_05_03_CTRL_R ed:FK_finger_01_02_CTRL_R ed:Pen_CTRL_click ed:FK_finger_03_03_CTRL_R ed:FK_finger_04_03_CTRL_R ;\nselect -tgl ed:FK_finger_05_01_CTRL_R ;\nselect -tgl ed:FK_elbow_CTRL_R ;\nselect -tgl ed:FK_shoulder_CTRL_R ;" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "select -tgl ed:Pen_CTRL ed:FK_finger_04_02_CTRL_R ed:FK_finger_0..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "commandButton.png" 
+        -image1 "commandButton.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "select -tgl ed:Pen_CTRL ed:FK_finger_04_02_CTRL_R ed:FK_finger_02_04_CTRL_R ed:FK_finger_01_03_CTRL_R ed:FK_finger_05_04_CTRL_R ed:FK_finger_03_04_CTRL_R ed:FK_finger_04_01_CTRL_R ed:FK_finger_02_01_CTRL_R ed:FK_finger_03_02_CTRL_R ed:FK_wrist_CTRL_R ed:FK_finger_01_01_CTRL_R ed:FK_finger_05_02_CTRL_R ed:FK_finger_02_02_CTRL_R ed:FK_finger_02_03_CTRL_R ed:FK_finger_04_04_CTRL_R ed:FK_finger_03_01_CTRL_R ed:FK_finger_05_03_CTRL_R ed:FK_finger_01_02_CTRL_R ed:Pen_CTRL_click ed:FK_finger_03_03_CTRL_R ed:FK_finger_04_03_CTRL_R ;\nselect -tgl ed:FK_finger_05_01_CTRL_R ;\nselect -tgl ed:FK_elbow_CTRL_R ;\nselect -tgl ed:FK_shoulder_CTRL_R ;" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "select -r ed:FK_wrist_CTRL_R ;\nselect -tgl ed:FK_elbow_CTRL_R ;\nselect -tgl ed:FK_shoulder_CTRL_R ;" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "select -r ed:FK_wrist_CTRL_R ;\nselect -tgl ed:FK_elbow_CTRL_R ;\n..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "commandButton.png" 
+        -image1 "commandButton.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "select -r ed:FK_wrist_CTRL_R ;\nselect -tgl ed:FK_elbow_CTRL_R ;\nselect -tgl ed:FK_shoulder_CTRL_R ;" 
+        -sourceType "mel" 
+        -commandRepeatable 1
+        -flat 1
+    ;
 
 } 

@@ -128,8 +128,8 @@ class EnvSoftwareProxy(SoftwareProxy):
 
         # (Un)Set the environment variables
         for key, val in env_vars.items():
-            if val is None:
-                os.unsetenv(key)
+            if val is None and key in os.environ:
+                 del os.environ[key]
             else:
                 os.environ[key] = str(val)
 
