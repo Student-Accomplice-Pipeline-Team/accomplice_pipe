@@ -9,6 +9,7 @@
     <helpText><![CDATA[Open shot file.]]></helpText>
     <script scriptType="python"><![CDATA[import os
 import pipe
+import hou
 
 
 def open_shot_file():

@@ -151,33 +151,6 @@ class AccomplicePipe(SimplePipe):
         'studentcar':   '/assets/vehicles/studentcar'
     }
 
-    shot_lookup = {
-        'A_010': '/A/shots/010',
-        'A_020': '/A/shots/020',
-        'A_030': '/A/shots/030',
-        'A_040': '/A/shots/040',
-        'A_050': '/A/shots/050',
-        'A_060': '/A/shots/060',
-        'A_070': '/A/shots/070',
-        'A_080': '/A/shots/080',
-        'A_090': '/A/shots/090',
-        'A_100': '/A/shots/100',
-        'A_110': '/A/shots/110',
-        'A_120': '/A/shots/120',
-        'A_130': '/A/shots/130',
-        'A_140': '/A/shots/140',
-        'A_150': '/A/shots/150',
-        'A_160': '/A/shots/160',
-        'A_170': '/A/shots/170',
-        'A_180': '/A/shots/180',
-        'B_010': '/B/shots/010',
-        'C_010': '/C/shots/010',
-        'D_010': '/D/shots/010',
-        'E_010': '/E/shots/010',
-        'F_010': '/F/shots/010',
-        'G_010': '/G/shots/010',
-    }
-
     _proxies: dict = {}
     """Maps software names to their respective proxy instance."""
 
@@ -308,7 +281,7 @@ class AccomplicePipe(SimplePipe):
             # return set([self.shot_lookup.get(shot) for shot in query.get('name')])
             return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
         
-        return self.shot_lookup
+        return []
 
     def get_asset_dir(self, asset, category, hero: bool = False):
         """Get the filepath to the specified asset."""
