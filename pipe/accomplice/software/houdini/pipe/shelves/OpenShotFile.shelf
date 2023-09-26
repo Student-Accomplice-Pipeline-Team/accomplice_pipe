@@ -27,7 +27,7 @@ def open_shot_file():
         if warning_response == 1:
             return
     
-    shot_names = pipe.server.get_shot_list()
+    shot_names = sorted(pipe.server.get_shot_list())
     
     shot_response = hou.ui.selectFromList(
         shot_names,
