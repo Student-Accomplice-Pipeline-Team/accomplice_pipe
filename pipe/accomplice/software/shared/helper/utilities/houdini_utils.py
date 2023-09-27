@@ -15,10 +15,14 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
+        'filecache': 'filecache::2.0',
+
+        # FX Materials:
+        'money_material': 'accomp_money_material::1.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
-        'filecache': 'filecache::2.0',
-        'money_material': 'accomp_money_material::1.0',
+
+        # Money automation helpers:
         'money_apply_rotations': 'money_apply_rotations::1.0',
         'money_post_process': 'money_post_process::1.0'
     }
