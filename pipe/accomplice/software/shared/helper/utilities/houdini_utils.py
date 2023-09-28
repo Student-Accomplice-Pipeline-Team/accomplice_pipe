@@ -11,7 +11,7 @@ server = pipe.server
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
 
-class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
+class HoudiniNodeUtils():
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
