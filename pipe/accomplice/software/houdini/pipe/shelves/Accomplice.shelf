@@ -18,7 +18,6 @@
     <memberToolshelf name="create"/>
     <memberToolshelf name="model"/>
     <memberToolshelf name="labs_toolset"/>
-    <memberToolshelf name="conveniences"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">
