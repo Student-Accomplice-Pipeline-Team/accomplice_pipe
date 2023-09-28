@@ -1,11 +1,12 @@
-import pipe
-
 from pathlib import Path
-from pipe.shared.proxy import proxy
 
-server = proxy.get_proxy()
+def verify_shot_name(shot_name):
+    import pipe
+    assert shot_name in pipe.server.get_shot_list()
 
 class FilePathUtils():
+    subfile_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
+
     @staticmethod
     def get_shot_name_from_file_path(file_path):
         """ Returns the shot name from a file path """
@@ -22,6 +23,6 @@ class FilePathUtils():
         # So, the shot_name is composed of <SEQUENCE_NAME>_<SHOT_NAME>
         shot_name = path_split[shots_index - 1] + '_' + path_split[shots_index + 1]
 
-        # Ensure that the shot name is valid
-        assert shot_name in server.get_shot_list()
+        verify_shot_name(shot_name)
+
         return shot_name

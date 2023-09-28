@@ -6,12 +6,94 @@
  a single file. -->
 
   <toolshelf name="accomplice_fx" label="Accomplice FX">
-    <memberTool name="create_lop_node"/>
+    <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
     <memberTool name="compile_fx_usd"/>
   </toolshelf>
 
-  <tool name="create_lop_node" label="Create Lop Node" icon="PLASMA_App">
+  <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[selected = hou.selectedNodes()
+for selected_node in selected:
+    outputs = selected_node.outputConnectors()
+
+    for i in range(len(outputs)):
+        null_node = selected_node.createOutputNode("null")
+        null_node.setInput(0, selected_node, i)
+        
+        # Prompt the user for a name
+        result = hou.ui.readInput("Enter a name for the null node (not including 'OUT_' prefix)")
+
+        # The result is a tuple where the first item is the button clicked (0 for OK, 1 for Cancel) 
+        # and the second item is the text entered by the user
+        if result[0] == 0:
+            null_node.setName("OUT_" + result[1].replace(" ", "_"), unique_name=True)
+        
+        null_node.setCurrent(True, clear_all_selected=True)
+]]></script>
+  </tool>
+
+  <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import os
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils, HoudiniUtils
+
+usd_cache_folder = HoudiniPathUtils.get_fx_usd_cache_folder_path()
+
+# Loop through all usd files in this folder and create a reference node for each
+usd_files = list(os.listdir(usd_cache_folder))
+refernece_nodes = []
+for usd_file in usd_files:
+    if not (usd_file.endswith(".usd") or usd_file.endswith(".usda") or usd_file.endswith(".usdc")):
+        print(usd_file, "does not end with .usd, .usda, or .usdc")
+        continue
+    print(usd_file)
+    usd_file_path = os.path.join(usd_cache_folder, usd_file)
+    reference_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "reference")
+    reference_node.parm("filepath1").set(usd_file_path)
+    reference_node.parm("primpath1").set("/fx/`@sourcename`")
+    fx_base_name = usd_file.split(".")[0]
+    reference_node.setName(fx_base_name, unique_name=True)
+    refernece_nodes.append(reference_node)
+
+# Merge all reference nodes together:
+merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
+for reference_node in refernece_nodes:
+    merge_node.setNextInput(reference_node)
+
+# Set the display flag on the merge node:
+merge_node.setDisplayFlag(True)
+
+nodes_to_layout = [merge_node] + refernece_nodes
+
+
+# Add a usd rop node to the end of the chain
+usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
+usd_rop_node.setInput(0, merge_node)
+usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
+full_fx_usd_path = HoudiniUtils.get_shot_for_file().get_shot_fx_usd_path()
+relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
+# Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
+usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)
+usd_rop_node.setName("OUT_usd", unique_name=True)
+
+nodes_to_layout.append(usd_rop_node)
+hou.node('/stage').layoutChildren(nodes_to_layout)
+
+# Check if the usd file already exists on disk. If so, prompt user to overwrite it or not
+if os.path.exists(full_fx_usd_path):
+    print("The usd file already exists on disk. Do you want to overwrite it?")
+    overwrite = hou.ui.displayMessage("The usd file already exists on disk. Do you want to overwrite it?", buttons=("Yes", "No"))
+    if overwrite == 0: # The user clicked "Yes"
+        usd_rop_node.parm("execute").pressButton()
+        hou.ui.setStatusMessage("The new FX have been exported to overwrite the old FX usd " + full_fx_usd_path, severity=hou.severityType.Message)
+else:
+    print("The usd file does not exist on disk. Creating it now.")
+    usd_rop_node.parm("execute").pressButton()
+    hou.ui.setStatusMessage("The FX have been exported to " + full_fx_usd_path, severity=hou.severityType.Message)
+]]></script>
+  </tool>
+
+  <tool name="create_lop_nodes" label="Create Lop Nodes" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 from pipe.shared.proxy import proxy
 from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
@@ -241,87 +323,5 @@ else: # Note: this case is set up and it in theory should work, but I was having
     print('VDB selected')
     usd_wrapper = VDBEffectWrapper(selection)
     usd_wrapper.wrap()]]></script>
-  </tool>
-
-  <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[selected = hou.selectedNodes()
-for selected_node in selected:
-    outputs = selected_node.outputConnectors()
-
-    for i in range(len(outputs)):
-        null_node = selected_node.createOutputNode("null")
-        null_node.setInput(0, selected_node, i)
-        
-        # Prompt the user for a name
-        result = hou.ui.readInput("Enter a name for the null node (not including 'OUT_' prefix)")
-
-        # The result is a tuple where the first item is the button clicked (0 for OK, 1 for Cancel) 
-        # and the second item is the text entered by the user
-        if result[0] == 0:
-            null_node.setName("OUT_" + result[1].replace(" ", "_"), unique_name=True)
-        
-        null_node.setCurrent(True, clear_all_selected=True)
-]]></script>
-  </tool>
-
-  <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[import os
-import hou
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
-
-usd_cache_folder = HoudiniPathUtils.get_fx_usd_cache_folder_path()
-
-# Loop through all usd files in this folder and create a reference node for each
-usd_files = list(os.listdir(usd_cache_folder))
-refernece_nodes = []
-for usd_file in usd_files:
-    if not (usd_file.endswith(".usd") or usd_file.endswith(".usda") or usd_file.endswith(".usdc")):
-        print(usd_file, "does not end with .usd, .usda, or .usdc")
-        continue
-    print(usd_file)
-    usd_file_path = os.path.join(usd_cache_folder, usd_file)
-    reference_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "reference")
-    reference_node.parm("filepath1").set(usd_file_path)
-    reference_node.parm("primpath1").set("/fx/`@sourcename`")
-    fx_base_name = usd_file.split(".")[0]
-    reference_node.setName(fx_base_name, unique_name=True)
-    refernece_nodes.append(reference_node)
-
-# Merge all reference nodes together:
-merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
-for reference_node in refernece_nodes:
-    merge_node.setNextInput(reference_node)
-
-# Set the display flag on the merge node:
-merge_node.setDisplayFlag(True)
-
-nodes_to_layout = [merge_node] + refernece_nodes
-
-
-# Add a usd rop node to the end of the chain
-usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
-usd_rop_node.setInput(0, merge_node)
-usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
-full_fx_usd_path = HoudiniPathUtils.get_entire_shot_fx_usd_path()
-relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
-# Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
-usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)
-usd_rop_node.setName("OUT_usd", unique_name=True)
-
-nodes_to_layout.append(usd_rop_node)
-hou.node('/stage').layoutChildren(nodes_to_layout)
-
-# Check if the usd file already exists on disk. If so, prompt user to overwrite it or not
-if os.path.exists(full_fx_usd_path):
-    print("The usd file already exists on disk. Do you want to overwrite it?")
-    overwrite = hou.ui.displayMessage("The usd file already exists on disk. Do you want to overwrite it?", buttons=("Yes", "No"))
-    if overwrite == 0: # The user clicked "Yes"
-        usd_rop_node.parm("execute").pressButton()
-        hou.ui.setStatusMessage("The new FX have been exported to overwrite the old FX usd " + full_fx_usd_path, severity=hou.severityType.Message)
-else:
-    print("The usd file does not exist on disk. Creating it now.")
-    usd_rop_node.parm("execute").pressButton()
-    hou.ui.setStatusMessage("The FX have been exported to " + full_fx_usd_path, severity=hou.severityType.Message)
-]]></script>
   </tool>
 </shelfDocument>

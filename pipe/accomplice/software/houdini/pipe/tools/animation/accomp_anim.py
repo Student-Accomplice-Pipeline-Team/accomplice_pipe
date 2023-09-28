@@ -5,7 +5,7 @@ import hou
 import os, functools
 import glob
 from pipe.shared.object import Asset
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 import pipe
 
 # Constants
@@ -21,13 +21,13 @@ class AnimationImporter():
         print("shot: ", self.shot.name)
 
     def get_shot(self):
-        shot_name = HoudiniPathUtils.get_shot_name()
+        shot_name = HoudiniUtils.get_shot_name()
         shot = pipe.server.get_shot(shot_name)
         print('This is the shot that was created: ', shot.name)
         return shot
 
     def get_character_options_list(self):
-        self.shot = pipe.server.get_shot(HoudiniPathUtils.get_shot_name())
+        self.shot = pipe.server.get_shot(HoudiniUtils.get_shot_name())
         print('This is the shot name!', self.shot.name)
 
         # Check if the current directory has an anim folder
