@@ -26,7 +26,7 @@ def check_for_unsaved_changes():
         return warning_response
 
 def prompt_user_for_shot():
-    shot_names = pipe.server.get_shot_list()
+    shot_names = sorted(pipe.server.get_shot_list())
     shot_response = hou.ui.selectFromList(
         shot_names,
         exclusive=True,
