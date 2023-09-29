@@ -6,7 +6,7 @@ def verify_shot_name(shot_name):
     assert shot_name in pipe.server.get_shot_list()
 
 class FilePathUtils():
-    subfile_types = Shot.available_types
+    subfile_types = Shot.available_departments
 
     @staticmethod
     def get_shot_name_from_file_path(file_path):

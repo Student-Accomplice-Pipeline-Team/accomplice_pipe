@@ -305,7 +305,7 @@ class MaterialVariant(JsonSerializable):
         return obj
 
 class Shot(JsonSerializable):
-    available_types = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
+    available_departments = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
     checked_out = False
 
     def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
@@ -326,8 +326,8 @@ class Shot(JsonSerializable):
     def get_shotfile_folder(self, department: Optional[str] = None) -> str:
         if department == 'main' or department == None:
             return self.path 
-        elif department not in self.available_types:
-            raise ValueError('type must be one of ' + ', '.join(self.available_types))
+        elif department not in self.available_departments:
+            raise ValueError('type must be one of ' + ', '.join(self.available_departments))
         else:
             return os.path.join(self.path, department)
 

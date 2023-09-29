@@ -77,7 +77,7 @@ def open_shot_file():
         subfile_type = prompt_user_for_subfile_type()
 
         if subfile_type:
-            file_path = shot.get_shotfile(type=subfile_type)
+            file_path = shot.get_shotfile(subfile_type)
             
             # If the file already exists, go ahead and load it!
             if os.path.isfile(file_path):
