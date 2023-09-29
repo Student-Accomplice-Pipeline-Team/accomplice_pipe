@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import pipe
 from ...object import Shot
+from .file_path_utils import FilePathUtils
 # from pipe.shared.proxy import proxy
 
 # server = proxy.get_proxy()
@@ -66,12 +67,19 @@ class HoudiniPathUtils():
         return os.path.join(folder_path, f"{base_name}.usd")
     
 class HoudiniUtils:
+    def _get_my_path():
+        return hou.hipFile.path()
+    
     @staticmethod
     def get_shot_name() -> str or None:
         """ Returns the shot name based on the current Houdini session's file path """
-        my_path = hou.hipFile.path()
-        from .file_path_utils import FilePathUtils
+        my_path = HoudiniUtils._get_my_path()
         return FilePathUtils.get_shot_name_from_file_path(my_path)
+    
+    @staticmethod
+    def get_department() -> str or None:
+        """ Returns the department from a file path """
+        return FilePathUtils.get_department_from_file_path(HoudiniUtils._get_my_path())
     
     @staticmethod
     def get_shot_for_file() -> Shot or None:
