@@ -355,7 +355,7 @@ class Shot(JsonSerializable):
         else:
             return str(files[0])
     
-    def get_shot_usd(self, department: Optional[str] = None) -> str:
+    def get_shot_usd_path(self, department: Optional[str] = None) -> str:
         """ Returns the path to the usd file that contains each subdepartment's usd file."""
         return self.get_shotfile(department).replace('.hipnc', '.usd')
     

@@ -40,6 +40,9 @@ class HoudiniNodeUtils():
         print('Creating node... ', node_definition_name)
         return parent_node.createNode(node_definition_name)
 
+    def node_exists(parent: hou.Node, node_name: str) -> bool:
+        return parent.node(node_name) is not None
+
 class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
@@ -64,12 +67,15 @@ class HoudiniPathUtils():
     
 class HoudiniUtils:
     @staticmethod
-    def get_shot_name() -> str:
+    def get_shot_name() -> str or None:
         """ Returns the shot name based on the current Houdini session's file path """
         my_path = hou.hipFile.path()
         from .file_path_utils import FilePathUtils
         return FilePathUtils.get_shot_name_from_file_path(my_path)
     
     @staticmethod
-    def get_shot_for_file() -> Shot:
+    def get_shot_for_file() -> Shot or None:
+        shot_name = HoudiniUtils.get_shot_name()
+        if shot_name is None:
+            return None
         return server.get_shot(HoudiniUtils.get_shot_name())

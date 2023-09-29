@@ -9,7 +9,7 @@ class FilePathUtils():
     subfile_types = Shot.available_departments
 
     @staticmethod
-    def get_shot_name_from_file_path(file_path):
+    def get_shot_name_from_file_path(file_path) -> str or None:
         """ Returns the shot name from a file path """
         from os.path import sep as separator
         # Note that the structure of a file path comes in as /groups/accomplice/pipeline/production/sequences/<SEQUENCE_NAME>/shots/<SHOT_NAME>/...
