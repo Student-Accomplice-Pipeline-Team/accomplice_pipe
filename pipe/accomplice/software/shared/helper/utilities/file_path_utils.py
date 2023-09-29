@@ -1,11 +1,12 @@
 from pathlib import Path
+from pipe.shared.object import Shot
 
 def verify_shot_name(shot_name):
     import pipe
     assert shot_name in pipe.server.get_shot_list()
 
 class FilePathUtils():
-    subfile_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
+    subfile_types = Shot.available_departments
 
     @staticmethod
     def get_shot_name_from_file_path(file_path):

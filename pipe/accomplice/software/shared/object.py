@@ -305,7 +305,7 @@ class MaterialVariant(JsonSerializable):
         return obj
 
 class Shot(JsonSerializable):
-    available_types = ['main', 'anim', 'camera', 'fx', 'layout', 'lighting']
+    available_departments = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
     checked_out = False
 
     def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
@@ -316,29 +316,29 @@ class Shot(JsonSerializable):
         
     def _get_path_from_name(self, name):
         name_components = name.split('_')
-        # TODO: obviously, this isn't super modular to have the path hardcoded like this, but the benefits seem to outweight the costs in my mind
+        # TODO: obviously, this isn't super modular to have the path hardcoded like this, but the benefits seem to outweigh the costs in my mind
         # Ideally, there would be a single file that holds all of the base folders.
         return f'/groups/accomplice/pipeline/production/sequences/{name_components[0]}/shots/{name_components[1]}'
     
     def get_total_frames_in_shot(self):
         return self.cut_out - self.cut_in + 1
     
-    def get_shotfile_folder(self, type: Optional[str] = None) -> str:
-        if type == 'main' or type == None:
+    def get_shotfile_folder(self, department: Optional[str] = None) -> str:
+        if department == 'main' or department == None:
             return self.path 
-        elif type not in self.available_types:
-            raise ValueError('type must be one of ' + ', '.join(self.available_types))
+        elif department not in self.available_departments:
+            raise ValueError('type must be one of ' + ', '.join(self.available_departments))
         else:
-            return os.path.join(self.path, type)
+            return os.path.join(self.path, department)
 
     
-    def get_shotfile(self, type: Optional[str] = None) -> str:
-        shot_folder = self.get_shotfile_folder(type)
+    def get_shotfile(self, department: Optional[str] = None) -> str:
+        shot_folder = self.get_shotfile_folder(department)
 
-        if type == 'main' or type == None:
+        if department == 'main' or department == None:
             return os.path.join(shot_folder, self.name + '.hipnc')
         else:
-            return os.path.join(shot_folder, f'{self.name}_{type}.hipnc')
+            return os.path.join(shot_folder, f'{self.name}_{department}.hipnc')
         
     def get_camera(self, cam_type):
         if cam_type not in ['FLO', 'RLO']:
@@ -355,19 +355,14 @@ class Shot(JsonSerializable):
         else:
             return str(files[0])
     
+    def get_shot_usd(self, department: Optional[str] = None) -> str:
+        """ Returns the path to the usd file that contains each subdepartment's usd file."""
+        return self.get_shotfile(department).replace('.hipnc', '.usd')
+    
     def get_maya_shotfile_path(self):
         houdini_file_path = self.get_shotfile('anim')
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
-    
-    def get_fx_directory_path(self):
-        houdini_fx_file_path = self.get_shotfile('fx')
-        houdini_fx_folder_path = os.path.dirname(houdini_fx_file_path)
-        return houdini_fx_folder_path
-
-    def get_shot_fx_usd_path(self):
-        """Returns the path to the usd file that contains all the FX for this shot."""
-        return os.path.join(self.get_fx_directory_path(), f'{self.name}_fx.usd')
     
     def get_fx_usd_cache_directory_path(self):
         """Returns the path to the usd cache folder (where individual FX are cached) for this shot."""
