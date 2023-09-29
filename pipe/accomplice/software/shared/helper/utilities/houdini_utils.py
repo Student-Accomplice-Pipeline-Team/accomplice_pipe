@@ -1,21 +1,28 @@
 import hou
 import os
 from pathlib import Path
-from pipe.shared.proxy import proxy
+import pipe
+from ...object import Shot
+# from pipe.shared.proxy import proxy
 
-server = proxy.get_proxy()
+# server = proxy.get_proxy()
+server = pipe.server
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
 
-class HoudiniNodeUtils(): # It's more efficient to develop the tool with this class here, but when it's done being edited, you can move it back to the houdini_utils file
+class HoudiniNodeUtils():
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
+        'filecache': 'filecache::2.0',
+
+        # FX Materials:
+        'money_material': 'accomp_money_material::1.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
-        'filecache': 'filecache::2.0',
-        'money_material': 'accomp_money_material::1.0',
+
+        # Money automation helpers:
         'money_apply_rotations': 'money_apply_rotations::1.0',
         'money_post_process': 'money_post_process::1.0'
     }
@@ -33,10 +40,13 @@ class HoudiniNodeUtils(): # It's more efficient to develop the tool with this cl
         print('Creating node... ', node_definition_name)
         return parent_node.createNode(node_definition_name)
 
+    def node_exists(parent: hou.Node, node_name: str) -> bool:
+        return parent.node(node_name) is not None
+
 class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
-        shot_name = HoudiniPathUtils.get_shot_name()
+        shot_name = HoudiniUtils.get_shot_name()
         if shot_name is None:
             return None
         shot = server.get_shot(shot_name)
@@ -55,16 +65,17 @@ class HoudiniPathUtils():
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
     
+class HoudiniUtils:
     @staticmethod
-    def get_entire_shot_fx_usd_path():
-        shot_name = HoudiniPathUtils.get_shot_name()
-        if shot_name is None:
-            return None
-        shot = server.get_shot(shot_name)
-        return shot.get_shot_fx_usd_path()
-    
-    @staticmethod
-    def get_shot_name():
+    def get_shot_name() -> str or None:
+        """ Returns the shot name based on the current Houdini session's file path """
         my_path = hou.hipFile.path()
         from .file_path_utils import FilePathUtils
         return FilePathUtils.get_shot_name_from_file_path(my_path)
+    
+    @staticmethod
+    def get_shot_for_file() -> Shot or None:
+        shot_name = HoudiniUtils.get_shot_name()
+        if shot_name is None:
+            return None
+        return server.get_shot(HoudiniUtils.get_shot_name())

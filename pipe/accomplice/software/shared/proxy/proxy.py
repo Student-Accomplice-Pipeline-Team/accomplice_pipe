@@ -139,7 +139,6 @@ class _PipeProxy(PipeProxyInterface):
     
     def _get_data(self, url: str, item_type: type):
         # Request the item from the pipe
-        import pdb
         response = self._do_exchange(HTTPMethod.GET, url)
 
         # Parse and return the item
@@ -194,11 +193,22 @@ class _PipeProxy(PipeProxyInterface):
 
         return self._get_data(url, Iterable[Asset])
 
-    def get_shot(self, name: str) -> Shot:
+    def get_shot(self, name: str, retrieve_from_shotgrid=False) -> Shot:
         """Get a shot's data from the pipe."""
-        shot = Shot(name)
-        shot.path = f'/groups/accomplice/pipeline/production/sequences/{name[0]}/shots/{name[2:]}'
-        return shot
+        if retrieve_from_shotgrid:
+            shot_dictionary = json.loads(self._get_data('/shot?name=' + name, str))
+            assert name == shot_dictionary['code']
+
+            return Shot(
+                shot_dictionary['code'],
+                # NOTE: shot path is now set in the Shot constructor
+                shot_dictionary['sg_cut_in'],
+                shot_dictionary['sg_cut_out']
+            )
+        
+        return Shot(
+            name
+        )
 
     def get_shot_list(self) -> Iterable[str]:
         """Get a list of all shots from the pipe."""

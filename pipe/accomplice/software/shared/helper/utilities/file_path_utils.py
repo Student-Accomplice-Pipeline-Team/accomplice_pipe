@@ -1,13 +1,15 @@
-import pipe
-
 from pathlib import Path
-from pipe.shared.proxy import proxy
+from pipe.shared.object import Shot
 
-server = proxy.get_proxy()
+def verify_shot_name(shot_name):
+    import pipe
+    assert shot_name in pipe.server.get_shot_list()
 
 class FilePathUtils():
+    subfile_types = Shot.available_departments
+
     @staticmethod
-    def get_shot_name_from_file_path(file_path):
+    def get_shot_name_from_file_path(file_path) -> str or None:
         """ Returns the shot name from a file path """
         from os.path import sep as separator
         # Note that the structure of a file path comes in as /groups/accomplice/pipeline/production/sequences/<SEQUENCE_NAME>/shots/<SHOT_NAME>/...
@@ -22,6 +24,6 @@ class FilePathUtils():
         # So, the shot_name is composed of <SEQUENCE_NAME>_<SHOT_NAME>
         shot_name = path_split[shots_index - 1] + '_' + path_split[shots_index + 1]
 
-        # Ensure that the shot name is valid
-        assert shot_name in server.get_shot_list()
+        verify_shot_name(shot_name)
+
         return shot_name
