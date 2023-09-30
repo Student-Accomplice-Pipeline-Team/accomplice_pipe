@@ -3,35 +3,12 @@ import pipe
 import re
 import hou
 import json
+from pipe.shared.helper.utilities.optimization_utils import DataCache
 
-class CachedDataManager:
-    def __init__(self):
-        self.cache = {}
-    def retrieve_from_cache(self, key, loader_function=None, function_input=None):
-        if key in self.cache:
-            print('Retrieving from cache: ', key)
-            return self.cache[key]
-        else:
-            print('Caching key: ', key)
-            assert loader_function is not None, f"Key {key} not found in cache and no loader function was provided."
-            if function_input is None:
-                value = loader_function()
-            else:
-                value = loader_function(function_input)
-            self.cache[key] = value
-            self.cache[key + '_function'] = loader_function
-            self.cache[key + '_function_input'] = function_input
-            return value
-
-    def reload_cached_items(self):
-        for key in self.cache:
-            if key.endswith('function'):
-                self.cache[key.replace('function', '')] = self.cache[key](self.cache[key + '_function_input'])
-
-cache_data_manager = CachedDataManager()
+data_cache = DataCache()
 
 class ImportLayout:
-    def __init__(self, node: hou.Node=None):
+    def __init__(self, node: hou.Node=None): # Weirdly enough, 'node' apparently does't exist yet in the kwargs dictionary in the PythonModule, so some instances of this class will be created without a node passed in
         self.node = node
 
     def on_created(self):
@@ -40,11 +17,11 @@ class ImportLayout:
         self.node.parm("import_from").set("default")
 
     def get_shot_menu(self):
-        shot_names = cache_data_manager.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
+        shot_names = data_cache.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
         menu_items = []
         
         for shot_name in shot_names:
-            shot = cache_data_manager.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
+            shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
             if os.path.isfile(shot.get_layout_path()):
                 menu_items.append(shot_name)
                 menu_items.append(shot_name)
@@ -63,7 +40,7 @@ class ImportLayout:
             current_shot_name = hou.hipFile.basename()[:5]
             if re.match(r"[A-Z]_[0-9][0-9][0-9A-Z]", current_shot_name):
             
-                shot_names = cache_data_manager.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
+                shot_names = data_cache.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
                 current_shot_index = 0
                 for shot_name in shot_names:
                     if shot_name == current_shot_name:
@@ -74,18 +51,18 @@ class ImportLayout:
                 
                 if "layout" in hou.hipFile.basename():
                     for index in range(previous_shot_index, -1, -1):
-                        previous_shot = cache_data_manager.retrieve_from_cache(shot_names[index], pipe.server.get_shot, shot_names[index])
+                        previous_shot = data_cache.retrieve_from_cache(shot_names[index], pipe.server.get_shot, shot_names[index])
                         if os.path.isfile(previous_shot.get_layout_path()):
                             path = previous_shot.get_layout_path()
                             break
                 else:
-                    current_shot = cache_data_manager.retrieve_from_cache(current_shot_name, pipe.server.get_shot, current_shot_name)
+                    current_shot = data_cache.retrieve_from_cache(current_shot_name, pipe.server.get_shot, current_shot_name)
                     
                     if os.path.isfile(current_shot.get_layout_path()):
                         path = current_shot.get_layout_path()
                     else:
                         for index in range(previous_shot_index, -1, -1):
-                            previous_shot = cache_data_manager.retrieve_from_cache(shot_names[index], pipe.server.get_shot, shot_names[index])
+                            previous_shot = data_cache.retrieve_from_cache(shot_names[index], pipe.server.get_shot, shot_names[index])
                             if os.path.isfile(previous_shot.get_layout_path()):
                                 path = previous_shot.get_layout_path()
                                 break
