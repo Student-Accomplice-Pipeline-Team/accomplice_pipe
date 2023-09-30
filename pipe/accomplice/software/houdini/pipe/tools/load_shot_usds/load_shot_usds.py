@@ -2,7 +2,10 @@ import hou
 from pipe.shared.object import Shot
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils
 from pipe.shared.helper.utilities.usd_utils import UsdUtils
+from pipe.shared.helper.utilities.optimization_utils import DataCache
 import os
+
+data_cache = DataCache()
 
 class LoadShotUsds:
     def get_departments_menu_list():
@@ -46,7 +49,8 @@ class LoadShotUsds:
         myself.parm('current_department').set(department)
 
     def on_created(myself: hou.Node):
-        shot = HoudiniUtils.get_shot_for_file()
+        # shot = HoudiniUtils.get_shot_for_file()
+        shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
         if shot is None:
             # Inform user that they're not in a shot file
             hou.ui.displayMessage("It appears that you are not using a shot file. Please open a file that's in the subdirectory of a shot.")
@@ -55,3 +59,10 @@ class LoadShotUsds:
         
         LoadShotUsds.update_department_reference_node_paths(myself, shot)
         LoadShotUsds.set_current_department(myself, HoudiniUtils.get_department())
+    
+    def get_shot_usd_path(department_specific=False):
+        shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
+        if department_specific:
+            return shot.get_shot_usd_path(hou.node('.').parm('current_department').eval())
+        else:
+            return shot.get_shot_usd_path()
