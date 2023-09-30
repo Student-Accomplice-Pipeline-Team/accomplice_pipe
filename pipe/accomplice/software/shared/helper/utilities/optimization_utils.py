@@ -21,3 +21,13 @@ class DataCache:
         for key in self.cache:
             if key.endswith('function'):
                 self.cache[key.replace('function', '')] = self.cache[key](self.cache[key + '_function_input'])
+    
+    def reload_cached_item(self, key):
+        assert key in self.cache, f"Key {key} not found in cache."
+        function_key = key + '_function'
+        function_input_key = key + '_function_input'
+        if function_input_key is not None:
+            self.cache[key] = self.cache[function_key](self.cache[function_input_key])
+        else:
+            self.cache[key] = self.cache[function_key]()
+        return self.cache[key]
