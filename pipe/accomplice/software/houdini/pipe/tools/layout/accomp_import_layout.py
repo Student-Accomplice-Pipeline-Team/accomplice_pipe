@@ -69,7 +69,7 @@ class ImportLayout:
             
         elif self.node.evalParm("import_from") == "specified_shot":
             shot_name = self.node.evalParm("specified_shot")
-            shot = pipe.server.get_shot(shot_name) # CACHE THIS
+            shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
             path = shot.get_layout_path()
             
         return path
