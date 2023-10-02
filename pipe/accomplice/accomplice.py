@@ -103,7 +103,9 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                 self.send_okay()
                 asset_string = json.dumps(asset_dict)
                 self.wfile.write(asset_string.encode('utf-8')) # Send back the asset that was created
-
+            elif url.path == '/client/exit':
+                self.send_okay()
+                self.pipe.exit()
             else:
                 self.send_not_implemented_error()
         except Exception as ex:
@@ -216,6 +218,10 @@ class AccomplicePipe(SimplePipe):
                 self._httpd.server_close()
                 log.info("Exiting software")
                 self._get_proxy(name).exit()
+    
+    def exit(self) -> None:
+        log.warning("Exiting the pipe")
+        raise KeyboardInterrupt
 
     def _get_proxy(self, name: str) -> SoftwareProxyInterface:
         """Return a proxy object for the given software."""
