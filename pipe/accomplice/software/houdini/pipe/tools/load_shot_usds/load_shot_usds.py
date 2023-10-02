@@ -45,8 +45,16 @@ class LoadShotUsds:
             # department_reference_nodes.append(reference)
             myself.parm(department + '_usd_path').set(usd_path)
 
-    def set_current_department(myself: hou.Node, department: str):
+    def set_current_department(myself: hou.Node, department=HoudiniUtils.get_department()):
         myself.parm('current_department').set(department)
+
+    def uncheck_current_department(myself: hou.Node):
+        """ Callback for when the current department dropdown is changed """
+        # Set the corresponding checkbox for that department to false
+        current_department = myself.parm('current_department').eval()
+        if current_department != 'main':
+            checkbox = myself.parm('include_' + current_department)
+            checkbox.set(0)
 
     def on_created(myself: hou.Node):
         # shot = HoudiniUtils.get_shot_for_file()
@@ -58,11 +66,12 @@ class LoadShotUsds:
             return
         
         LoadShotUsds.update_department_reference_node_paths(myself, shot)
-        LoadShotUsds.set_current_department(myself, HoudiniUtils.get_department())
+        LoadShotUsds.set_current_department(myself)
+        LoadShotUsds.uncheck_current_department(myself)
     
     def get_shot_usd_path(department_specific=False):
         shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
         if department_specific:
-            return shot.get_shot_usd_path(hou.node('.').parm('current_department').eval())
+            return shot.get_shot_usd_path(HoudiniUtils.get_department())
         else:
             return shot.get_shot_usd_path()

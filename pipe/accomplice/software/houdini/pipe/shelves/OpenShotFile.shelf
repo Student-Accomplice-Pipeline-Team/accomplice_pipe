@@ -13,6 +13,7 @@ import hou
 from pathlib import Path
 import sys
 from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils
 from pipe.shared.object import Shot
 
 def check_for_unsaved_changes():
@@ -40,7 +41,7 @@ def prompt_user_for_shot():
         return shot
     return None
     
-def prompt_user_for_subfile_type():
+def prompt_user_for_subfile_type() -> str:
     subfile_types = FilePathUtils.subfile_types
     subfile_response = hou.ui.selectFromList(
         subfile_types,
@@ -54,17 +55,13 @@ def prompt_user_for_subfile_type():
         return subfile_type
     return None
 
-def import_layout():
-    stage = hou.node("stage")
-    layout_node = stage.createNode("accomp_import_layout")
-    stage.layoutChildren()
 
 def set_end_frame(shot: Shot):
     hou.playbar.setPlaybackRange(1, shot.get_total_frames_in_shot())
     hou.playbar.setFrameRange(1, shot.get_total_frames_in_shot())
 
-def configure_new_shot_file(shot: Shot):
-    import_layout()
+def configure_new_shot_file(shot: Shot, department_name: str):
+    HoudiniNodeUtils.configure_new_scene(shot, department_name)
     set_end_frame(shot)
 
 def open_shot_file():
@@ -91,7 +88,7 @@ def open_shot_file():
                 hou.hipFile.clear(suppress_save_prompt=True)
                 hou.hipFile.save(file_path)
                 
-                configure_new_shot_file(shot)
+                configure_new_shot_file(shot, subfile_type)
                 
                 hou.hipFile.save(file_path)
 
