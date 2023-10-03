@@ -46,9 +46,9 @@ class HoudiniNodeUtils():
     def node_exists(parent: hou.Node, node_name: str) -> bool:
         return parent.node(node_name) is not None
     
-    def configure_new_scene(shot: Shot, department_name:str):
+    def configure_new_scene(shot: Shot, department_name:str=None):
         # Create a new scene
-        if department_name != 'main':
+        if department_name != 'main' and department_name is not None:
             new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
         else:
             new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
@@ -83,12 +83,13 @@ class HoudiniNodeUtils():
 
         def create_main_usd_rop_node(self, input_node: hou.Node):
             # Add the usd rop node
-            usd_rop_node = input_node.createOutputNode('usd_rop', 'OUT_' + self.shot.name)
-            usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
-            usd_rop_node.parm("lopoutput").set(self.shot.get_shot_usd_path())
-            
-            self.my_created_nodes.append(usd_rop_node)
-            return usd_rop_node
+            if self.shot is not None:
+                usd_rop_node = input_node.createOutputNode('usd_rop', 'OUT_' + self.shot.name)
+                usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
+                usd_rop_node.parm("lopoutput").set(self.shot.get_shot_usd_path())
+                
+                self.my_created_nodes.append(usd_rop_node)
+                return usd_rop_node
 
     class DepartmentSceneCreator(NewSceneCreator):
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('stage')):

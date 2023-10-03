@@ -45,7 +45,10 @@ class LoadShotUsds:
             # department_reference_nodes.append(reference)
             myself.parm(department + '_usd_path').set(usd_path)
 
-    def set_current_department(myself: hou.Node, department=HoudiniUtils.get_department()):
+    def set_current_department(myself: hou.Node, department=None):
+        if department is None:
+            department = HoudiniUtils.get_department()
+        print('my department is:')
         myself.parm('current_department').set(department)
 
     def uncheck_current_department(myself: hou.Node):
