@@ -112,9 +112,9 @@ class HoudiniNodeUtils():
             return usd_rop_node
 
         def create_configure_scene_graph_node(self):
-            # Create a null node called 'IN_department_work'
+            # Create a null node for the department work coming in
             in_department_work = HoudiniNodeUtils.create_node(self.stage, 'null')
-            in_department_work.setName('IN_department_work')
+            in_department_work.setName('IN_' + self.department_name)
             self.my_created_nodes.append(in_department_work)
 
             configure_department_scene_graph = in_department_work.createOutputNode('accomp_configure_department_scene_graph', 'configure_scene_graph')
