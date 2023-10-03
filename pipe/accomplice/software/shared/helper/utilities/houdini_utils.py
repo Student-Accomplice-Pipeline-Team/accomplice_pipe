@@ -13,6 +13,7 @@ server = pipe.server
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
 
+
 class HoudiniNodeUtils():
     def __init__(self):
         pass
@@ -27,10 +28,6 @@ class HoudiniNodeUtils():
         'money_material': 'accomp_money_material::1.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
-
-        # Money automation helpers:
-        'money_apply_rotations': 'money_apply_rotations::1.0',
-        'money_post_process': 'money_post_process::1.0'
     }
 
     def get_node_definition_name(base_name: str) -> str:
@@ -141,11 +138,8 @@ class HoudiniNodeUtils():
             out_entire_scene_preview.setDisplayFlag(True)
             self.my_created_nodes.append(out_entire_scene_preview)
             return merge_node
+            
 
-            # Create the accomp_configure_department_scene_graph node
-            # configure_department_scene_graph = HoudiniNodeUtils.create_node(stage, 'accomp_configure_department_scene_graph')
-            
-            
 class HoudiniPathUtils():
     @staticmethod
     def get_fx_usd_cache_folder_path():
@@ -190,3 +184,45 @@ class HoudiniUtils:
         if shot_name is None:
             return None
         return server.get_shot(HoudiniUtils.get_shot_name())
+
+    @staticmethod
+    def check_for_unsaved_changes():
+        if hou.hipFile.hasUnsavedChanges():
+            warning_response = hou.ui.displayMessage(
+                "The current file has not been saved. Continue anyway?",
+                buttons=("Continue", "Cancel"),
+                severity=hou.severityType.ImportantMessage,
+                default_choice=1
+            )
+            return warning_response
+
+    @staticmethod
+    def prompt_user_for_shot():
+        shot_names = sorted(pipe.server.get_shot_list())
+        shot_response = hou.ui.selectFromList(
+            shot_names,
+            exclusive=True,
+            message="Select the Shot File that you'd like to open.",
+            title="Open Shot File",
+            column_header="Shots"
+        )
+        if shot_response:
+            shot_name = shot_names[shot_response[0]]
+            shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)
+            return shot
+        return None
+        
+    @staticmethod
+    def prompt_user_for_subfile_type() -> str:
+        subfile_types = FilePathUtils.subfile_types
+        subfile_response = hou.ui.selectFromList(
+            subfile_types,
+            exclusive=True,
+            message="Select the Shot Subfile that you'd like to open.",
+            title="Open Shot Subfile",
+            column_header="Shot Subfiles"
+        )
+        if subfile_response:
+            subfile_type = subfile_types[subfile_response[0]]
+            return subfile_type
+        return None
