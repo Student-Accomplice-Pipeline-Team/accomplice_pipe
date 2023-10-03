@@ -59,14 +59,19 @@ class LoadShotUsds:
     def on_created(myself: hou.Node):
         # shot = HoudiniUtils.get_shot_for_file()
         shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
+        user_selected_department = None
         if shot is None:
             # Inform user that they're not in a shot file
-            hou.ui.displayMessage("It appears that you are not using a shot file. Please open a file that's in the subdirectory of a shot.")
-            # TODO: Give the user the opportunity to open a shot file
-            return
+            hou.ui.displayMessage("It appears that you are not using a shot file. To simulate being in a shot file, you can select a shot with the following menu")
+            shot = HoudiniUtils.prompt_user_for_shot()
+            user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+            hou.ui.displayMessage('Dive into this node in order to pull in the desired layout.')
         
         LoadShotUsds.update_department_reference_node_paths(myself, shot)
-        LoadShotUsds.set_current_department(myself)
+        if user_selected_department is not None:
+            LoadShotUsds.set_current_department(myself, user_selected_department)
+        else:
+            LoadShotUsds.set_current_department(myself)
         LoadShotUsds.uncheck_current_department(myself)
     
     def get_shot_usd_path(department_specific=False):

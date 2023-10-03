@@ -3,10 +3,10 @@ class DataCache:
         self.cache = {}
     def retrieve_from_cache(self, key, loader_function=None, function_input=None):
         if key in self.cache:
-            print('Retrieving from cache: ', key)
+            # print('Retrieving from cache: ', key)
             return self.cache[key]
         else:
-            print('Caching key: ', key)
+            # print('Caching key: ', key)
             assert loader_function is not None, f"Key {key} not found in cache and no loader function was provided."
             if function_input is None:
                 value = loader_function()
