@@ -83,3 +83,10 @@ class LoadShotUsds:
             return shot.get_shot_usd_path(HoudiniUtils.get_department())
         else:
             return shot.get_shot_usd_path()
+    
+    def refresh_all_reference_nodes(myself: hou.Node):
+        for department in Shot.available_departments:
+            if department == 'main' or department == 'layout':
+                continue
+            reference = LoadShotUsds.get_reference_node(myself, department)
+            reference.parm('reload').pressButton()
