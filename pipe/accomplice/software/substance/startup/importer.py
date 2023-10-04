@@ -147,6 +147,12 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
 
         ButtonsLayout.addWidget(self.importButton)
 
+        self.convertButton = QPushButton("Convert Current File")
+        self.convertButton.setEnabled(False)
+        self.convertButton.clicked.connect(self.convert_button)
+
+        ButtonsLayout.addWidget(self.convertButton)
+
         #######Popup Warnings############
         self.matvar_warn = QtWidgets.QMessageBox()
         self.matvar_warn.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
@@ -196,6 +202,7 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         global material_variant
 
         self.importButton.setEnabled(True)
+        self.convertButton.setEnabled(True)
 
         material_variant = self.comboBox3.currentText()
 
@@ -272,6 +279,45 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
             self.matvar_warn.setText("You're about to create a new Substance file for " + asset.name + '/' + geo_variant + '/' + material_variant + ' which may already exist. Proceed? Existing files will be archived.')
             self.matvar_warn.setStandardButtons(QMessageBox.Cancel | QMessageBox.Yes)
             self.matvar_warn.show()
+
+    def convert_button(self):
+        global material_variant
+        global asset
+        global geo_variant
+        global meta
+
+        save_path = asset.get_shading_path() + '/substance/'+ geo_variant + '/' + asset.name + '_' + geo_variant + '_' + material_variant + '.spp'
+        print(save_path)
+        #move current version out of the way
+        if os.path.isfile(save_path):
+            new_version(save_path)
+
+        project_settings = substance_painter.project.Settings(
+            default_save_path=save_path,
+            project_workflow=substance_painter.project.ProjectWorkflow.UVTile,
+            default_texture_resolution=2048
+        )
+
+        #Set Project Metadata
+        data = substance_painter.project.Metadata('accomplice')
+        data.set('asset', asset.name)
+        data.set('geo_variant', geo_variant)
+        data.set('material_variant', material_variant)
+
+        substance_painter.project.save_as(save_path)
+
+        meta.hierarchy[geo_variant][material_variant] = object.MaterialVariant(material_variant, {})
+
+        metadata_path = asset.get_metadata_path()
+
+        with open(metadata_path, 'w') as outfile:
+            toFile = meta.to_json()
+            outfile.write(toFile)
+            outfile.close()
+
+        self.close()
+
+
 
 def new_version(path):
     if os.path.isfile(path):
