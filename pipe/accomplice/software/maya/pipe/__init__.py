@@ -24,7 +24,15 @@ log = logging.getLogger(__name__)
 print('LOADING SHELVES')
 cmds.evalDeferred("pipe.shelves.load()")
 
+# Get a reference to the pipe server
 server = get_proxy()
+
+# Create a job to notify the pipe on exit
+cmds.scriptJob(
+    event=['quitApplication',
+            f"pipe.server.exit()"],
+    permanent=True,
+)
 
 # _proxy_methods = getmembers(_proxy, isfunction)
 # print(_proxy_methods)
