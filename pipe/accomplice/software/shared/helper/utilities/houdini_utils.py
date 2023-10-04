@@ -12,6 +12,13 @@ server = pipe.server
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
+    
+    @staticmethod
+    def get_fx_usd_cache_directory_path(shot: Shot):
+        USD_CACHE_FOLDER_NAME = "usd_cache"
+        fx_directory = shot.get_shotfile_folder('fx')
+        return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
+
 
 
 class HoudiniNodeUtils():
@@ -28,6 +35,7 @@ class HoudiniNodeUtils():
         'money_material': 'accomp_money_material::1.0',
         'sparks_material': 'accomp_sparks_material::1.0',
         'smoke_material': 'accomp_smoke_material::1.0',
+        'skid_marks_material': 'accomp_skid_marks_material::1.0',
     }
 
     def get_node_definition_name(base_name: str) -> str:
@@ -148,7 +156,7 @@ class HoudiniPathUtils():
         if shot_name is None:
             return None
         shot = server.get_shot(shot_name)
-        main_fx_folder_location = shot.get_fx_usd_cache_directory_path()
+        main_fx_folder_location = HoudiniFXUtils.get_fx_usd_cache_directory_path(shot)
         if main_fx_folder_location is None:
             return None
         
