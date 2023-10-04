@@ -364,12 +364,6 @@ class Shot(JsonSerializable):
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
     
-    def get_fx_usd_cache_directory_path(self):
-        """Returns the path to the usd cache folder (where individual FX are cached) for this shot."""
-        USD_CACHE_FOLDER_NAME = "usd_cache"
-        houdini_fx_folder_path = self.get_fx_directory_path()
-        return os.path.join(houdini_fx_folder_path, 'usd_cache')
-    
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 

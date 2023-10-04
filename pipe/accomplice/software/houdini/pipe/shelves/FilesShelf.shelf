@@ -9,5 +9,6 @@
     <memberTool name="open_asset_file"/>
     <memberTool name="open_shot_file"/>
     <memberTool name="open_character"/>
+    <memberTool name="create_import_department_usds_nodes"/>
   </toolshelf>
 </shelfDocument>
