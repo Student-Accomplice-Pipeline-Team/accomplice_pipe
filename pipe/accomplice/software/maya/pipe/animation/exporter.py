@@ -18,13 +18,14 @@ import pipe.config as config'''
 class Exporter():
     
     def __init__(self):
-        pass
+        self.ANIM_DIR = "anim"
+        self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
         
     def run(self):
         print("Alembic Exporter not ready yet")
-        self.ANIM_DIR = "anim"
         
-        self.check_if_selected()
+        # self.check_if_selected() # I commented this out so that ideally the script selects the object automatically
+        self.object_select_gui()
     
     def check_if_selected(self):
         curr_selection = cmds.ls(selection=True)
@@ -57,7 +58,10 @@ class Exporter():
 	    		        selectIndexedItem=1, showIndexedItem=1)
         
         cmds.rowLayout(numberOfColumns=1)
-        cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+
+        selected_name = self.getSelected(selection)[0]
+        
+        cmds.button(label="Next", c=lambda x: self.save_object(selected_name))
         cmds.setParent("..")
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
@@ -67,6 +71,8 @@ class Exporter():
         if self.object_selection == "other":
             self.other_object_gui()
         else:
+            # Select the object in the scene for alembic exporting
+            cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
             # If we can determine the shot name from the current maya file, then we can skip the shot selection GUI
             try:
                 shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
