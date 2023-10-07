@@ -9,6 +9,7 @@
     <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
     <memberTool name="compile_fx_usd"/>
+    <memberTool name="configure_speed_tree_looping"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -323,5 +324,57 @@ else: # Note: this case is set up and it in theory should work, but I was having
     print('VDB selected')
     usd_wrapper = VDBEffectWrapper(selection)
     usd_wrapper.wrap()]]></script>
+  </tool>
+
+  <tool name="configure_speed_tree_looping" label="Configure Speed Tree Looping" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+# Get the currently selected node
+selected_node = hou.selectedNodes()[0]
+
+# Check if a node is selected
+if selected_node:
+    # Get the parent of the selected node
+    parent_node = selected_node.parent()
+
+    # Create a Null node on the same level as the selected node and label it as "loop_control"
+    loop_control_node = parent_node.createNode("null")
+    loop_control_node.setName("loop_control")
+    loop_control_node.setComment("Loop Control Parameters")
+
+    # Add "number_of_frames_before_looping" and "offset" parameters to the "loop_control" Null node
+    number_of_frames_parm_template = hou.IntParmTemplate("number_of_frames_before_looping", "Number of Frames Before Looping", 1)
+    offset_parm_template = hou.FloatParmTemplate("offset", "Offset", 1)
+
+    # Add the parameters to the "loop_control" Null node
+    loop_control_node.addSpareParmTuple(number_of_frames_parm_template)
+    loop_control_node.addSpareParmTuple(offset_parm_template)
+
+    # Prompt user for the number of frames before looping
+    number_of_frames = hou.ui.readInput("Enter the number of frames before looping:")
+    number_of_frames = int(number_of_frames[1])
+    loop_control_node.parm("number_of_frames_before_looping").set(number_of_frames)
+
+    for child_node in selected_node.children():
+        print(child_node.name())
+        if child_node.name() == selected_node.name():
+            continue
+        # Check if the child node is also a geo node
+        if child_node.type().name() == "geo":
+            # Add a "loop_animation" node to the last node in the child geometry node
+            last_node = child_node.allItems()[-1]
+            print(last_node.name())
+            loop_animation_node = child_node.createNode("loop_animation")
+
+            # Connect the "loop_animation" node to the last node (assumes you want to connect it)
+            loop_animation_node.setInput(0, last_node)
+            loop_animation_node.parm("number_of_frames_before_looping").setExpression('ch("../../../loop_control/number_of_frames_before_looping")')
+            loop_animation_node.parm("offset").setExpression('ch("../../../loop_control/offset")')
+            loop_animation_node.setDisplayFlag(True)
+            loop_animation_node.setRenderFlag(True)
+            child_node.layoutChildren()
+    
+else:
+    print("No nodes are selected.")]]></script>
   </tool>
 </shelfDocument>
