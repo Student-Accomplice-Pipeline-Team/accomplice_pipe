@@ -262,12 +262,22 @@ class GetAllAssetsByName(AssetQueryHelper):
         self.filters.append(self._get_code_name_filter(names))
         return self._get_all_asset_json()
     
+    def _remove_assets_that_do_not_match_name_explicitly(self, assets_json, names: Iterable[str]):
+        new_assets = []
+        for asset in assets_json:
+            path = asset['sg_path']
+            # base_name = os.path.basename(path) # I'd do this, but IDK if it'll work on Windows
+            base_name = path.split('/')[-1]
+            if base_name.lower() in names:
+                new_assets.append(asset)
+        return new_assets
+    
     # Override
     def get(self):
         attempt_by_path_end = self._get_all_assets_by_path_end_name(self.names)
         if len(attempt_by_path_end) > 0: # First attempt to find assets by path end
             print('Assets found by path end name.')
-            return attempt_by_path_end
+            return self._remove_assets_that_do_not_match_name_explicitly(attempt_by_path_end, self.names)
 
         # If that fails, try to find assets by code name
         print('No assets found by path end name. Attempting to find assets by code name.')

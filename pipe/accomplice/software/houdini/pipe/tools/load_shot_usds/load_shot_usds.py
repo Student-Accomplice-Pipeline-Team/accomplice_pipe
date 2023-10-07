@@ -86,7 +86,6 @@ class LoadShotUsds:
     
     def refresh_all_reference_nodes(myself: hou.Node):
         for department in Shot.available_departments:
-            if department == 'main' or department == 'layout':
+            if department == 'main':
                 continue
-            reference = LoadShotUsds.get_reference_node(myself, department)
-            reference.parm('reload').pressButton()
+            myself.parm('reload_' + department).pressButton()

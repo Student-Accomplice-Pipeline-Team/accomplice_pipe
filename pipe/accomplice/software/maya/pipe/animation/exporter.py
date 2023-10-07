@@ -3,6 +3,7 @@ import pymel.core as pm
 from pathlib import Path
 import os, shutil
 import pipe.shared.permissions as p
+from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
 
 import pipe
 from pxr import Sdf
@@ -17,16 +18,14 @@ import pipe.config as config'''
 class Exporter():
     
     def __init__(self):
-        pass
-        #self.run() 
+        self.ANIM_DIR = "anim"
+        self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
         
     def run(self):
         print("Alembic Exporter not ready yet")
-        #self.SHOTS_DIR = config.shots_dir #TODO: Fix
-        self.ANIM_DIR = "anim"
         
-        #self.curr_env = umEnv.UnMaya_Environment()  
-        self.check_if_selected()
+        # self.check_if_selected() # I commented this out so that ideally the script selects the object automatically
+        self.object_select_gui()
     
     def check_if_selected(self):
         curr_selection = cmds.ls(selection=True)
@@ -59,7 +58,10 @@ class Exporter():
 	    		        selectIndexedItem=1, showIndexedItem=1)
         
         cmds.rowLayout(numberOfColumns=1)
-        cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+
+        selected_name = self.getSelected(selection)[0]
+        
+        cmds.button(label="Next", c=lambda x: self.save_object(selected_name))
         cmds.setParent("..")
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
@@ -69,7 +71,17 @@ class Exporter():
         if self.object_selection == "other":
             self.other_object_gui()
         else:
-            self.shot_select_gui()
+            # Select the object in the scene for alembic exporting
+            cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+            # If we can determine the shot name from the current maya file, then we can skip the shot selection GUI
+            try:
+                shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
+            except AssertionError:
+                self.shot_select_gui()
+            if shot_name is None:
+                self.shot_select_gui()
+            else:
+                self.save_shot(shot_name)
     
     #Stores the selected shot in a variable to be used later and triggers the framerange gui
     def save_shot(self, selected_shot):
@@ -204,13 +216,14 @@ class Exporter():
         self.version_usd()
         #self.comment_gui()
     
-    #Checks if a dir exists, returns True or False 
-    def dir_exists(self, dir_path):
+    def dir_exists(self, dir_path) -> bool:
+        """ Checks if the given directory exists, returns True or False """
         my_file = Path(dir_path)
         return my_file.is_dir()
     
-    #Checks if the given directory is empty, returns True or False
-    def dir_isEmpty(self, dir_path):
+    def dir_isEmpty(self, dir_path) -> bool:
+        """ Checks if the given directory is empty, returns True or False """
+
         dir_list = os.listdir(dir_path)
         
         if len(dir_list) == 0:
@@ -218,8 +231,9 @@ class Exporter():
         else:
             return False
     
-    #Gets the commands needed for an alembic export. Updates the alem_filepath to match        
     def get_alembic_command(self):
+        """ Gets the command needed to export the alembic. Updates the alem_filepath to match"""
+
         start = self.startFrame
         end = self.endFrame
         root = ""
@@ -238,8 +252,8 @@ class Exporter():
         print("command: " + command)
         return command
     
-    #Exports and versions the alembic
     def version_alembic(self, command):
+        """ Exports the alembic and versions it """
         #Export alembic to $TEMP_DIR
         cmds.AbcExport(j=command)
 
@@ -266,19 +280,21 @@ class Exporter():
         usd_data = Sdf.Layer.FindOrOpen(file_path)
         usd_data.Export(output_file)
     
-    #updates the element file with the comment
     def update_element_file(self):
+        """Updates the element file with the comment and latest version"""
         #Adds new publish log to list of publishes
         self.comment = "v" + str(self.ver_num) + ": " + self.comment
         self.el.add_publish_log(self.comment)
+
         #Set latest version
         self.el.set_latest_version(self.ver_num)
+
         #Write the .element file to disk
         self.el.write_element_file()
     
         
     def comment_gui(self):
-        #Make list of past comments for the gui
+        """ Make list of past comments for the gui """
         publishes = self.el.get_publishes_list()
         if len(publishes) > 10:
             publishes = publishes[-10:]
@@ -355,7 +371,7 @@ class Exporter():
         cmds.setParent('..')
         cmds.showWindow(self.window)
 
-    #Saves the frame range from the gui, then triggers the exporter    
+    # Saves the frame range from the gui, then triggers the exporter    
     def get_frameRange(self):
         
         self.startFrame = cmds.textFieldGrp('startFrame', q=True, text=True)
@@ -389,10 +405,3 @@ class Exporter():
             self.exporter()
         
         
-        
-        
-        
-
-#UnMaya_Alembic_Exporter()   
-
-
