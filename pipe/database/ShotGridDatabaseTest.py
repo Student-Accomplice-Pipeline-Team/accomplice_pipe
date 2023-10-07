@@ -9,7 +9,9 @@ from .ShotGridDatabase import ShotGridDatabase
 id_database = {
     'tree': 5307,
     'bicyclerack': 5108,
-    'clipboard': 4721
+    'clipboard': 4721,
+    'sign': 5312,
+    'shopsign': 5345
 }
 
 class ShotGridDatabaseTest(unittest.TestCase):
@@ -31,6 +33,16 @@ class ShotGridDatabaseTest(unittest.TestCase):
         # Originally I was going to use letty here, but by default the assets exclude the characters in their filters.
         asset_id = self.db.get_asset_id('clipboard')
         self.assertEqual(asset_id, id_database['clipboard'])
+    
+    def test_get_asset_id_sign(self):
+        # Sign
+        asset_id = self.db.get_asset_id('sign')
+        self.assertEqual(asset_id, id_database['sign'])
+    
+    def test_get_asset_id_shopsign(self):
+        # Shop Sign
+        asset_id = self.db.get_asset_id('shopsign')
+        self.assertEqual(asset_id, id_database['shopsign'])
 
     def test_get_asset_id_for_asset_with_subassets_1(self):
         # Tree
@@ -57,13 +69,13 @@ class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     variant = None
     def setUp(self):
         self.name = 'AUTOMATED_TEST_SUBASSET'
-        self.variant = self.db.create_asset(self.name, 'Environment', '/tmp/' + self.name + '.usd', parent_name='tree')
+        self.variant = self.db.create_variant(self.name, parent_name='tree')
 
     def test_create_test_subasset(self):
         self.assertIsNotNone(self.variant)
         self.assertTrue(type(self.variant) is dict)
         self.assertEquals(self.variant['code'], self.name)
-        self.assertEquals(self.variant['sg_path'], '/tmp/' + self.name + '.usd')
+        self.assertEquals(self.variant['sg_path'], '/environment/setdressing/tree')
         self.assertEquals(self.variant['sg_asset_type'], 'Environment')
         self.assertEquals(self.variant['parents'][0]['id'], id_database['tree'])
     
