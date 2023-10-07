@@ -339,7 +339,7 @@ if selected_node:
 
     # Create a Null node on the same level as the selected node and label it as "loop_control"
     loop_control_node = parent_node.createNode("null")
-    loop_control_node.setName("loop_control")
+    loop_control_node.setName("loop_control", unique_name=True)
     loop_control_node.setComment("Loop Control Parameters")
 
     # Add "number_of_frames_before_looping" and "offset" parameters to the "loop_control" Null node
@@ -369,7 +369,7 @@ if selected_node:
             # Connect the "loop_animation" node to the last node (assumes you want to connect it)
             loop_animation_node.setInput(0, last_node)
             loop_animation_node.parm("number_of_frames_before_looping").setExpression('ch("../../../loop_control/number_of_frames_before_looping")')
-            loop_animation_node.parm("offset").setExpression('ch("../../../loop_control/offset")')
+            loop_animation_node.parm("offset").setExpression('ch("../../../' + loop_control_node.name() + '/offset")')
             loop_animation_node.setDisplayFlag(True)
             loop_animation_node.setRenderFlag(True)
             child_node.layoutChildren()
