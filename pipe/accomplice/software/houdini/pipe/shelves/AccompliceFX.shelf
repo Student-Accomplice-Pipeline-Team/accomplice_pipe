@@ -9,7 +9,7 @@
     <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
     <memberTool name="compile_fx_usd"/>
-    <memberTool name="configure_speed_tree_looping"/>
+    <memberTool name="configure_speed_tree"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -326,7 +326,7 @@ else: # Note: this case is set up and it in theory should work, but I was having
     usd_wrapper.wrap()]]></script>
   </tool>
 
-  <tool name="configure_speed_tree_looping" label="Configure Speed Tree Looping" icon="PLASMA_App">
+  <tool name="configure_speed_tree" label="Configure Speed Tree" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 
 # Get the currently selected node
@@ -363,6 +363,22 @@ if selected_node:
         if child_node.type().name() == "geo":
             # Add a "loop_animation" node to the last node in the child geometry node
             last_node = child_node.allItems()[-1]
+
+            if 'leaf' in child_node.name().lower():
+                # Add a node to rotate all the UVs by 180 degrees
+                uv_edit_node  = child_node.createNode("uvedit")
+                # Set the pivot to be the center of the UVs
+                uv_edit_node.parm('px').set(0.5)
+                uv_edit_node.parm('py').set(0.5)
+
+                # Rotate 180 around pivot
+                uv_edit_node.parm("rz").set(180)
+
+                # Apply to all groups
+                uv_edit_node.parm('group').set('*')
+                uv_edit_node.setInput(0, last_node)
+                last_node = uv_edit_node
+
             print(last_node.name())
             loop_animation_node = child_node.createNode("loop_animation")
 
