@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import atexit
 from http import HTTPStatus
 from http.client import HTTPConnection, HTTPResponse
 from types import SimpleNamespace
@@ -80,6 +81,9 @@ class _PipeProxy(PipeProxyInterface):
 
         # Create the server connection
         self._conn = HTTPConnection(host, port)
+
+        # Register a command to notify the pipe on exit
+        atexit.register(self.exit)
 
         # Attempt a handshake
         # if not self._do_handshake():
@@ -195,6 +199,8 @@ class _PipeProxy(PipeProxyInterface):
 
     def get_shot(self, name: str, retrieve_from_shotgrid=False) -> Shot:
         """Get a shot's data from the pipe."""
+        assert name is not None and name != ''
+        
         if retrieve_from_shotgrid:
             shot_dictionary = json.loads(self._get_data('/shot?name=' + name, str))
             assert name == shot_dictionary['code']
@@ -213,6 +219,9 @@ class _PipeProxy(PipeProxyInterface):
     def get_shot_list(self) -> Iterable[str]:
         """Get a list of all shots from the pipe."""
         return self._get_data('/shots?list=name', str).split(',')
+    
+    def exit(self) -> None:
+        self._post_data('/client/exit')
     
     def shot_update(self, name: str):
         pass

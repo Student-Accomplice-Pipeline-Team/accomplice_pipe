@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="create_import_department_usds_nodes" label="Create Import Department USDs Nodes" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+import pipe
+print("I'm having so much fun!")
+
+shot_name = HoudiniUtils.get_shot_name()
+print('shot_name: ', shot_name)
+if shot_name is None:
+    print('Shot name is none')
+    HoudiniNodeUtils.configure_new_scene(None)
+else:
+    shot = pipe.server.get_shot(HoudiniUtils.get_shot_name())
+    department_name = HoudiniUtils.get_department()
+    print('department_name: ', department_name)
+    HoudiniNodeUtils.configure_new_scene(shot, department_name)]]></script>
+  </tool>
+</shelfDocument>

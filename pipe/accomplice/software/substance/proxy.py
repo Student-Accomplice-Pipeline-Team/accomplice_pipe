@@ -22,7 +22,7 @@ class SubstanceProxy(HTTPSoftwareProxy):
     def __init__(
         self,
         pipe_port: int,
-        command: str = 'D:\\Adobe\\Adobe Substance 3D Painter\\Adobe Substance 3D Painter.exe',
+        command: str = 'C:\\Program Files\\Adobe\\Adobe Substance 3D Painter\\Adobe Substance 3D Painter.exe',
         args: Optional[Sequence[str]] = None,
         env_vars: Mapping[str, Optional[Union[str, int]]] = substance_env_vars,
     ) -> None:

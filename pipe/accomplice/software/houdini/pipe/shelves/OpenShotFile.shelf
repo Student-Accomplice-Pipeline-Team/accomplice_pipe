@@ -12,72 +12,28 @@ import pipe
 import hou
 from pathlib import Path
 import sys
-from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
 from pipe.shared.object import Shot
-
-def check_for_unsaved_changes():
-    if hou.hipFile.hasUnsavedChanges():
-        warning_response = hou.ui.displayMessage(
-            "The current file has not been saved. Continue anyways?",
-            buttons=("Continue", "Cancel"),
-            severity=hou.severityType.ImportantMessage,
-            default_choice=1
-        )
-        return warning_response
-
-def prompt_user_for_shot():
-    shot_names = sorted(pipe.server.get_shot_list())
-    shot_response = hou.ui.selectFromList(
-        shot_names,
-        exclusive=True,
-        message="Select the Shot File that you'd like to open.",
-        title="Open Shot File",
-        column_header="Shots"
-    )
-    if shot_response:
-        shot_name = shot_names[shot_response[0]]
-        shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)
-        return shot
-    return None
-    
-def prompt_user_for_subfile_type():
-    subfile_types = FilePathUtils.subfile_types
-    subfile_response = hou.ui.selectFromList(
-        subfile_types,
-        exclusive=True,
-        message="Select the Shot Subfile that you'd like to open.",
-        title="Open Shot Subfile",
-        column_header="Shot Subfiles"
-    )
-    if subfile_response:
-        subfile_type = subfile_types[subfile_response[0]]
-        return subfile_type
-    return None
-
-def import_layout():
-    stage = hou.node("stage")
-    layout_node = stage.createNode("accomp_import_layout")
-    stage.layoutChildren()
 
 def set_end_frame(shot: Shot):
     hou.playbar.setPlaybackRange(1, shot.get_total_frames_in_shot())
     hou.playbar.setFrameRange(1, shot.get_total_frames_in_shot())
 
-def configure_new_shot_file(shot: Shot):
-    import_layout()
+def configure_new_shot_file(shot: Shot, department_name: str):
+    HoudiniNodeUtils.configure_new_scene(shot, department_name)
     set_end_frame(shot)
 
 def open_shot_file():
-    if check_for_unsaved_changes() == 1:
+    if HoudiniUtils.check_for_unsaved_changes() == 1:
         return
     
-    shot = prompt_user_for_shot()
+    shot = HoudiniUtils.prompt_user_for_shot()
     
     if shot:
-        subfile_type = prompt_user_for_subfile_type()
+        subfile_type = HoudiniUtils.prompt_user_for_subfile_type()
 
         if subfile_type:
-            file_path = shot.get_shotfile(type=subfile_type)
+            file_path = shot.get_shotfile(subfile_type)
             
             # If the file already exists, go ahead and load it!
             if os.path.isfile(file_path):
@@ -91,7 +47,7 @@ def open_shot_file():
                 hou.hipFile.clear(suppress_save_prompt=True)
                 hou.hipFile.save(file_path)
                 
-                configure_new_shot_file(shot)
+                configure_new_shot_file(shot, subfile_type)
                 
                 hou.hipFile.save(file_path)
 

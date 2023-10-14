@@ -103,7 +103,9 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
                 self.send_okay()
                 asset_string = json.dumps(asset_dict)
                 self.wfile.write(asset_string.encode('utf-8')) # Send back the asset that was created
-
+            elif url.path == '/client/exit':
+                self.send_okay()
+                self.pipe.exit()
             else:
                 self.send_not_implemented_error()
         except Exception as ex:
@@ -216,6 +218,10 @@ class AccomplicePipe(SimplePipe):
                 self._httpd.server_close()
                 log.info("Exiting software")
                 self._get_proxy(name).exit()
+    
+    def exit(self) -> None:
+        log.warning("Exiting the pipe")
+        raise KeyboardInterrupt
 
     def _get_proxy(self, name: str) -> SoftwareProxyInterface:
         """Return a proxy object for the given software."""
@@ -256,7 +262,7 @@ class AccomplicePipe(SimplePipe):
 
         # Get the specified assets
         if 'name' in query:
-            return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
+            return [asset.path for asset in set(self._database.get_assets(query.get('name')))] # TODO: Hey, this might be calling the get_assets function every time. Also, this isn't following any standard.
         raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
 
     '''Temporary character pipeline'''
