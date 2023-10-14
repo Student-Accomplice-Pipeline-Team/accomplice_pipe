@@ -4,6 +4,7 @@ from pathlib import Path
 import os, shutil
 import pipe.shared.permissions as p
 from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
+import maya.mel as mel
 
 import pipe
 from pxr import Sdf
@@ -20,6 +21,8 @@ class Exporter():
     def __init__(self):
         self.ANIM_DIR = "anim"
         self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
+        self.FBX_EXPORTER_SUFFIX = ":EXPORTSET_CarLocWS"
+        self.CAR_FBX_NAME = 'world_space_car_transform.fbx'
         
     def run(self):
         print("Alembic Exporter not ready yet")
@@ -59,9 +62,9 @@ class Exporter():
         
         cmds.rowLayout(numberOfColumns=1)
 
-        selected_name = self.getSelected(selection)[0]
+        # selected_name = 
         
-        cmds.button(label="Next", c=lambda x: self.save_object(selected_name))
+        cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
         cmds.setParent("..")
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
@@ -72,12 +75,17 @@ class Exporter():
             self.other_object_gui()
         else:
             # Select the object in the scene for alembic exporting
-            cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+            # Because there is a descrepancy between the name of the car in the pipeline (studentcar) and the name of the rig (heroCar), we hard code the selection here
+            if self.object_selection == 'studentcar':
+                cmds.select('heroCar' + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+            else:
+                cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
             # If we can determine the shot name from the current maya file, then we can skip the shot selection GUI
             try:
                 shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
             except AssertionError:
                 self.shot_select_gui()
+            
             if shot_name is None:
                 self.shot_select_gui()
             else:
@@ -214,6 +222,14 @@ class Exporter():
         
         self.version_alembic(command)
         self.version_usd()
+
+
+        # Because there is a descrepancy between the name of the car in the pipeline (studentcar) and the name of the rig (heroCar), we hard code the selection here
+        # The following code saves the locator that represents the transforms of the car so that CFX people can simulate at origin and apply the transformations later.
+        if asset == 'studentcar':
+            cmds.select('heroCar' + self.FBX_EXPORTER_SUFFIX, replace=True)
+            fbx_filepath = anim_filepath + os.path.sep + self.CAR_FBX_NAME
+            mel.eval( 'FBXExport -f "' + fbx_filepath + '" -s' )
         #self.comment_gui()
     
     def dir_exists(self, dir_path) -> bool:
