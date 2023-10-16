@@ -55,3 +55,31 @@ class FilePathUtils():
         assert department_from_path in FilePathUtils.subfile_types
 
         return department_from_path
+    
+    def get_file_matching_substrings(folder_directory:str, substrings:list, enforce_only_one=True) -> list or str:
+        """
+        Searches for a file in the given folder directory that contains all the given substrings in its name.
+        
+        Args:
+        - folder_directory (str): The directory to search for the file in.
+        - substrings (list): A list of substrings that the file name should contain.
+        - enforce_only_one (bool): If True, raises an AssertionError if more than one file is found.
+        
+        Returns:
+        - If enforce_only_one is True, returns the path of the file that matches all the substrings.
+        - If enforce_only_one is False, returns a list of paths of all the files that match all the substrings.
+        """
+        # Walk through all files in the subdirectories of the folder directory
+        found_files = []
+        for root, dirs, files in os.walk(folder_directory):
+            for file in files:
+                # Check if the file contains all the substrings
+                if all(substring.lower() in file.lower() for substring in substrings):
+                    found_files.append(os.path.join(root, file))
+        
+        if enforce_only_one:
+            assert len(found_files) == 1, "Found more than one file matching the given substrings: " + str(found_files)
+            return found_files[0]
+
+        return found_files
+        

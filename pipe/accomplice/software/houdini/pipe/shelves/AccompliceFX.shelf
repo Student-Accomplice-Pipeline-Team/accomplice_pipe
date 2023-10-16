@@ -332,6 +332,22 @@ else: # Note: this case is set up and it in theory should work, but I was having
 # Get the currently selected node
 selected_node = hou.selectedNodes()[0]
 
+def rotate_uvs_of_leaves():
+    if 'leaf' in child_node.name().lower():
+        # Add a node to rotate all the UVs by 180 degrees
+        uv_edit_node  = child_node.createNode("uvedit")
+        # Set the pivot to be the center of the UVs
+        uv_edit_node.parm('px').set(0.5)
+        uv_edit_node.parm('py').set(0.5)
+
+        # Rotate 180 around pivot
+        uv_edit_node.parm("rz").set(180)
+
+        # Apply to all groups
+        uv_edit_node.parm('group').set('*')
+        uv_edit_node.setInput(0, last_node)
+        last_node = uv_edit_node
+
 # Check if a node is selected
 if selected_node:
     # Get the parent of the selected node
@@ -363,21 +379,6 @@ if selected_node:
         if child_node.type().name() == "geo":
             # Add a "loop_animation" node to the last node in the child geometry node
             last_node = child_node.allItems()[-1]
-
-            if 'leaf' in child_node.name().lower():
-                # Add a node to rotate all the UVs by 180 degrees
-                uv_edit_node  = child_node.createNode("uvedit")
-                # Set the pivot to be the center of the UVs
-                uv_edit_node.parm('px').set(0.5)
-                uv_edit_node.parm('py').set(0.5)
-
-                # Rotate 180 around pivot
-                uv_edit_node.parm("rz").set(180)
-
-                # Apply to all groups
-                uv_edit_node.parm('group').set('*')
-                uv_edit_node.setInput(0, last_node)
-                last_node = uv_edit_node
 
             print(last_node.name())
             loop_animation_node = child_node.createNode("loop_animation")
