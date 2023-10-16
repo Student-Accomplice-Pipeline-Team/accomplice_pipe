@@ -329,6 +329,8 @@ else: # Note: this case is set up and it in theory should work, but I was having
   <tool name="configure_speed_tree" label="Configure Speed Tree" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 
+hou.ui.displayMessage("This tool used to be helpful but the tree workflow has changed since then.", severity=hou.severityType.Message)
+return
 # Get the currently selected node
 selected_node = hou.selectedNodes()[0]
 
