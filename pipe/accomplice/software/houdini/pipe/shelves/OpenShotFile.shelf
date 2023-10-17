@@ -16,8 +16,9 @@ from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, Houdini
 from pipe.shared.object import Shot
 
 def set_frame_range(shot: Shot, global_start_frame=1000, extra_frames=5):
-    hou.playbar.setFrameRange(global_start_frame, global_start_frame + shot.get_total_frames_in_shot() + extra_frames * 2 - 1)
-    hou.playbar.setPlaybackRange(global_start_frame + extra_frames, global_start_frame + extra_frames + shot.get_total_frames_in_shot() - 1)
+    handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, extra_frames=extra_frames)
+    hou.playbar.setFrameRange(handle_start, handle_end)
+    hou.playbar.setPlaybackRange(shot_start, shot_end)
 
 def configure_new_shot_file(shot: Shot, department_name: str):
     HoudiniNodeUtils.configure_new_scene(shot, department_name)
