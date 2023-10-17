@@ -161,6 +161,7 @@ class ShotGridQueryHelper(ABC):
                         'FX', 
                         'Graphic', 
                         'Matte Painting', 
+                        'Vehicle',
                         'Tool', 
                         'Font'
                     ]

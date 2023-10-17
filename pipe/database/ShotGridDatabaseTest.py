@@ -29,6 +29,10 @@ class ShotGridDatabaseTest(unittest.TestCase):
         self.assertEqual(asset.name, 'tree')
         self.assertTrue(asset.path.endswith('tree'))
     
+    def test_get_asset_list(self):
+        assets = self.db.get_asset_list()
+        self.assertTrue(len(assets) > 0)
+    
     def test_get_asset_id(self):
         # Originally I was going to use letty here, but by default the assets exclude the characters in their filters.
         asset_id = self.db.get_asset_id('clipboard')
