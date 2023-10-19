@@ -21,6 +21,15 @@ class FilePathUtils():
         return path_split, shots_index
 
     @staticmethod
+    def get_last_edited_date(file_path) -> float:
+        """ Returns the last edited date of a file """
+        return Path(file_path).stat().st_mtime
+    
+    @staticmethod
+    def is_file_newer_than_timestamp(file_path, timestamp):
+        return FilePathUtils.get_last_edited_date(file_path) > timestamp
+    
+    @staticmethod
     def get_shot_name_from_file_path(file_path) -> str or None:
         """ Returns the shot name from a file path """
 

@@ -1,5 +1,6 @@
 import hou
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniFXUtils, HoudiniNodeUtils
+from time import time
 
 class InvertTransformSystem:
     @staticmethod
@@ -23,6 +24,7 @@ class InvertTransformSystem:
     def import_fbx(myself) -> hou.Node:
         location_of_fbx = myself.parm('fbx_file_location').eval()
         imported_fbx_null = hou.hipFile.importFBX(location_of_fbx)[0].children()[0]
+        myself.parm('fbx_import_timestamp').set(time())
         return imported_fbx_null
 
     @staticmethod
@@ -30,9 +32,9 @@ class InvertTransformSystem:
         assert InvertTransformSystem.get_imported_fbx_null_path(myself) != '', 'No imported null path'
         imported_fbx_null = hou.node(InvertTransformSystem.get_imported_fbx_null_path(myself))
 
-        HoudiniNodeUtils.link_fields(
+        HoudiniNodeUtils.link_parms(
             imported_fbx_null,
-            myself.node('dive_target/invert_transform'),
+            myself.node('dive_target/invert_transform'), # NOTE: the scale isn't imported... If the scale comes in wrong, we need to use the convert_units flag in the importFBX function
             [
                 'tx',
                 'ty',
@@ -42,24 +44,23 @@ class InvertTransformSystem:
                 'rz'
             ]
         )
+    
+    @staticmethod
+    def reimport_fbx_from_file(myself):
+        # Ask the user if they want to delete the old null
+        delete_old_null = hou.ui.displayMessage('Do you want to delete the old null? (In most cases, select yes. Only select "no" if for some reason you want other nodes to still be referencing the old animation.)', buttons=('Yes', 'No'))
         
+        if delete_old_null == 0: # If the user chooses to delete the old null
+            print('Deleting old null')
+            imported_fbx_null_path = InvertTransformSystem.get_imported_fbx_null_path(myself)
+            if imported_fbx_null_path != '':
+                imported_fbx_null = hou.node(imported_fbx_null_path)
+                if imported_fbx_null is not None:
+                    parent = imported_fbx_null.parent()
+                    # imported_fbx_null.destroy()
+                    parent.destroy()
 
-
-    # path = myself.parm('imported_null').eval()
-    # def link_expression(parm_name:str ):
-    #     # global myself
-    #     expression = 'ch("' + path + '/' + parm_name + '")'
-    #     print(expression)
-    #     target_node = myself.node('dive_target/invert_transform')
-    #     print(target_node)
-    #     target_parm = target_node.parm(parm_name)
-    #     print(target_parm)
-    #     target_parm.setExpression(expression) # This node is already set to invert the transformation itself
-
-    # link_expression('tx')
-    # link_expression('ty')
-    # link_expression('tz')
-
-    # link_expression('rx')
-    # link_expression('ry')
-    # link_expression('rz')
+        imported_fbx_null = InvertTransformSystem.import_fbx(myself)
+        myself.parm('imported_null').set(imported_fbx_null.path())
+        InvertTransformSystem.update_transforms(myself)
+    

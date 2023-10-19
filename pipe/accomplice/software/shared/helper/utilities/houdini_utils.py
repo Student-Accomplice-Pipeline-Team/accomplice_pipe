@@ -44,15 +44,15 @@ class HoudiniNodeUtils():
         'skid_marks_material': 'accomp_skid_marks_material::1.0',
     }
 
-    def link_field(source_node: hou.Node, target_node: hou.Node, field: str):
+    def link_parm(source_node: hou.Node, target_node: hou.Node, parm: str):
         # import pdb; pdb.set_trace()
-        target_parm = target_node.parm(field)
-        expression = 'ch("' + source_node.path() + '/' + field + '")'
+        target_parm = target_node.parm(parm)
+        expression = 'ch("' + source_node.path() + '/' + parm + '")'
         target_parm.setExpression(expression)
 
-    def link_fields(source_node: hou.Node, target_node: hou.Node, fields: list):
-        for field in fields:
-            HoudiniNodeUtils.link_field(source_node, target_node, field)
+    def link_parms(source_node: hou.Node, target_node: hou.Node, parms: list):
+        for parm in parms:
+            HoudiniNodeUtils.link_parm(source_node, target_node, parm)
 
     def get_node_definition_name(base_name: str) -> str:
         if base_name in HoudiniNodeUtils.current_node_definitions:
