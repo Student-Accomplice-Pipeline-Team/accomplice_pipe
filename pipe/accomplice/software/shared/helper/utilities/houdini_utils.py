@@ -18,14 +18,20 @@ class HoudiniFXUtils():
         USD_CACHE_FOLDER_NAME = "usd_cache"
         fx_directory = shot.get_shotfile_folder('fx')
         return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
+    
+    @staticmethod
+    def get_car_fbx_transform_path(shot):
+        # cfx_folder = self.get_shotfile_folder('cfx')
+        # return os.path.join(cfx_folder, 'car_transform_test.fbx') # TODO: update this when you know the naming convention
+        return "/groups/accomplice/pipeline/production/sequences/A/shots/180/cfx/car_transform_test.fbx"
+
+    
 
 
 
 class HoudiniNodeUtils():
     def __init__(self):
         pass
-    # Display the out_entire_scene_preview node
-    # out_entire_scene_preview.setCurrent(True, clear_all_selected=True)
     current_node_definitions = {
         'reference': 'reference::2.0',
         'pxrsurface': 'pxrsurface::3.0',
@@ -37,6 +43,16 @@ class HoudiniNodeUtils():
         'smoke_material': 'accomp_smoke_material::1.0',
         'skid_marks_material': 'accomp_skid_marks_material::1.0',
     }
+
+    def link_field(source_node: hou.Node, target_node: hou.Node, field: str):
+        # import pdb; pdb.set_trace()
+        target_parm = target_node.parm(field)
+        expression = 'ch("' + source_node.path() + '/' + field + '")'
+        target_parm.setExpression(expression)
+
+    def link_fields(source_node: hou.Node, target_node: hou.Node, fields: list):
+        for field in fields:
+            HoudiniNodeUtils.link_field(source_node, target_node, field)
 
     def get_node_definition_name(base_name: str) -> str:
         if base_name in HoudiniNodeUtils.current_node_definitions:
@@ -188,11 +204,11 @@ class HoudiniUtils:
         return FilePathUtils.get_department_from_file_path(HoudiniUtils._get_my_path())
     
     @staticmethod
-    def get_shot_for_file() -> Shot or None:
+    def get_shot_for_file(retrieve_from_shotgrid=False) -> Shot or None:
         shot_name = HoudiniUtils.get_shot_name()
         if shot_name is None:
             return None
-        return server.get_shot(HoudiniUtils.get_shot_name())
+        return server.get_shot(HoudiniUtils.get_shot_name(), retrieve_from_shotgrid=retrieve_from_shotgrid)
 
     @staticmethod
     def check_for_unsaved_changes():
