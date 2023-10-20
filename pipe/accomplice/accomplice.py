@@ -262,7 +262,7 @@ class AccomplicePipe(SimplePipe):
 
         # Get the specified assets
         if 'name' in query:
-            return [asset.path for asset in set(self._database.get_assets(query.get('name')))]
+            return [asset.path for asset in set(self._database.get_assets(query.get('name')))] # TODO: Hey, this might be calling the get_assets function every time. Also, this isn't following any standard.
         raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
 
     '''Temporary character pipeline'''

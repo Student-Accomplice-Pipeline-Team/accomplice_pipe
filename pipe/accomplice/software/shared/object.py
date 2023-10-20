@@ -330,6 +330,23 @@ class Shot(JsonSerializable):
             raise ValueError('type must be one of ' + ', '.join(self.available_departments))
         else:
             return os.path.join(self.path, department)
+    
+    def get_shot_frames(self, global_start_frame=1000, extra_frames=5):
+            """
+            Returns the start and end frames for a shot, along with extra frames for handles.
+
+            Args:
+                global_start_frame (int): The global start frame for the shot.
+                extra_frames (int): The number of extra frames to include for handles.
+
+            Returns:
+                Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
+            """
+            handle_start = global_start_frame
+            shot_start = global_start_frame + extra_frames
+            shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            handle_end = shot_end + extra_frames
+            return handle_start, shot_start, shot_end, handle_end
 
     
     def get_shotfile(self, department: Optional[str] = None) -> str:
@@ -363,12 +380,6 @@ class Shot(JsonSerializable):
         houdini_file_path = self.get_shotfile('anim')
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
-    
-    def get_fx_usd_cache_directory_path(self):
-        """Returns the path to the usd cache folder (where individual FX are cached) for this shot."""
-        USD_CACHE_FOLDER_NAME = "usd_cache"
-        houdini_fx_folder_path = self.get_fx_directory_path()
-        return os.path.join(houdini_fx_folder_path, 'usd_cache')
     
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')

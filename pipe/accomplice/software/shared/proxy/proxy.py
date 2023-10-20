@@ -199,6 +199,8 @@ class _PipeProxy(PipeProxyInterface):
 
     def get_shot(self, name: str, retrieve_from_shotgrid=False) -> Shot:
         """Get a shot's data from the pipe."""
+        assert name is not None and name != ''
+        
         if retrieve_from_shotgrid:
             shot_dictionary = json.loads(self._get_data('/shot?name=' + name, str))
             assert name == shot_dictionary['code']
