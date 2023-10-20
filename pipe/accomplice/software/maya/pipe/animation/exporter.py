@@ -202,6 +202,15 @@ class Exporter():
         print(asset)
         shot = pipe.server.get_shot(self.shot_selection)
         
+        #File path for exporting alembics for CFX
+        cfx_filepath = shot.path + '/cfx'
+        if not self.dir_exists(cfx_filepath):
+            os.mkdir(cfx_filepath)
+            p.set_RWE(cfx_filepath)
+            
+        self.alem_filepath = cfx_filepath + "/" + self.object_selection.lower() + ".abc"
+
+        #File path for exporting wrapped alembics from ANIM
         anim_filepath = shot.path + '/anim'
         if not self.dir_exists(anim_filepath):
             os.mkdir(anim_filepath)
@@ -243,12 +252,7 @@ class Exporter():
                 root = root + " "
             root = root + "-root " + obj
 
-        tmp = os.getenv('TMPDIR')
-        save_name = tmp + "/" + self.object_selection.lower() + ".abc"
-        
-        self.alem_filepath = save_name
-        
-        command = "-frameRange " + start + " " + end + " -attr shop_materialpath" + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + save_name
+        command = "-frameRange " + start + " " + end + " -attr shop_materialpath" + " -uvWrite -worldSpace -stripNamespaces " + root + " -file " + self.alem_filepath
         print("command: " + command)
         return command
     
