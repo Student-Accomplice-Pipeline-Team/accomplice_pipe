@@ -69,6 +69,11 @@ class Exporter():
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
     def save_object(self, selected_object):
+        
+        #Delete Object Select GUI
+        if cmds.window("ms_selectObject_GUI", exists=True):
+            cmds.deleteUI("ms_selectObject_GUI")   
+        
         self.object_selection = selected_object
         
         if self.object_selection == "other":
@@ -106,8 +111,7 @@ class Exporter():
         self.shot_list = pipe.server.get_shot_list()
         self.shot_list = sorted(self.shot_list)
         
-        if cmds.window("ms_selectObject_GUI", exists=True):
-                cmds.deleteUI("ms_selectObject_GUI")   
+
     
         if cmds.window("ms_selectShot_GUI", exists=True):
                 cmds.deleteUI("ms_selectShot_GUI")
@@ -231,15 +235,9 @@ class Exporter():
         
         self.version_alembic(command)
         self.version_usd()
+        
+        
 
-
-        # Because there is a descrepancy between the name of the car in the pipeline (studentcar) and the name of the rig (heroCar), we hard code the selection here
-        # The following code saves the locator that represents the transforms of the car so that CFX people can simulate at origin and apply the transformations later.
-        if asset == 'studentcar':
-            cmds.select('heroCar' + self.FBX_EXPORTER_SUFFIX, replace=True)
-            fbx_filepath = anim_filepath + os.path.sep + self.CAR_FBX_NAME
-            mel.eval( 'FBXExport -f "' + fbx_filepath + '" -s' )
-        #self.comment_gui()
     
     def dir_exists(self, dir_path) -> bool:
         """ Checks if the given directory exists, returns True or False """
