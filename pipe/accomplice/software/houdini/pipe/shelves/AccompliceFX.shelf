@@ -11,6 +11,7 @@
     <memberTool name="compile_fx_usd"/>
     <memberTool name="configure_speedtree_leaves"/>
     <memberTool name="configure_speedtree_bark"/>
+    <memberTool name="unlock_all_nodes"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -412,5 +413,41 @@ if len(selected_nodes) > 0:
     
 else:
     print("No nodes are selected.")]]></script>
+  </tool>
+
+  <tool name="unlock_all_nodes" label="Unlock All Nodes" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+
+starting_node = hou.node('/')
+print('Starting unlocking nodes!')
+
+def unlock_all_chop_nodes(current_node):
+    print("current node: " + current_node.name())
+    try:
+        if current_node.isLocked():
+            current_node.setLocked(False)
+            print("unlocked node: " + current_node.name())
+    except Exception as e:
+        # print(e)
+        pass
+    for node in current_node.children():
+        unlock_all_chop_nodes(node)
+
+def unlock_all_sop_nodes(current_node):
+    try:
+        if current_node.isHardLocked():
+            current_node.setHardLocked(False)
+            print("unlocked node: " + current_node.name())
+    except Exception as e:
+        # print(e)
+        pass
+    for node in current_node.children():
+        unlock_all_sop_nodes(node)
+
+unlock_all_chop_nodes(starting_node)
+unlock_all_sop_nodes(starting_node)
+
+print('All nodes unlocked')]]></script>
   </tool>
 </shelfDocument>
