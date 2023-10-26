@@ -28,7 +28,7 @@ class MayaProxy(HTTPSoftwareProxy):
         'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
         'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
         'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
-        'OCIO': None
+        'OCIO': None,
     }
 
     def __init__(
