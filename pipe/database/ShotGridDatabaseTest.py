@@ -14,7 +14,7 @@ id_database = {
     'shopsign': 5345
 }
 
-class ShotGridDatabaseTest(unittest.TestCase):
+class ShotGridDatabaseAssetTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
         SG_CONFIG['SITE_NAME'],
         SG_CONFIG['SCRIPT_NAME'],
@@ -63,6 +63,18 @@ class ShotGridDatabaseTest(unittest.TestCase):
         self.assertTrue(len(asset_list) > 0)
         self.assertEqual(len(asset_list), len(set(asset_list)), "Duplicate values are: " + str([asset for asset in asset_list if asset_list.count(asset) > 1])) # Check for duplicates
 
+class ShotGridDatabaseShotTest(unittest.TestCase):
+    db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
+        SG_CONFIG['SITE_NAME'],
+        SG_CONFIG['SCRIPT_NAME'],
+        SG_CONFIG['SCRIPT_KEY'],
+        SG_CONFIG['ACCOMPLICE_ID']
+    )
+
+    def test_get_shot_A_080(self):
+        shot_A_080 = self.db.get_shot('A_080')
+        self.assertIsNotNone(shot_A_080)
+                          
 class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
         SG_CONFIG['SITE_NAME'],
@@ -88,7 +100,8 @@ class AsynchronousShotGridDatabaseTest(unittest.TestCase):
 
 def run_tests():
     tests = unittest.TestSuite()
-    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseTest))
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseAssetTest))
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseShotTest))
     tests.addTest(unittest.TestLoader().loadTestsFromTestCase(AsynchronousShotGridDatabaseTest))
     runner = unittest.TextTestRunner(verbosity=3, failfast=True)
     runner.run(tests)
