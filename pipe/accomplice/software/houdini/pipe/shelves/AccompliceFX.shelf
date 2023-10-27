@@ -9,7 +9,9 @@
     <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
     <memberTool name="compile_fx_usd"/>
-    <memberTool name="configure_speed_tree"/>
+    <memberTool name="configure_speedtree_leaves"/>
+    <memberTool name="configure_speedtree_bark"/>
+    <memberTool name="unlock_all_nodes"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -326,74 +328,126 @@ else: # Note: this case is set up and it in theory should work, but I was having
     usd_wrapper.wrap()]]></script>
   </tool>
 
-  <tool name="configure_speed_tree" label="Configure Speed Tree" icon="PLASMA_App">
+  <tool name="configure_speedtree_bark" label="SpeedTree Bark" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 
-hou.ui.displayMessage("This tool used to be helpful but the tree workflow has changed since then.", severity=hou.severityType.Message)
-return
+
 # Get the currently selected node
-selected_node = hou.selectedNodes()[0]
-
-def rotate_uvs_of_leaves():
-    if 'leaf' in child_node.name().lower():
-        # Add a node to rotate all the UVs by 180 degrees
-        uv_edit_node  = child_node.createNode("uvedit")
-        # Set the pivot to be the center of the UVs
-        uv_edit_node.parm('px').set(0.5)
-        uv_edit_node.parm('py').set(0.5)
-
-        # Rotate 180 around pivot
-        uv_edit_node.parm("rz").set(180)
-
-        # Apply to all groups
-        uv_edit_node.parm('group').set('*')
-        uv_edit_node.setInput(0, last_node)
-        last_node = uv_edit_node
+selected_nodes = hou.selectedNodes()
 
 # Check if a node is selected
-if selected_node:
-    # Get the parent of the selected node
-    parent_node = selected_node.parent()
+if len(selected_nodes) > 0:
+    for current_bark_geo_node in selected_nodes:
+        assert current_bark_geo_node.type().name() == "geo", "The selected node is not a geo node."
 
-    # Create a Null node on the same level as the selected node and label it as "loop_control"
-    loop_control_node = parent_node.createNode("null")
-    loop_control_node.setName("loop_control", unique_name=True)
-    loop_control_node.setComment("Loop Control Parameters")
-
-    # Add "number_of_frames_before_looping" and "offset" parameters to the "loop_control" Null node
-    number_of_frames_parm_template = hou.IntParmTemplate("number_of_frames_before_looping", "Number of Frames Before Looping", 1)
-    offset_parm_template = hou.FloatParmTemplate("offset", "Offset", 1)
-
-    # Add the parameters to the "loop_control" Null node
-    loop_control_node.addSpareParmTuple(number_of_frames_parm_template)
-    loop_control_node.addSpareParmTuple(offset_parm_template)
-
-    # Prompt user for the number of frames before looping
-    number_of_frames = hou.ui.readInput("Enter the number of frames before looping:")
-    number_of_frames = int(number_of_frames[1])
-    loop_control_node.parm("number_of_frames_before_looping").set(number_of_frames)
-
-    for child_node in selected_node.children():
-        print(child_node.name())
-        if child_node.name() == selected_node.name():
-            continue
         # Check if the child node is also a geo node
-        if child_node.type().name() == "geo":
-            # Add a "loop_animation" node to the last node in the child geometry node
-            last_node = child_node.allItems()[-1]
+        vertex_cache_node = current_bark_geo_node.node('vertex_cache')
+        assert vertex_cache_node is not None, "The current leaf geo node does not have a vertex_cache node."
+        
+        # Create an accomp_configure_bark node and connect it to the vertex cache node
+        accomp_configure_bark_node = current_bark_geo_node.createNode("accomp_configure_bark")
+        accomp_configure_bark_node.setInput(0, vertex_cache_node) 
+        accomp_configure_bark_node.setDisplayFlag(True)
+        accomp_configure_bark_node.setRenderFlag(True)
+        current_bark_geo_node.layoutChildren()
+else:
+    print("No nodes are selected.")]]></script>
+  </tool>
 
-            print(last_node.name())
-            loop_animation_node = child_node.createNode("loop_animation")
+  <tool name="configure_speedtree_leaves" label="SpeedTree Leaves" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
 
-            # Connect the "loop_animation" node to the last node (assumes you want to connect it)
-            loop_animation_node.setInput(0, last_node)
-            loop_animation_node.parm("number_of_frames_before_looping").setExpression('ch("../../../loop_control/number_of_frames_before_looping")')
-            loop_animation_node.parm("offset").setExpression('ch("../../../' + loop_control_node.name() + '/offset")')
-            loop_animation_node.setDisplayFlag(True)
-            loop_animation_node.setRenderFlag(True)
-            child_node.layoutChildren()
+
+# Get the currently selected node
+selected_nodes = hou.selectedNodes()
+
+# Check if a node is selected
+if len(selected_nodes) > 0:
+    for current_leaf_geo_node in selected_nodes:
+        assert current_leaf_geo_node.type().name() == "geo", "The selected node is not a geo node."
+        print(current_leaf_geo_node.name())
+
+        # Check if the child node is also a geo node
+        vertex_cache_node = current_leaf_geo_node.node('vertex_cache')
+        assert vertex_cache_node is not None, "The current leaf geo node does not have a vertex_cache node."
+
+        # the fbx import node is the input node into the vertex_cache node
+        fbx_import_node = vertex_cache_node.inputs()[0]
+
+        prepare_leaves_for_shading_node = current_leaf_geo_node.createNode("accomp_prepare_leaves_for_shading")
+
+        # place the prepare leaves for shading node between the fbx import node and the vertex cache node
+        prepare_leaves_for_shading_node.setInput(0, fbx_import_node)
+        vertex_cache_node.setInput(0, prepare_leaves_for_shading_node)
+
+        # Create a scatter leaves on ground around tree node and connect it to the prepare leaves for shading node
+        scatter_leaves_on_ground_around_tree_node = current_leaf_geo_node.createNode("scatter_leaves_on_ground_around_tree") # not prefixed with accomp because not specific to student accomplice workflow
+        scatter_leaves_on_ground_around_tree_node.setInput(0, prepare_leaves_for_shading_node)
+
+        # Create an animate leaves falling from tree node and connect it to the vertex cache node
+        animate_leaves_falling_from_tree_node = current_leaf_geo_node.createNode("animate_leaves_falling_from_tree")
+        animate_leaves_falling_from_tree_node.setInput(0, vertex_cache_node)
+
+        # Merge the scatter leaves on ground around tree node and the animate leaves falling from tree node
+        merge_node = current_leaf_geo_node.createNode("merge")
+        merge_node.setInput(0, scatter_leaves_on_ground_around_tree_node)
+        merge_node.setInput(1, animate_leaves_falling_from_tree_node)
+
+        # Create a post process leaves node after the merge
+        post_process_leaves_node = current_leaf_geo_node.createNode("accomp_post_process_leaves")
+        post_process_leaves_node.setInput(0, merge_node)
+
+        # Create two null nodes, one called OUT_render and connect it to the first input of the post process leaves node. The second one is called OUT_proxy and connect it to the second input of the post process leaves node.
+        null_out_render_node = current_leaf_geo_node.createNode("null", "OUT_render")
+        null_out_render_node.setInput(0, post_process_leaves_node)
+        
+        null_out_proxy_node = current_leaf_geo_node.createNode("null", "OUT_proxy")
+        null_out_proxy_node.setInput(0, post_process_leaves_node, output_index=1)
+        
+        
+
+
+        null_out_render_node.setDisplayFlag(True)
+        null_out_render_node.setRenderFlag(True)
+        current_leaf_geo_node.layoutChildren()
     
 else:
     print("No nodes are selected.")]]></script>
+  </tool>
+
+  <tool name="unlock_all_nodes" label="Unlock All Nodes" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+
+starting_node = hou.node('/')
+print('Starting unlocking nodes!')
+
+def unlock_all_chop_nodes(current_node):
+    print("current node: " + current_node.name())
+    try:
+        if current_node.isLocked():
+            current_node.setLocked(False)
+            print("unlocked node: " + current_node.name())
+    except Exception as e:
+        # print(e)
+        pass
+    for node in current_node.children():
+        unlock_all_chop_nodes(node)
+
+def unlock_all_sop_nodes(current_node):
+    try:
+        if current_node.isHardLocked():
+            current_node.setHardLocked(False)
+            print("unlocked node: " + current_node.name())
+    except Exception as e:
+        # print(e)
+        pass
+    for node in current_node.children():
+        unlock_all_sop_nodes(node)
+
+unlock_all_chop_nodes(starting_node)
+unlock_all_sop_nodes(starting_node)
+
+print('All nodes unlocked')]]></script>
   </tool>
 </shelfDocument>
