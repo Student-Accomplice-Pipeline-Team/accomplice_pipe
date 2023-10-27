@@ -8,6 +8,11 @@ from pipe.shared.object import Asset
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 import pipe
 
+from pipe.shared.helper.utilities.optimization_utils import DataCache
+
+data_cache = DataCache()
+
+
 # Constants
 ANIM_SUBDIRECTORY = 'anim'
 EXTENSION = '.usd'
@@ -22,12 +27,14 @@ class AnimationImporter():
 
     def get_shot(self):
         shot_name = HoudiniUtils.get_shot_name()
-        shot = pipe.server.get_shot(shot_name)
-        print('This is the shot that was created: ', shot.name)
+        # shot = pipe.server.get_shot(shot_name)
+        shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
         return shot
 
     def get_character_options_list(self):
-        self.shot = pipe.server.get_shot(HoudiniUtils.get_shot_name())
+        # self.shot = pipe.server.get_shot(HoudiniUtils.get_shot_name())
+        if self.shot is None:
+            self.shot = self.get_shot()
         print('This is the shot name!', self.shot.name)
 
         # Check if the current directory has an anim folder
