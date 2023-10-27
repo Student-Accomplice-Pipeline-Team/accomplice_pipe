@@ -347,8 +347,12 @@ if len(selected_nodes) > 0:
         # Create an accomp_configure_bark node and connect it to the vertex cache node
         accomp_configure_bark_node = current_bark_geo_node.createNode("accomp_configure_bark")
         accomp_configure_bark_node.setInput(0, vertex_cache_node) 
-        accomp_configure_bark_node.setDisplayFlag(True)
-        accomp_configure_bark_node.setRenderFlag(True)
+
+        # Add an OUT_render null node and connect it to the accomp_configure_bark node
+        out_render = accomp_configure_bark_node.createOutputNode("null", "OUT_render")
+
+        out_render.setDisplayFlag(True)
+        out_render.setRenderFlag(True)
         current_bark_geo_node.layoutChildren()
 else:
     print("No nodes are selected.")]]></script>
