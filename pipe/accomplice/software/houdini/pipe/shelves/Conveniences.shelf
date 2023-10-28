@@ -26,6 +26,7 @@ else:
 selected_nodes = hou.selectedNodes()
 
 # Prompt the user to enter the old and new strings using the Houdini dialog
+print('Replacing substrings for descendants of ', selected_nodes)
 button_index, values = hou.ui.readMultiInput("Enter the old and new strings:", ("Old String", "New String"), buttons=("OK", "Cancel"))
 old_substring = values[0]
 new_substring = values[1]
@@ -41,21 +42,23 @@ def replace_substring(node, depth=0):
     # Loop through parameters of the current node
     for param in node.parms():
         # Print the parameter name and its value
-        if type(param.eval()) is str and old_substring in param.eval():
-            print("  " * depth + node.name())
-            print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
-            old_string = param.eval()
-            new_string = old_string.replace(old_substring, new_substring)
-            try:
+        print(param.eval())
+        try:
+            if old_substring in param.rawValue():
+                print("  " * depth + node.name())
+                print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
+                old_string = param.rawValue()
+                new_string = old_string.replace(old_substring, new_substring)
                 param.set(new_string)
-            except Exception as e:
-                print(e)
+        except Exception as e:
+            print(e)
 
     # Recursively loop through child nodes
     for child in node.children():
         replace_substring(child, depth + 1)
 
 for selected_node in selected_nodes:
+    print('Replacing substrings for descendants of ' + selected_node.name())
     replace_substring(selected_node)]]></script>
   </tool>
 
@@ -83,16 +86,14 @@ def replace_substring(node, depth=0):
     for param in node.parms():
         # Print the parameter name and its value
         try:
+            print(param.expression())
             if old_substring in param.expression():
                 print("  " * depth + node.name())
                 print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
                 old_string = param.expression()
                 new_string = old_string.replace(old_substring, new_substring)
                 print(new_string)
-                try:
-                    param.setExpression(new_string)
-                except Exception as e:
-                    print(e)
+                param.setExpression(new_string)
         except Exception as e:
             print(e)
 
