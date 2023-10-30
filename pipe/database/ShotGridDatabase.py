@@ -110,11 +110,13 @@ class ShotGridDatabase(Database):
     def get_shot_list(self) -> Sequence[str]:
         filters = [
             [ 'project', 'is', { 'type': 'Project', 'id': self.PROJECT_ID } ],
+            [ 'sg_status_list', 'is_not', 'oop' ],
         ]
         fields = [
             'code'
         ]
         query = self.sg.find('Shot', filters, fields)
+        log.debug(query)
         to_return = []
         for shot in query:
             shot_name = shot['code']
