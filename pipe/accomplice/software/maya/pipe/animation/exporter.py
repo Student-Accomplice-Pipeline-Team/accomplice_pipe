@@ -410,7 +410,7 @@ class Exporter():
                 pass
             else:
                 error_message = "Entries must be integers"
-        elif self.endFrame < self.startFrame:
+        elif int(self.endFrame) < int(self.startFrame):
             error_message = "End frame must be greater than the start frame"
         
         if error_message != "":
