@@ -81,7 +81,9 @@ class TractorSubmit:
             # Get render output overrides for pattern
             output_path_override = None
             if int(self.node.parm("useoutputoverride" + str(i)).eval()) == 1:
-                output_path_override = self.node.parm("outputoverride" + str(i)).eval()
+                output_path_override = []
+                for frame in range(frame_range[0], frame_range[1] + 1):
+                    output_path_override.append(self.node.parm("outputoverride" + str(i)).evalAtFrame(frame))
             
             # Add all data to the lists
             for filepath in filepaths:
@@ -111,27 +113,28 @@ class TractorSubmit:
     # Creates all tasks for each USD and adds them to the job
     def add_tasks(self):
         # For loop creating a task for each USD file inputed into the node
-        for i in range(0, len(self.filepaths)):
+        for file_num in range(0, len(self.filepaths)):
             task = author.Task()
-            task.title = self.filepaths[i].split('/')[-1]
+            task.title = self.filepaths[file_num].split('/')[-1]
             # For loop creating a sub-task for each frame to be rendered in the USD
-            for j in range(self.frame_ranges[i][0], self.frame_ranges[i][1]+1):
-                if (j % self.frame_ranges[i][2] != 0):
+            for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1]+1):
+                if (frame % self.frame_ranges[file_num][2] != 0):
                     continue
                 subTask = author.Task()
-                subTask.title = "Frame " + str(j)
+                subTask.title = "Frame " + str(frame)
                 # Build render command from USD info
                 #renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
-                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(j) + " --frame-count 1 --frame-inc " + str(self.frame_ranges[i][2]) + " --make-output-path -V2"]
-                if (self.output_path_overrides[i] != None):
-                    renderCommand[-1] += " --output " + self.output_path_overrides[i]
-                renderCommand[-1] += " " + self.filepaths[i] # + " &> /tmp/test.log"
+                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(frame) + " --frame-count 1 --frame-inc " + str(self.frame_ranges[file_num][2]) + " --make-output-path -V2"]
+                if (self.output_path_overrides[file_num] != None):
+                    renderCommand[-1] += " --output " + self.output_path_overrides[file_num][frame - 1]
+                renderCommand[-1] += " " + self.filepaths[file_num] # + " &> /tmp/test.log"
                 # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", self.node.parm("renderer").eval(),
                 #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
                 # if (self.output_path_overrides[i] != None):
                 #     renderCommand.extend(
                 #         ["--output", self.output_path_overrides[i]])
                 # renderCommand.append(self.filepaths[i])
+                
                 # Create command object
                 command = author.Command()
                 command.argv = renderCommand
