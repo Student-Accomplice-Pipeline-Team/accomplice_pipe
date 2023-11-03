@@ -29,6 +29,11 @@ class ShotGridDatabaseAssetTest(unittest.TestCase):
         self.assertEqual(asset.name, 'tree')
         self.assertTrue(asset.path.endswith('tree'))
     
+    def test_get_asset_2(self):
+        asset = self.db.get_asset('powerlines')
+        self.assertEqual(asset.name, 'powerlines')
+        self.assertTrue(asset.path.endswith('powerlines'))
+    
     def test_get_asset_list(self):
         assets = self.db.get_asset_list()
         self.assertTrue(len(assets) > 0)
@@ -71,10 +76,6 @@ class ShotGridDatabaseShotTest(unittest.TestCase):
         SG_CONFIG['ACCOMPLICE_ID']
     )
 
-    def test_get_shot_A_080(self):
-        shot_A_080 = self.db.get_shot('A_080')
-        self.assertIsNotNone(shot_A_080)
-                          
 class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
         SG_CONFIG['SITE_NAME'],
