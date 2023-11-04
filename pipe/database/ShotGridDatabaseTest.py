@@ -14,7 +14,7 @@ id_database = {
     'shopsign': 5345
 }
 
-class ShotGridDatabaseTest(unittest.TestCase):
+class ShotGridDatabaseAssetTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
         SG_CONFIG['SITE_NAME'],
         SG_CONFIG['SCRIPT_NAME'],
@@ -28,6 +28,11 @@ class ShotGridDatabaseTest(unittest.TestCase):
         asset = self.db.get_asset('tree')
         self.assertEqual(asset.name, 'tree')
         self.assertTrue(asset.path.endswith('tree'))
+    
+    def test_get_asset_2(self):
+        asset = self.db.get_asset('powerlines')
+        self.assertEqual(asset.name, 'powerlines')
+        self.assertTrue(asset.path.endswith('powerlines'))
     
     def test_get_asset_list(self):
         assets = self.db.get_asset_list()
@@ -63,6 +68,14 @@ class ShotGridDatabaseTest(unittest.TestCase):
         self.assertTrue(len(asset_list) > 0)
         self.assertEqual(len(asset_list), len(set(asset_list)), "Duplicate values are: " + str([asset for asset in asset_list if asset_list.count(asset) > 1])) # Check for duplicates
 
+class ShotGridDatabaseShotTest(unittest.TestCase):
+    db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
+        SG_CONFIG['SITE_NAME'],
+        SG_CONFIG['SCRIPT_NAME'],
+        SG_CONFIG['SCRIPT_KEY'],
+        SG_CONFIG['ACCOMPLICE_ID']
+    )
+
 class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
         SG_CONFIG['SITE_NAME'],
@@ -88,7 +101,8 @@ class AsynchronousShotGridDatabaseTest(unittest.TestCase):
 
 def run_tests():
     tests = unittest.TestSuite()
-    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseTest))
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseAssetTest))
+    tests.addTest(unittest.TestLoader().loadTestsFromTestCase(ShotGridDatabaseShotTest))
     tests.addTest(unittest.TestLoader().loadTestsFromTestCase(AsynchronousShotGridDatabaseTest))
     runner = unittest.TextTestRunner(verbosity=3, failfast=True)
     runner.run(tests)

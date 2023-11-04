@@ -251,3 +251,9 @@ class HoudiniUtils:
             subfile_type = subfile_types[subfile_response[0]]
             return subfile_type
         return None
+
+    @staticmethod
+    def set_frame_range_from_shot(shot: Shot, global_start_frame=1001, handle_frames=5):
+        handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
+        hou.playbar.setFrameRange(handle_start, handle_end)
+        hou.playbar.setPlaybackRange(shot_start, shot_end)

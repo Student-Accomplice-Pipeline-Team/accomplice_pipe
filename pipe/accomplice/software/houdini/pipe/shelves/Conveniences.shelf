@@ -7,6 +7,8 @@
 
   <toolshelf name="conveniences" label="Conveniences">
     <memberTool name="full_screen"/>
+    <memberTool name="replace_substring_in_parms"/>
+    <memberTool name="replace_substring_in_parm_expressions"/>
   </toolshelf>
 
   <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
@@ -15,5 +17,91 @@ if mw.isFullScreen():
     mw.showMaximized()
 else:
     mw.showFullScreen()]]></script>
+  </tool>
+
+  <tool name="replace_substring_in_parms" label="Replace Substring" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+# Get currently selected nodes
+selected_nodes = hou.selectedNodes()
+
+# Prompt the user to enter the old and new strings using the Houdini dialog
+print('Replacing substrings for descendants of ', selected_nodes)
+button_index, values = hou.ui.readMultiInput("Enter the old and new strings:", ("Old String", "New String"), buttons=("OK", "Cancel"))
+old_substring = values[0]
+new_substring = values[1]
+
+# If the user cancels the dialog, exit the script
+if not old_substring or not new_substring:
+    hou.ui.displayMessage("Operation cancelled.")
+    raise hou.OperationFailed
+
+# Define a function to recursively traverse and print parameter values
+def replace_substring(node, depth=0):
+    # Print the name of the current node with appropriate indentation
+    # Loop through parameters of the current node
+    for param in node.parms():
+        # Print the parameter name and its value
+        print(param.eval())
+        try:
+            if old_substring in param.rawValue():
+                print("  " * depth + node.name())
+                print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
+                old_string = param.rawValue()
+                new_string = old_string.replace(old_substring, new_substring)
+                param.set(new_string)
+        except Exception as e:
+            print(e)
+
+    # Recursively loop through child nodes
+    for child in node.children():
+        replace_substring(child, depth + 1)
+
+for selected_node in selected_nodes:
+    print('Replacing substrings for descendants of ' + selected_node.name())
+    replace_substring(selected_node)]]></script>
+  </tool>
+
+  <tool name="replace_substring_in_parm_expressions" label="Replace Substring in Expression" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+# Get currently selected nodes
+selected_nodes = hou.selectedNodes()
+
+# Prompt the user to enter the old and new strings using the Houdini dialog
+button_index, values = hou.ui.readMultiInput("Enter the old and new strings:", ("Old String", "New String"), buttons=("OK", "Cancel"))
+old_substring = values[0]
+new_substring = values[1]
+
+# If the user cancels the dialog, exit the script
+if not old_substring or not new_substring:
+    hou.ui.displayMessage("Operation cancelled.")
+    raise hou.OperationFailed
+
+# Define a function to recursively traverse and print parameter values
+def replace_substring(node, depth=0):
+    # Print the name of the current node with appropriate indentation
+    # Loop through parameters of the current node
+    print(node.name())
+    for param in node.parms():
+        # Print the parameter name and its value
+        try:
+            print(param.expression())
+            if old_substring in param.expression():
+                print("  " * depth + node.name())
+                print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
+                old_string = param.expression()
+                new_string = old_string.replace(old_substring, new_substring)
+                print(new_string)
+                param.setExpression(new_string)
+        except Exception as e:
+            print(e)
+
+    # Recursively loop through child nodes
+    for child in node.children():
+        replace_substring(child, depth + 1)
+
+for selected_node in selected_nodes:
+    replace_substring(selected_node)]]></script>
   </tool>
 </shelfDocument>
