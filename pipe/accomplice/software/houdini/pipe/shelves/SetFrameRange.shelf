@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="set_frame_range_from_shotgrid" label="Set Frame Range From ShotGrid" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+from pipe.shared.object import Shot
+
+# shot = HoudiniUtils.get_shot_for_file(retrieve_from_shotgrid=True)
+
+# HoudiniUtils.set_frame_range_from_shot(shot, global_start_frame=1001, handle_frames=5)
+
+
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+from pipe.shared.object import Shot
+
+# Get the shot from Shotgrid
+shot = HoudiniUtils.get_shot_for_file(retrieve_from_shotgrid=True)
+
+if shot is None:
+    hou.ui.displayMessage("No shot was found for this file. Please open a Houdini file in the subdirectory of a shot folder and try again.")
+    exit()
+
+# Set default values
+default_values = ('1001', '5')
+
+# Create a dialog to get user input with default values
+dialog = hou.ui.readMultiInput("Set Frame Range", ["Global Start Frame", "Handle Frames"], initial_contents=default_values, buttons=("OK", "Cancel"))
+
+# Check if the user clicked OK
+if dialog[0] == 0:
+    global_start_frame = int(dialog[1][0])
+    handle_frames = int(dialog[1][1])
+
+
+    # Set the frame range from user input
+    HoudiniUtils.set_frame_range_from_shot(shot, global_start_frame=global_start_frame, handle_frames=handle_frames)
+]]></script>
+  </tool>
+</shelfDocument>
