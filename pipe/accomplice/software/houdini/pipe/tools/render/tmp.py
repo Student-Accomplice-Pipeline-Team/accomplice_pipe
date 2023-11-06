@@ -6,6 +6,7 @@ import functools
 import glob
 from typing import Sequence
 import pipe
+from pxr import Usd
 
 # Tractor requires all neccesiary envionment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
@@ -58,37 +59,51 @@ class TractorSubmit:
     # Gets the directory paths and render output overrides when
     # USDs are inputted manually with the "From Disk" Render method
     def input_usd_info(self):
-        num_files: hou.Parm = self.node.parm("files").evalAsInt()
+        num_patterns: hou.Parm = self.node.parm("files").evalAsInt()
 
         # For loop for getting variables from dynamically changing parameters
-        for i in range(1, num_files + 1):
+        for pattern_num in range(1, num_patterns + 1):
             # Get filepaths for the pattern
-            filepaths = validate_files(
-                self.node, self.node.parm("filepath" + str(i)))
+            filepaths = validate_files(self.node, self.node.parm("filepath" + str(pattern_num)))
 
-            # Get frame range for the pattern
-            frame_range = []
-            if self.node.parm("trange" + str(i)).evalAsString() == 'single':
-                frame = self.node.parm("frame" + str(i)).evalAsInt()
-                frame_range = [frame, frame, 1]
-            else:
-                frame_range = [
-                    self.node.parm("framerange" + str(i) + "x").eval(),
-                    self.node.parm("framerange" + str(i) + "y").eval(),
-                    self.node.parm("framerange" + str(i) + "z").eval(),
-                ]
-
-            # Get render output overrides for pattern
-            output_path_override = None
-            if int(self.node.parm("useoutputoverride" + str(i)).eval()) == 1:
-                output_path_override = []
-                for frame in range(frame_range[0], frame_range[1] + 1):
-                    output_path_override.append(self.node.parm("outputoverride" + str(i)).evalAtFrame(frame))
-            
-            # Add all data to the lists
             for filepath in filepaths:
+                # Add the file to the filepaths
                 self.filepaths.append(filepath)
+                
+                # Get the frame range for the file
+                frame_range = None                
+                trange = self.node.parm("trange" + str(pattern_num)).evalAsString()
+                if trange == 'file':
+                    file_stage = Usd.Stage.Open(filepath)
+                    frame_range = [
+                        int(file_stage.GetStartTimeCode()),
+                        int(file_stage.GetEndTimeCode()),
+                        1,
+                    ]
+                elif trange == 'range':
+                    frame_range = [
+                        self.node.parm("framerange" + str(pattern_num) + "x").evalAsInt(),
+                        self.node.parm("framerange" + str(pattern_num) + "y").evalAsInt(),
+                        self.node.parm("framerange" + str(pattern_num) + "z").evalAsInt(),
+                    ]
+                elif trange == 'single':
+                    frame = self.node.parm("frame" + str(pattern_num)).evalAsInt()
+                    frame_range = [
+                        frame,
+                        frame,
+                        1,
+                    ]
+                
                 self.frame_ranges.append(frame_range)
+
+                # Get the output path overrides for the file
+                output_path_override = None
+                if int(self.node.parm("useoutputoverride" + str(pattern_num)).eval()) == 1:
+                    output_path_override = []
+                    hou.hscript(f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}")
+                    for frame in range(frame_range[0], frame_range[1] + 1):
+                        output_path_override.append(self.node.parm("outputoverride" + str(pattern_num)).evalAtFrame(frame))
+                
                 self.output_path_overrides.append(output_path_override)
         
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
@@ -115,18 +130,19 @@ class TractorSubmit:
         # For loop creating a task for each USD file inputed into the node
         for file_num in range(0, len(self.filepaths)):
             task = author.Task()
-            task.title = self.filepaths[file_num].split('/')[-1]
+            task.title = os.path.basename(self.filepaths[file_num])
+
             # For loop creating a sub-task for each frame to be rendered in the USD
-            for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1]+1):
+            for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1):
                 if (frame % self.frame_ranges[file_num][2] != 0):
                     continue
                 subTask = author.Task()
                 subTask.title = "Frame " + str(frame)
                 # Build render command from USD info
                 #renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
-                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(frame) + " --frame-count 1 --frame-inc " + str(self.frame_ranges[file_num][2]) + " --make-output-path -V2"]
+                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(frame) + " --frame-inc " + str(self.frame_ranges[file_num][2]) + " --make-output-path -V2"]
                 if (self.output_path_overrides[file_num] != None):
-                    renderCommand[-1] += " --output " + self.output_path_overrides[file_num][frame - 1]
+                    renderCommand[-1] += " --output " + self.output_path_overrides[file_num][frame - self.frame_ranges[file_num][0]]
                 renderCommand[-1] += " " + self.filepaths[file_num] # + " &> /tmp/test.log"
                 # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", self.node.parm("renderer").eval(),
                 #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
@@ -147,14 +163,13 @@ class TractorSubmit:
             self.job.addChild(task)
 
     # Calls all functions in this class required to gather parameter info, create, and spool the Tractor Job
-
     def spoolJob(self):
         self.input_usd_info()
         if (len(self.filepaths) > 0):
             self.input_priority()
             self.input_blades()
             self.add_tasks()
-            print(self.job.asTcl())
+            #print(self.job.asTcl())
             self.job.spool()
             hou.ui.displayMessage("Job sent to tractor")
 
