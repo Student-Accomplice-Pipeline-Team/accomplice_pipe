@@ -1,4 +1,4 @@
-__all__=["maya","houdini","nuke"]
+__all__ = ["maya", "houdini", "nuke"]
 
 """Sets up the configuration for the Pipe"""
 

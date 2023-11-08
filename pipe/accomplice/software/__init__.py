@@ -12,5 +12,6 @@ from .interface import SoftwareProxyInterface
 
 def create_proxy(name: str, pipe_port: int) -> SoftwareProxyInterface:
     """Create and return a proxy for the specified software."""
-    return find_implementation(SoftwareProxyInterface,
-                               '.' + name, __package__)(pipe_port)
+    return find_implementation(SoftwareProxyInterface, "." + name, __package__)(
+        pipe_port
+    )

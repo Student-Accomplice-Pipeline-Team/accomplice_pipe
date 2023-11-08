@@ -12,7 +12,7 @@ class PipeInterface(metaclass=ABCMeta):
     def __subclasshook__(cls, subclass):
         """Ensure that subclasses contain implementations of all methods."""
         return check_methods(cls, subclass)
-    
+
     def __init__(self, *software: str) -> None:
         """Initialize the pipe and launch the software, if any."""
         pass

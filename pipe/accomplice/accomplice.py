@@ -85,25 +85,27 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
 
     def send_okay(self):
         self.send_response(HTTPStatus.OK)
-        self.send_header('Content-type', 'text/plain')
+        self.send_header("Content-type", "text/plain")
         self.end_headers()
-    
+
     def send_not_implemented_error(self):
         self.send_response(HTTPStatus.NOT_IMPLEMENTED)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
 
     def do_POST(self):
         log.info(f"Handling POST request with path {self.path}")
         try:
-            url=urlparse(self.path)
+            url = urlparse(self.path)
 
-            if url.path == '/create_asset':
+            if url.path == "/create_asset":
                 asset_dict = self.pipe.create_asset(parse_qs(url.query))
                 self.send_okay()
                 asset_string = json.dumps(asset_dict)
-                self.wfile.write(asset_string.encode('utf-8')) # Send back the asset that was created
-            elif url.path == '/client/exit':
+                self.wfile.write(
+                    asset_string.encode("utf-8")
+                )  # Send back the asset that was created
+            elif url.path == "/client/exit":
                 self.send_okay()
                 self.pipe.exit()
             else:
@@ -117,33 +119,33 @@ class PipeRequestHandler(BaseHTTPRequestHandler):
         try:
             url = urlparse(self.path)
 
-            if url.path == '/assets':
+            if url.path == "/assets":
                 assets = self.pipe.get_assets(parse_qs(url.query))
                 self.send_okay()
 
-                asset_data = ','.join(assets)
-                self.wfile.write(asset_data.encode('utf-8'))
-            elif url.path == '/characters':
+                asset_data = ",".join(assets)
+                self.wfile.write(asset_data.encode("utf-8"))
+            elif url.path == "/characters":
                 characters = self.pipe.get_characters(parse_qs(url.query))
                 self.send_okay()
 
-                character_data = ','.join(characters)
-                self.wfile.write(character_data.encode('utf-8'))
-            elif url.path == '/shot':
+                character_data = ",".join(characters)
+                self.wfile.write(character_data.encode("utf-8"))
+            elif url.path == "/shot":
                 shot = self.pipe.get_shot(parse_qs(url.query))
                 self.send_okay()
                 shot_string = json.dumps(shot)
-                self.wfile.write(shot_string.encode('utf-8'))
-            
-            elif url.path == '/shots':
+                self.wfile.write(shot_string.encode("utf-8"))
+
+            elif url.path == "/shots":
                 shots = self.pipe.get_shots(parse_qs(url.query))
                 self.send_okay()
 
-                shot_data = ','.join(shots)
-                self.wfile.write(shot_data.encode('utf-8'))
+                shot_data = ",".join(shots)
+                self.wfile.write(shot_data.encode("utf-8"))
             else:
                 self.send_response(HTTPStatus.NOT_IMPLEMENTED)
-                self.send_header('Content-type', 'text/html')
+                self.send_header("Content-type", "text/html")
                 self.end_headers()
         except Exception as ex:
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, message=ex.__str__)
@@ -153,10 +155,10 @@ class AccomplicePipe(SimplePipe):
     """BYU's Student Accomplice (2024) pipeline."""
 
     character_lookup: dict = {
-        'letty':        '/characters/letty',
-        'ed':           '/characters/ed',
-        'vaughn':       '/characters/vaughn',
-        'studentcar':   '/assets/vehicles/studentcar'
+        "letty": "/characters/letty",
+        "ed": "/characters/ed",
+        "vaughn": "/characters/vaughn",
+        "studentcar": "/assets/vehicles/studentcar",
     }
 
     _proxies: dict = {}
@@ -167,10 +169,10 @@ class AccomplicePipe(SimplePipe):
     _data_root = "/groups/accomplice/pipeline/production"
 
     _database = ShotGridDatabase(
-        SG_CONFIG['SITE_NAME'],
-        SG_CONFIG['SCRIPT_NAME'],
-        SG_CONFIG['SCRIPT_KEY'],
-        SG_CONFIG['ACCOMPLICE_ID']
+        SG_CONFIG["SITE_NAME"],
+        SG_CONFIG["SCRIPT_NAME"],
+        SG_CONFIG["SCRIPT_KEY"],
+        SG_CONFIG["ACCOMPLICE_ID"],
     )
 
     @property
@@ -193,13 +195,14 @@ class AccomplicePipe(SimplePipe):
 
     def launch(self, *software: str) -> None:
         for name in software:
-            if name == 'houdini_old':
+            if name == "houdini_old":
                 self.launch_software(name)
             else:
                 # Initialize the pipe server
                 log.info(f"Initializing pipe server on port {self.port}")
                 self._httpd = HTTPServer(
-                    ('localhost', self.port), partial(PipeRequestHandler, self))
+                    ("localhost", self.port), partial(PipeRequestHandler, self)
+                )
                 log.info(f"Pipe server initialized on port {self.port}")
 
                 log.info("Launching software")
@@ -218,7 +221,7 @@ class AccomplicePipe(SimplePipe):
                 self._httpd.server_close()
                 log.info("Exiting software")
                 self._get_proxy(name).exit()
-    
+
     def exit(self) -> None:
         log.warning("Exiting the pipe")
         raise KeyboardInterrupt
@@ -242,68 +245,78 @@ class AccomplicePipe(SimplePipe):
         """
         log.info(f"Launching {name.capitalize()}")
         self._get_proxy(name).launch()
-    
+
     def create_asset(self, query: Mapping[str, Any]) -> dict:
         """Create an asset with the given name."""
-        parent_name = query.get('parent_name')[0]
-        asset_name = query.get('asset_name')[0]
-        if parent_name != '':
+        parent_name = query.get("parent_name")[0]
+        asset_name = query.get("asset_name")[0]
+        if parent_name != "":
             return self._database.create_variant(asset_name, parent_name)
         else:
-            asset_path = query.get('asset_path')[0]
+            asset_path = query.get("asset_path")[0]
             return self._database.create_asset(asset_name, asset_path=asset_path)
-    
+
     def get_assets(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all assets
-        if 'list' in query:
-            list_type = query.get('list')
-            if 'name' in list_type:
+        if "list" in query:
+            list_type = query.get("list")
+            if "name" in list_type:
                 return self._database.get_asset_list()
 
         # Get the specified assets
-        if 'name' in query:
-            return [asset.path for asset in set(self._database.get_assets(query.get('name')))] # TODO: Hey, this might be calling the get_assets function every time. Also, this isn't following any standard.
-        raise ValueError("NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py")
+        if "name" in query:
+            return [
+                asset.path
+                for asset in set(self._database.get_assets(query.get("name")))
+            ]  # TODO: Hey, this might be calling the get_assets function every time. Also, this isn't following any standard.
+        raise ValueError(
+            "NEITHER NAME NOR LIST WERE IN QUERY. NOT SURE WHAT TO DO HERE. 373 accomplice.py"
+        )
 
-    '''Temporary character pipeline'''
+    """Temporary character pipeline"""
+
     def get_characters(self, query: Mapping[str, Any]) -> MutableSet:
-        log.info('doing the things')
+        log.info("doing the things")
         log.info(self.character_lookup.keys())
-        if 'list' in query:
-            list_type = query.get('list')
-            if 'name' in list_type:
+        if "list" in query:
+            list_type = query.get("list")
+            if "name" in list_type:
                 return self.character_lookup.keys()
 
-        if 'name' in query:
-            return set([self.character_lookup.get(asset) for asset in query.get('name')])
-    
+        if "name" in query:
+            return set(
+                [self.character_lookup.get(asset) for asset in query.get("name")]
+            )
+
     def get_shot(self, query: Mapping[str, Any]) -> dict:
         # Get the specified shot
-        if 'name' in query:
-            shot =  self._database.get_shot(query.get('name')[0])
+        if "name" in query:
+            shot = self._database.get_shot(query.get("name")[0])
             return shot
-        raise ValueError('NAME NOT FOUND IN QUERY')
-    
+        raise ValueError("NAME NOT FOUND IN QUERY")
+
     def get_shots(self, query: Mapping[str, Any]) -> MutableSet:
         # Get the key for all shots
-        if 'list' in query:
-            list_type = query.get('list')
-            if 'name' in list_type:
+        if "list" in query:
+            list_type = query.get("list")
+            if "name" in list_type:
                 return self._database.get_shot_list()
 
         # Get the specified shots
-        if 'name' in query:
-            return [shot.path for shot in set(self._database.get_assets(query.get('name')))]
-        
+        if "name" in query:
+            return [
+                shot.path for shot in set(self._database.get_assets(query.get("name")))
+            ]
+
         return []
 
     def get_asset_dir(self, asset, category, hero: bool = False):
         """Get the filepath to the specified asset."""
-        path = os.path.join(self._data_root, 'asset', category)
+        path = os.path.join(self._data_root, "asset", category)
         if hero:
-            return os.path.join(path, 'hero', asset)
+            return os.path.join(path, "hero", asset)
         else:
-            return os.path.join(path, 'generic', asset)
+            return os.path.join(path, "generic", asset)
 
     # temporary... since I'm just referencing this function directly from Houdini for now...
     @staticmethod
@@ -312,7 +325,7 @@ class AccomplicePipe(SimplePipe):
         asset = asset.lower()
         data_root = "/groups/accomplice/pipeline/production"
         # searching the asset directory of production
-        path = os.path.join(data_root, 'asset')
+        path = os.path.join(data_root, "asset")
         # add on category to path name if provided
         if category is not None:
             path = os.path.join(path, category)

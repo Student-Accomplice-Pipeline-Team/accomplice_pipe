@@ -8,6 +8,7 @@ from typing import Iterable, Set, Sequence
 
 from shared.object import Asset
 
+
 class DatabaseInterface(metaclass=ABCMeta):
     """Interface for database interaction"""
 
@@ -20,7 +21,7 @@ class DatabaseInterface(metaclass=ABCMeta):
     def __init__(self) -> None:
         """Initialize the Database"""
         raise NotImplementedError
-    
+
     @abstractmethod
     def get_asset(self, name: str) -> Asset:
         """Get an Asset object"""

@@ -27,10 +27,10 @@ class SoftwareProxy(SoftwareProxyInterface):
     processes = []
 
     def __init__(
-            self,
-            pipe_port: int,
-            command: str,
-            args: Optional[Sequence[str]] = None,
+        self,
+        pipe_port: int,
+        command: str,
+        args: Optional[Sequence[str]] = None,
     ) -> None:
         """Initialize SoftwareProxy objects.
 
@@ -83,11 +83,11 @@ class EnvSoftwareProxy(SoftwareProxy):
     env_vars = None
 
     def __init__(
-            self,
-            pipe_port: int,
-            command: str,
-            args: Optional[Sequence[str]] = None,
-            env_vars: Mapping[str, Optional[Union[str, int]]] = None
+        self,
+        pipe_port: int,
+        command: str,
+        args: Optional[Sequence[str]] = None,
+        env_vars: Mapping[str, Optional[Union[str, int]]] = None,
     ) -> None:
         r"""Initialize EnvSoftwareProxy objects.
 
@@ -114,8 +114,7 @@ class EnvSoftwareProxy(SoftwareProxy):
         pass
 
     def _set_env_vars(
-        self,
-        env_vars: Optional[Mapping[str, Optional[Union[str, int]]]]
+        self, env_vars: Optional[Mapping[str, Optional[Union[str, int]]]]
     ) -> None:
         """(Un)Set environment variables to their associated values.
 
@@ -129,7 +128,7 @@ class EnvSoftwareProxy(SoftwareProxy):
         # (Un)Set the environment variables
         for key, val in env_vars.items():
             if val is None and key in os.environ:
-                 del os.environ[key]
+                del os.environ[key]
             else:
                 os.environ[key] = str(val)
 
@@ -187,14 +186,14 @@ class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
         log.info(f"Forwarding {method} request")
 
         # Forward the request to the pipe server
-        conn = HTTPConnection('localhost', self.forward_port)
+        conn = HTTPConnection("localhost", self.forward_port)
         conn.request(method, self.path, content, self.headers)
 
         # Wait for a response
         response = conn.getresponse()
 
         # Get the response content
-        #response_content_len = int(
+        # response_content_len = int(
         #    response.headers.get('Content-Length', failobj=0))
         response_content = response.read()
 
@@ -214,26 +213,24 @@ class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
         log.info(f"Received {method} request from {self.client_address}")
 
         # Get the request content
-        content_len = int(
-            self.headers.get('Content-Length', failobj=0)
-        )
+        content_len = int(self.headers.get("Content-Length", failobj=0))
         content = self.rfile.read(content_len)
 
         # Handle or forward the request
-        if self.path.split('/')[0] == 'client':
+        if self.path.split("/")[0] == "client":
             # TODO: somehow register a client???
             pass
         else:
             self._forward_request(method, content)
 
     def do_GET(self):
-        self._resolve_request('GET')
+        self._resolve_request("GET")
 
     def do_POST(self):
-        self._resolve_request('POST')
+        self._resolve_request("POST")
 
     def do_PUT(self):
-        self._resolve_request('PUT')
+        self._resolve_request("PUT")
 
 
 class HTTPSoftwareProxy(EnvSoftwareProxy):
@@ -256,12 +253,12 @@ class HTTPSoftwareProxy(EnvSoftwareProxy):
             raise Exception("A problem has occurred")
 
     def __init__(
-            self,
-            pipe_port: int,
-            command: str,
-            args: Optional[Sequence[str]] = None,
-            env_vars: Mapping[str, Optional[Union[str, int]]] = None,
-            bind_port: Optional[int] = None,
+        self,
+        pipe_port: int,
+        command: str,
+        args: Optional[Sequence[str]] = None,
+        env_vars: Mapping[str, Optional[Union[str, int]]] = None,
+        bind_port: Optional[int] = None,
     ) -> None:
         # Initialize the superclass
         super().__init__(pipe_port, command, args, env_vars)
@@ -280,7 +277,7 @@ class HTTPSoftwareProxy(EnvSoftwareProxy):
             log.info("Initializing the server")
 
             # Initialize the proxy server
-            address = ('localhost', self.port)
+            address = ("localhost", self.port)
             request_handler = partial(ProxyHTTPRequestHandler, self.pipe_port)
 
             self.httpd = HTTPServerThread(address, request_handler)
@@ -314,7 +311,7 @@ class HTTPSoftwareProxy(EnvSoftwareProxy):
 
     def exit(self):
         # Shut down the server
-        log.info('Shutting down the proxy server')
+        log.info("Shutting down the proxy server")
         self.httpd.shutdown()
 
 

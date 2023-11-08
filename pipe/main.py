@@ -40,27 +40,28 @@ def launch(pipe: str, *software: str) -> PipeInterface:
 
 # If run as a script, execute launch() with the command-line arguments
 # and/or environment variables
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # Parse the arguments
     parser = ArgumentParser(
         description="Launch software in one of BYU's film pipelines."
     )
     parser.add_argument(
-        'software',
-        nargs='*',
+        "software",
+        nargs="*",
         help="launch the specified software",
     )
     parser.add_argument(
-        '-l', '--log-level',
+        "-l",
+        "--log-level",
         help="log at the specified level. Possible values are %(choices)s (default: %(default)s)",
         choices=getLevelNamesMapping(),
         default=logging.getLevelName(logging.root.level),
         type=str.upper,
-        metavar='LEVEL',
+        metavar="LEVEL",
     )
     pipe_arg = parser.add_argument(
-        '-p', '--pipe',
+        "-p",
+        "--pipe",
         help=f"use the specified pipe (defaults to ${_pipe_env_var}: %(default)s)",
         default=os.getenv(_pipe_env_var),
     )
@@ -76,8 +77,8 @@ if __name__ == '__main__':
     # Make sure a pipeline has been selected
     if args.pipe is None:
         parser.error(
-            f"the following arguments are required: " +
-            '/'.join(pipe_arg.option_strings + ['$' + _pipe_env_var])
+            f"the following arguments are required: "
+            + "/".join(pipe_arg.option_strings + ["$" + _pipe_env_var])
         )
 
     # Launch the pipeline and software

@@ -30,14 +30,13 @@ class HTTPServerThread(Thread):
         server_address: Tuple[Union[str, bytes, bytearray], int],
         RequestHandlerClass: BaseRequestHandler,
         bind_and_activate: bool = True,
-        thread_name: Optional[str] = None
+        thread_name: Optional[str] = None,
     ) -> None:
         """Initialize an HTTPServerThread object."""
         super().__init__(name=thread_name)
 
         # Initialize the server
-        self._httpd = HTTPServer(
-            server_address, RequestHandlerClass, bind_and_activate)
+        self._httpd = HTTPServer(server_address, RequestHandlerClass, bind_and_activate)
 
     def run(self) -> None:
         """Run the HTTP server."""

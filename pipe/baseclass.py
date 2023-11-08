@@ -2,6 +2,7 @@
 
 from interface import PipeInterface
 
+
 class SimplePipe(PipeInterface):
     """A simple BYU film pipeline."""
 

@@ -7,12 +7,22 @@ from ..baseclass import HTTPSoftwareProxy
 
 # See https://www.sidefx.com/docs/houdini/ref/env.html
 
+
 class HoudiniProxy(HTTPSoftwareProxy):
     """A software proxy for Houdini."""
 
     houdini_pipe_dir = Path(__file__).resolve().parent
-    fx_hda_locations = [dir[0] for dir in os.walk(str(houdini_pipe_dir.joinpath('hda', 'fx'))) if not dir[0].endswith('backup')]
-    cfx_hda_locations = [dir[0] for dir in os.walk(str(houdini_pipe_dir.joinpath('hda', 'cfx'))) if not dir[0].endswith('backup')]
+    fx_hda_locations = [
+        dir[0]
+        for dir in os.walk(str(houdini_pipe_dir.joinpath("hda", "fx")))
+        if not dir[0].endswith("backup")
+    ]
+    cfx_hda_locations = [
+        dir[0]
+        for dir in os.walk(str(houdini_pipe_dir.joinpath("hda", "cfx")))
+        if not dir[0].endswith("backup")
+    ]
+    # fmt: off
     houdini_env_vars = {
         'PYTHONPATH': houdini_pipe_dir,
         'HOUDINI_DESK_PATH': houdini_pipe_dir.joinpath('menu'),         # Custom workspaces
@@ -30,20 +40,24 @@ class HoudiniProxy(HTTPSoftwareProxy):
         #'HOUDINI_SPLASH_FILE': <insert custom splash>
         #'HOUDINI_ASSETGALLERY_DB_FILE': <insert asset gallery db file>
     }
+    # fmt: on
 
-    is_headless = os.getenv('PIPE_IS_HEADLESS') == '1'
-    launch_command = ('/opt/hfs19.5/bin/hython'
-                        if is_headless
-                     else '/opt/hfs19.5/bin/houdinifx' 
-                        if sys.platform.startswith('linux') 
-                     else 'C:\\Program Files\\Side Effects Software\\Houdini 19.5.640\\bin\\houdinifx.exe')
+    is_headless = os.getenv("PIPE_IS_HEADLESS") == "1"
+    launch_command = (
+        "/opt/hfs19.5/bin/hython"
+        if is_headless
+        else "/opt/hfs19.5/bin/houdinifx"
+        if sys.platform.startswith("linux")
+        else "C:\\Program Files\\Side Effects Software\\Houdini 19.5.640\\bin\\houdinifx.exe"
+    )
     launch_args = [] if is_headless else ["-foreground"]
 
-    def __init__(self,
-                 pipe_port: int,
-                 command: str = launch_command,
-                 args: Optional[Sequence[str]] = launch_args,
-                 env_vars: Mapping[str, Optional[str]] = houdini_env_vars,
-                 ) -> None:
+    def __init__(
+        self,
+        pipe_port: int,
+        command: str = launch_command,
+        args: Optional[Sequence[str]] = launch_args,
+        env_vars: Mapping[str, Optional[str]] = houdini_env_vars,
+    ) -> None:
         super().__init__(pipe_port, command, args, env_vars)
         pass

@@ -16,10 +16,12 @@ import maya.mel as mel
 import maya.OpenMayaUI as omui
 import maya.api.OpenMaya as om
 import pipe.asset.modelChecker.modelChecker_commands as mcc
+
 importlib.reload(mcc)
 import pipe.asset.modelChecker.modelChecker_list as mcl
+
 importlib.reload(mcl)
-import os,re,sys
+import os, re, sys
 
 import pipe
 
@@ -34,9 +36,8 @@ def getMainWindow():
 
 
 class UI(QtWidgets.QMainWindow):
-
     qmwInstance = None
-    version = '0.1.1'
+    version = "0.1.1"
     SLMesh = om.MSelectionList()
     commandsList = mcl.mcCommandsList
     reportOutputUI = QtWidgets.QTextEdit()
@@ -69,11 +70,10 @@ class UI(QtWidgets.QMainWindow):
             cls.qmwInstance.activateWindow()
 
     def __init__(self, parent=getMainWindow()):
-        super(UI, self).__init__(
-            parent)
+        super(UI, self).__init__(parent)
 
         self.setObjectName("ModelCheckerUI")
-        self.setWindowTitle('Model Checker (BYU Adaptation) ' + self.version)
+        self.setWindowTitle("Model Checker (BYU Adaptation) " + self.version)
 
         mainLayout = QtWidgets.QWidget(self)
         self.setCentralWidget(mainLayout)
@@ -122,17 +122,16 @@ class UI(QtWidgets.QMainWindow):
             self.categoryHeader[obj] = QtWidgets.QHBoxLayout()
             self.categoryButton[obj] = QtWidgets.QPushButton(obj)
             if sys.version_info.major >= 3:
-                text = '\u2193'
+                text = "\u2193"
             else:
-                text = u'\u2193'.encode('utf-8')
+                text = "\u2193".encode("utf-8")
             self.categoryCollapse[obj] = QtWidgets.QPushButton(text)
-            self.categoryCollapse[obj].clicked.connect(
-                partial(self.toggleUI, obj))
+            self.categoryCollapse[obj].clicked.connect(partial(self.toggleUI, obj))
             self.categoryCollapse[obj].setMaximumWidth(30)
             self.categoryButton[obj].setStyleSheet(
-                "background-color: grey; text-transform: uppercase; color: #000000; font-size: 18px;")
-            self.categoryButton[obj].clicked.connect(
-                partial(self.checkCategory, obj))
+                "background-color: grey; text-transform: uppercase; color: #000000; font-size: 18px;"
+            )
+            self.categoryButton[obj].clicked.connect(partial(self.checkCategory, obj))
             self.categoryHeader[obj].addWidget(self.categoryButton[obj])
             self.categoryHeader[obj].addWidget(self.categoryCollapse[obj])
             self.categoryWidget[obj].setLayout(self.categoryLayout[obj])
@@ -141,10 +140,10 @@ class UI(QtWidgets.QMainWindow):
 
         # Creates the buttons with their settings
         for obj in self.commandsList:
-            name = obj['func']
-            label = obj['label']
-            category = obj['category']
-            check = obj['defaultChecked']
+            name = obj["func"]
+            label = obj["label"]
+            category = obj["category"]
+            check = obj["defaultChecked"]
 
             self.commandWidget[name] = QtWidgets.QWidget()
             self.commandWidget[name].setMaximumHeight(40)
@@ -155,8 +154,7 @@ class UI(QtWidgets.QMainWindow):
 
             self.commandLayout[name].setSpacing(4)
             self.commandLayout[name].setContentsMargins(0, 0, 0, 0)
-            self.commandWidget[name].setStyleSheet(
-                "padding: 0px; margin: 0px;")
+            self.commandWidget[name].setStyleSheet("padding: 0px; margin: 0px;")
             self.command[name] = name
             self.commandLabel[name] = QtWidgets.QLabel(label)
             self.commandLabel[name].setMinimumWidth(120)
@@ -170,10 +168,10 @@ class UI(QtWidgets.QMainWindow):
             self.commandRunButton[name].setMaximumWidth(30)
 
             self.commandRunButton[name].clicked.connect(
-                partial(self.commandToRun, [obj]))
+                partial(self.commandToRun, [obj])
+            )
 
-            self.errorNodesButton[name] = QtWidgets.QPushButton(
-                "Select Problems")
+            self.errorNodesButton[name] = QtWidgets.QPushButton("Select Problems")
             self.errorNodesButton[name].setEnabled(False)
             self.errorNodesButton[name].setMaximumWidth(200)
 
@@ -185,20 +183,20 @@ class UI(QtWidgets.QMainWindow):
         checks.addStretch()
 
         heroButton = QtWidgets.QRadioButton("Hero")
-        heroButton.toggled.connect(lambda:self.setAssetType("hero"))
+        heroButton.toggled.connect(lambda: self.setAssetType("hero"))
         checks.addWidget(heroButton)
 
         layoutButton = QtWidgets.QRadioButton("Layout")
-        layoutButton.toggled.connect(lambda:self.setAssetType("layout"))
+        layoutButton.toggled.connect(lambda: self.setAssetType("layout"))
         checks.addWidget(layoutButton)
-        
+
         setDressingButton = QtWidgets.QRadioButton("Set Dressing")
-        setDressingButton.toggled.connect(lambda:self.setAssetType("setdressing"))
+        setDressingButton.toggled.connect(lambda: self.setAssetType("setdressing"))
         setDressingButton.setChecked(True)
         checks.addWidget(setDressingButton)
-        
+
         riggedButton = QtWidgets.QRadioButton("Rigged")
-        riggedButton.toggled.connect(lambda:self.setAssetType("rigged"))
+        riggedButton.toggled.connect(lambda: self.setAssetType("rigged"))
         checks.addWidget(riggedButton)
 
         self.setAssetType("setdressing")
@@ -206,11 +204,9 @@ class UI(QtWidgets.QMainWindow):
         exportButtonLayout = QtWidgets.QHBoxLayout()
         checks.addLayout(exportButtonLayout)
 
-
         exportButton = QtWidgets.QPushButton("EXPORT")
         exportButton.clicked.connect(self.export)
-        exportButton.setStyleSheet(
-                "background-color: DarkRed; color: #ffffff;")
+        exportButton.setStyleSheet("background-color: DarkRed; color: #ffffff;")
 
         exportButtonLayout.addWidget(exportButton)
 
@@ -220,7 +216,7 @@ class UI(QtWidgets.QMainWindow):
     def getCategories(self, incomingList):
         allCategories = []
         for obj in incomingList:
-            allCategories.append(obj['category'])
+            allCategories.append(obj["category"])
         return set(allCategories)
 
     def checkState(self, name):
@@ -228,8 +224,8 @@ class UI(QtWidgets.QMainWindow):
 
     def checkAll(self):
         for obj in self.commandsList:
-            name = obj['func']
-            self.commandCheckBox[obj['func']].setChecked(True)
+            name = obj["func"]
+            self.commandCheckBox[obj["func"]].setChecked(True)
 
     def getArrow(self):
         pass
@@ -238,43 +234,43 @@ class UI(QtWidgets.QMainWindow):
         state = self.categoryWidget[obj].isVisible()
         if state:
             if sys.version_info.major >= 3:
-                text = u'\u21B5'
+                text = "\u21B5"
             else:
-                text = u'\u21B5'.encode('utf-8')
+                text = "\u21B5".encode("utf-8")
             self.categoryCollapse[obj].setText(text)
             self.categoryWidget[obj].setVisible(not state)
             self.adjustSize()
         else:
             if sys.version_info.major >= 3:
-                text = u'\u2193'
+                text = "\u2193"
             else:
-                text = u'\u2193'.encode('utf-8')
+                text = "\u2193".encode("utf-8")
             self.categoryCollapse[obj].setText(text)
             self.categoryWidget[obj].setVisible(not state)
 
     def export(self):
-        #OSTRICH_ROOT = os.environ.get('OSTRICH_ROOT', 'invalidfilepath')
-        
+        # OSTRICH_ROOT = os.environ.get('OSTRICH_ROOT', 'invalidfilepath')
+
         theErrors = self.sanityCheckExport()
         if theErrors != []:
             cmds.warning("Resolve Model Problems Before Publishing")
             return
-        
+
         for exportGrp in self.getExportGrps():
             assetName = self.getAssetName(exportGrp)
 
             asset = pipe.server.get_asset(assetName)
-            
+
             asset.get_modelling_path()
-            
-            finalFilePath = '/'.join([finalAssetFolder, self.assetType, assetName])
+
+            finalFilePath = "/".join([finalAssetFolder, self.assetType, assetName])
             if not os.path.exists(finalFilePath):
                 os.makedirs(finalFilePath)
 
-            finalFileName = '/'.join([finalFilePath, f"{assetName}_GEO.fbx"])
+            finalFileName = "/".join([finalFilePath, f"{assetName}_GEO.fbx"])
 
             # set FBX settings
-            mel.eval('FBXResetExport')
+            mel.eval("FBXResetExport")
             fbxSettings = [
                 "AdvOptGrp|UI|ShowWarningsManager",
                 "IncludeGrp|Animation",
@@ -283,33 +279,33 @@ class UI(QtWidgets.QMainWindow):
                 "IncludeGrp|LightGrp|Light",
             ]
             for prop in fbxSettings:
-                mel.eval(f'FBXProperty Export|{prop} -v false')
-            
+                mel.eval(f"FBXProperty Export|{prop} -v false")
+
             self.selectExportGrp(exportGrp)
 
             # export file
-            cmds.file(finalFileName, exportSelected=True, type='FBX export', force=True)
-            #os.chmod(finalFileName, 0o770)
+            cmds.file(finalFileName, exportSelected=True, type="FBX export", force=True)
+            # os.chmod(finalFileName, 0o770)
             cmds.confirmDialog(
-                message=f"Path: {finalFileName}", 
+                message=f"Path: {finalFileName}",
                 defaultButton="OK",
-                title="Export Completed!"
+                title="Export Completed!",
             )
 
     def invertCheck(self):
         for obj in self.commandsList:
-            name = obj['func']
+            name = obj["func"]
             self.commandCheckBox[name].setChecked(
-                not self.commandCheckBox[name].isChecked())
+                not self.commandCheckBox[name].isChecked()
+            )
 
     def checkCategory(self, category):
-
         uncheckedCategoryButtons = []
         categoryButtons = []
 
         for obj in self.commandsList:
-            name = obj['func']
-            cat = obj['category']
+            name = obj["func"]
+            cat = obj["category"]
             if cat == category:
                 categoryButtons.append(name)
                 if self.commandCheckBox[name].isChecked():
@@ -321,7 +317,6 @@ class UI(QtWidgets.QMainWindow):
             else:
                 self.commandCheckBox[obj].setChecked(True)
 
-
     # Filter Nodes
     def filterNodes(self):
         nodes = []
@@ -329,7 +324,7 @@ class UI(QtWidgets.QMainWindow):
         allUsableNodes = []
         allNodes = cmds.ls(transforms=True)
         for obj in allNodes:
-            if not obj in {'front', 'persp', 'top', 'side'}:
+            if not obj in {"front", "persp", "top", "side"}:
                 allUsableNodes.append(obj)
 
         selection = cmds.ls(sl=True)
@@ -339,7 +334,9 @@ class UI(QtWidgets.QMainWindow):
             print(selection)
             selectionSet = set()
             for obj in selection:
-                if relatives := cmds.listRelatives(obj, allDescendents=True, path=True, typ="transform"):
+                if relatives := cmds.listRelatives(
+                    obj, allDescendents=True, path=True, typ="transform"
+                ):
                     selectionSet |= set(relatives)
                 selectionSet.add(obj)
             nodes = list(selectionSet)
@@ -348,7 +345,8 @@ class UI(QtWidgets.QMainWindow):
             # for topNode in topNodes:
             if cmds.objExists(topNode):
                 topRelatives = cmds.listRelatives(
-                    topNode, allDescendents=True, path=True, typ="transform")
+                    topNode, allDescendents=True, path=True, typ="transform"
+                )
                 if not topRelatives:
                     topRelatives = [topNode]
                 nodes += topRelatives
@@ -371,42 +369,48 @@ class UI(QtWidgets.QMainWindow):
             self.reportOutputUI.insertPlainText("Error - No nodes to check\n")
         else:
             for currentCommand in commands:
-                command = currentCommand['func']
-                label = currentCommand['label']
-                self.errorNodes = getattr(
-                    mcc, command)(nodes, self.SLMesh, self.extraAttribs)
+                command = currentCommand["func"]
+                label = currentCommand["label"]
+                self.errorNodes = getattr(mcc, command)(
+                    nodes, self.SLMesh, self.extraAttribs
+                )
                 if self.errorNodes:
                     self.reportOutputUI.insertHtml(
-                        label + " -- <font color='#996666'>FAILED</font><br>")
+                        label + " -- <font color='#996666'>FAILED</font><br>"
+                    )
                     for obj in self.errorNodes:
-                        self.reportOutputUI.insertPlainText(
-                            "    " + obj + "\n")
+                        self.reportOutputUI.insertPlainText("    " + obj + "\n")
                         myErrors.append(obj)
 
                     self.errorNodesButton[command].setEnabled(True)
                     self.errorNodesButton[command].clicked.connect(
-                        partial(self.selectErrorNodes, self.errorNodes))
+                        partial(self.selectErrorNodes, self.errorNodes)
+                    )
                     self.commandLabel[command].setStyleSheet(
-                        "background-color: #664444; padding: 2px;")
+                        "background-color: #664444; padding: 2px;"
+                    )
                 else:
                     self.commandLabel[command].setStyleSheet(
-                        "background-color: #446644; padding: 2px;")
+                        "background-color: #446644; padding: 2px;"
+                    )
                     self.reportOutputUI.insertHtml(
-                        label + " -- <font color='#669966'>SUCCESS</font><br>")
+                        label + " -- <font color='#669966'>SUCCESS</font><br>"
+                    )
                     self.errorNodesButton[command].setEnabled(False)
-        #print(myErrors)
+        # print(myErrors)
         return myErrors
 
     def sanityCheck(self):
         self.reportOutputUI.clear()
         checkedCommands = []
         for obj in self.commandsList:
-            name = obj['func']
+            name = obj["func"]
             if self.commandCheckBox[name].isChecked():
                 checkedCommands.append(obj)
             else:
                 self.commandLabel[name].setStyleSheet(
-                    "background-color: none; padding: 2px;")
+                    "background-color: none; padding: 2px;"
+                )
                 self.errorNodesButton[name].setEnabled(False)
         if len(checkedCommands) == 0:
             print("You have to select something")
@@ -416,13 +420,13 @@ class UI(QtWidgets.QMainWindow):
 
     def getExportGrps(self):
         for obj in self.commandsList:
-            name = obj['func']
+            name = obj["func"]
             self.commandCheckBox[name].setChecked(True)
-        
+
         allUsableNodes = []
         allNodes = cmds.ls(transforms=True)
         for obj in allNodes:
-            if not obj in {'front', 'persp', 'top', 'side'}:
+            if not obj in {"front", "persp", "top", "side"}:
                 allUsableNodes.append(obj)
 
         grpPattern = re.compile("^export_(?:[a-zA-Z0-9]+_)?GRP$")
@@ -432,48 +436,49 @@ class UI(QtWidgets.QMainWindow):
         cmds.select(clear=True)
         exportGrpChildren = cmds.listRelatives(exportGrp, shapes=False)
         cmds.select(exportGrpChildren, hierarchy=True)
-        shapes = cmds.ls(selection=True,type="shape")
+        shapes = cmds.ls(selection=True, type="shape")
         cmds.select(shapes, deselect=True)
-        
+
         exportGrpChildren = cmds.ls(selection=True)
-        
+
         if len(exportGrpChildren) < 2:
             exportGrpChildren = exportGrpChildren[0]
-        
+
         cmds.select(exportGrpChildren)
 
     def getAssetName(self, exportGrp):
         variantPattern = re.compile("^export(_[a-zA-Z0-9]+)?_GRP$")
         filePath = cmds.file(query=True, sceneName=True)
-        
+
         modelFolder, _ = os.path.split(filePath)
-        *_, assetName = modelFolder.split('/')
+        *_, assetName = modelFolder.split("/")
 
         if variant := variantPattern.search(exportGrp).group(1):
             assetName += variant
-        
-        return assetName
 
+        return assetName
 
     def sanityCheckExport(self):
         exportGrps = self.getExportGrps()
 
         if not len(exportGrps):
-            cmds.warning("No matching export groups found (export_GRP or export_Variant_GRP)")
+            cmds.warning(
+                "No matching export groups found (export_GRP or export_Variant_GRP)"
+            )
 
         for exportGrp in exportGrps:
             print(exportGrp)
-            
+
             self.topNode = exportGrp
-            self.extraAttribs['matname'] = self.getAssetName(exportGrp) + '_MAT'
-            
+            self.extraAttribs["matname"] = self.getAssetName(exportGrp) + "_MAT"
+
             self.selectExportGrp(exportGrp)
 
             theErrors = self.sanityCheck()
-            
+
             self.topNode = ""
-            self.extraAttribs['matname'] = ""
-            
+            self.extraAttribs["matname"] = ""
+
             if len(theErrors):
                 return theErrors
 
@@ -483,7 +488,7 @@ class UI(QtWidgets.QMainWindow):
         cmds.select(list)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         win.close()
     except:

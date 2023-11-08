@@ -4,16 +4,18 @@ from maya import cmds
 import mayaUsd
 from pxr import Usd, Tf
 
-# NOTE: There's currently an issue where if you delete an anonymous stage, Maya sometimes crashes. 
+# NOTE: There's currently an issue where if you delete an anonymous stage, Maya sometimes crashes.
 # Here's the issue (currently unresolved) related to it: https://github.com/Autodesk/maya-usd/issues/2985
 
 ## HELPER FUNCTIONS ##
 
+
 def get_filename_from_path(path, include_extension=True):
     filename = os.path.basename(path)
     if not include_extension:
-        filename = filename.split('.')[0]
+        filename = filename.split(".")[0]
     return filename
+
 
 def show_results_window(success, path):
     window_tag = "export_layout_results"
@@ -33,6 +35,7 @@ def show_results_window(success, path):
     text = cmds.text(results_contents)
     cmds.showWindow(window)
 
+
 def _get_sublayer_info():
     # Get all proxy shapes
     # NOTE: If we didn't need access to the shapes, we could just do mayaUsd.ufe.getAllStages()
@@ -48,14 +51,17 @@ def _get_sublayer_info():
         # Get the sublayers
         sublayer_paths = root_layer.subLayerPaths
         for sublayer_path in sublayer_paths:
-            sublayer_filename = get_filename_from_path(sublayer_path, include_extension=False)
+            sublayer_filename = get_filename_from_path(
+                sublayer_path, include_extension=False
+            )
             sublayers_info[sublayer_filename] = {
-                'path': sublayer_path,
-                'root_layer': root_layer,
-                'maya_shape': shape
+                "path": sublayer_path,
+                "root_layer": root_layer,
+                "maya_shape": shape,
             }
 
     return sublayers_info
+
 
 def export_layout():
     # Handle window
@@ -74,7 +80,9 @@ def export_layout():
     # Show sublayer names in window
     window_layout = cmds.columnLayout(adjustableColumn=True)
     window_text = cmds.text("Select layout to export as RLO.")
-    window_layout_list = cmds.textScrollList(allowMultiSelection=False, numberOfRows=30, append=layout_sublayers)
+    window_layout_list = cmds.textScrollList(
+        allowMultiSelection=False, numberOfRows=30, append=layout_sublayers
+    )
 
     def _export(*args):
         selection = cmds.textScrollList(window_layout_list, q=1, si=1)
@@ -85,15 +93,15 @@ def export_layout():
 
             # Get the sublayer, stage information based on the selected layout
             sublayer_info = sublayers_info[layout_name]
-            root_layer = sublayer_info['root_layer']
-            sublayer_path = sublayer_info['path']
-            maya_node = sublayer_info['maya_shape']
+            root_layer = sublayer_info["root_layer"]
+            sublayer_path = sublayer_info["path"]
+            maya_node = sublayer_info["maya_shape"]
 
             # Put the new layout in the same directory as the old one
             sublayer_dir = os.path.dirname(sublayer_path)
             save_filename = f"{layout_name}_rlo"
             save_filepath = f"{sublayer_dir}/{save_filename}.usda"
-            
+
             # Export the new layout
             success = root_layer.Export(filename=save_filepath)
             show_results_window(success, path=save_filepath)
@@ -110,7 +118,7 @@ def export_layout():
 
         else:
             cmds.error("Selection failed.")
-        
+
         cmds.deleteUI(window_tag, window=True)
 
     export_button = cmds.button(label="Export RLO", command=_export)
@@ -129,4 +137,3 @@ def export_layout():
 #         usd_proxy_nodes = [cmds.ls(shape_node, long=True)[0] for shape_node in shapes]
 #         stages = [mayaUsd.ufe.getStage(proxy) for proxy in usd_proxy_nodes]
 #     return stages
-    

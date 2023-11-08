@@ -26,35 +26,48 @@ def _shot_select_gui():
 
     win = cmds.window("ms_selectShot_GUI", title="Select Shot")
     cmds.showWindow(win)
-    #cmds.rowLayout(numberOfColumns=1, adjustableColumn=1, rowAttach=[1, 'both', 0])
+    # cmds.rowLayout(numberOfColumns=1, adjustableColumn=1, rowAttach=[1, 'both', 0])
     cmds.columnLayout(adjustableColumn=True)
 
     cmds.rowLayout(numberOfColumns=3, adjustableColumn=1)
-    prefix = cmds.textFieldGrp('search_field', adjustableColumn=1)
-    cmds.button(label="Search", c=lambda x: print('search'))
-    cmds.button(label="X", c=lambda x: print('base_list'))
-    cmds.setParent('..')
+    prefix = cmds.textFieldGrp("search_field", adjustableColumn=1)
+    cmds.button(label="Search", c=lambda x: print("search"))
+    cmds.button(label="X", c=lambda x: print("base_list"))
+    cmds.setParent("..")
 
-    selection = cmds.textScrollList("Shot_List", #numberOfRows=8,
-                                    append=shot_list,
-                                    selectIndexedItem=1, showIndexedItem=1)
+    selection = cmds.textScrollList(
+        "Shot_List",  # numberOfRows=8,
+        append=shot_list,
+        selectIndexedItem=1,
+        showIndexedItem=1,
+    )
 
     cmds.rowLayout(numberOfColumns=2)
-    cmds.button(label="Select Current Shot", c=lambda x: print('hello'))
-    cmds.button(label="Next", c=lambda x: print('goodbye'))
+    cmds.button(label="Select Current Shot", c=lambda x: print("hello"))
+    cmds.button(label="Next", c=lambda x: print("goodbye"))
     cmds.setParent("..")
 
 
 def export(shot: str = None):
     # Detect all cameras
-    cameras = cmds.ls(type=('camera'), l=True)
+    cameras = cmds.ls(type=("camera"), l=True)
 
-    user_cameras = [camera for camera in cameras if not cmds.camera(
-        cmds.listRelatives(camera, parent=True)[0], startupCamera=True, q=True)]
+    user_cameras = [
+        camera
+        for camera in cameras
+        if not cmds.camera(
+            cmds.listRelatives(camera, parent=True)[0], startupCamera=True, q=True
+        )
+    ]
 
     if len(user_cameras) > 1:
-        confirm = cmds.confirmDialog(title='Could not export shot camera', message="More than one camera detected in scene", button=[
-                                     'Ok'], defaultButton='Ok', dismissString='Other')
+        confirm = cmds.confirmDialog(
+            title="Could not export shot camera",
+            message="More than one camera detected in scene",
+            button=["Ok"],
+            defaultButton="Ok",
+            dismissString="Other",
+        )
         return 1
 
     _shot_select_gui()

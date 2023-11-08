@@ -41,7 +41,7 @@ class Server(metaclass=ABCMeta):
         sock.setblocking(0)
 
         # Bind to a port
-        sock.bind(('localhost', port if port is not None else self._port))
+        sock.bind(("localhost", port if port is not None else self._port))
 
         # Set to listen for incoming connections
         sock.listen()
@@ -93,7 +93,8 @@ class Server(metaclass=ABCMeta):
         while self._inputs:
             # Wait for a socket to be ready for processing
             readable, writable, exceptional = select(
-                self._inputs, self._outputs, self._msg_queues)
+                self._inputs, self._outputs, self._msg_queues
+            )
 
             # Handle input sockets
             for sock in readable:
@@ -107,7 +108,7 @@ class Server(metaclass=ABCMeta):
                         self.process_data(data)
                     else:
                         self._close_connection(sock)
-            
+
             # Handle output sockets
             for sock in writable:
                 try:

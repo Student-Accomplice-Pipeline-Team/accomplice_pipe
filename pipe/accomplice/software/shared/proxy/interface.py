@@ -14,7 +14,7 @@ class PipeProxyInterface(metaclass=ABCMeta):
     @abstractmethod
     def get_asset(self, name: str) -> Asset:
         """TODO: DOCSTRING.
-        
+
         Pass 'all' to select all assets.
         """
         pass

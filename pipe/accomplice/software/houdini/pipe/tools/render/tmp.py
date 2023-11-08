@@ -9,18 +9,23 @@ import pipe
 
 # Tractor requires all neccesiary envionment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
-ENV_PATHS = ["PATH",
-             "RMANTREE",
-             "HOUDINI_PATH",
-             "OCIO",
-             "RMAN_PROCEDURALPATH",
-             "RFHTREE",
-             "PIXAR_LICENSE_FILE",
-             ]
+ENV_PATHS = [
+    "PATH",
+    "RMANTREE",
+    "HOUDINI_PATH",
+    "OCIO",
+    "RMAN_PROCEDURALPATH",
+    "RFHTREE",
+    "PIXAR_LICENSE_FILE",
+]
 
 # Create global variable for the environment key holding paths from ENV_PATHS
-ENV_KEY = functools.reduce(lambda str, env_var: str + env_var + "=" + os.getenv(env_var) + " ", ENV_PATHS, "setenv ")
-#ENV_KEY = [key + '=' + os.getenv(key) for key in ENV_PATHS]
+ENV_KEY = functools.reduce(
+    lambda str, env_var: str + env_var + "=" + os.getenv(env_var) + " ",
+    ENV_PATHS,
+    "setenv ",
+)
+# ENV_KEY = [key + '=' + os.getenv(key) for key in ENV_PATHS]
 
 
 # This function runs when the submit button on the node is pushed
@@ -63,12 +68,11 @@ class TractorSubmit:
         # For loop for getting variables from dynamically changing parameters
         for i in range(1, num_files + 1):
             # Get filepaths for the pattern
-            filepaths = validate_files(
-                self.node, self.node.parm("filepath" + str(i)))
+            filepaths = validate_files(self.node, self.node.parm("filepath" + str(i)))
 
             # Get frame range for the pattern
             frame_range = []
-            if self.node.parm("trange" + str(i)).evalAsString() == 'single':
+            if self.node.parm("trange" + str(i)).evalAsString() == "single":
                 frame = self.node.parm("frame" + str(i)).evalAsInt()
                 frame_range = [frame, frame, 1]
             else:
@@ -83,14 +87,16 @@ class TractorSubmit:
             if int(self.node.parm("useoutputoverride" + str(i)).eval()) == 1:
                 output_path_override = []
                 for frame in range(frame_range[0], frame_range[1] + 1):
-                    output_path_override.append(self.node.parm("outputoverride" + str(i)).evalAtFrame(frame))
-            
+                    output_path_override.append(
+                        self.node.parm("outputoverride" + str(i)).evalAtFrame(frame)
+                    )
+
             # Add all data to the lists
             for filepath in filepaths:
                 self.filepaths.append(filepath)
                 self.frame_ranges.append(frame_range)
                 self.output_path_overrides.append(output_path_override)
-        
+
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
 
     # Gets the job priority from the node user interface
@@ -103,10 +109,11 @@ class TractorSubmit:
 
         blade_pattern = self.node.parm(blade_method).eval()
 
-        if (blade_method == "profile" or blade_method == "name"):
+        if blade_method == "profile" or blade_method == "name":
             pattern_list = blade_pattern.split()
             blade_pattern = functools.reduce(
-                lambda str, token: str + token + "||", pattern_list, "")[:-2]
+                lambda str, token: str + token + "||", pattern_list, ""
+            )[:-2]
 
         self.job.service = blade_pattern
 
@@ -115,26 +122,42 @@ class TractorSubmit:
         # For loop creating a task for each USD file inputed into the node
         for file_num in range(0, len(self.filepaths)):
             task = author.Task()
-            task.title = self.filepaths[file_num].split('/')[-1]
+            task.title = self.filepaths[file_num].split("/")[-1]
             # For loop creating a sub-task for each frame to be rendered in the USD
-            for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1]+1):
-                if (frame % self.frame_ranges[file_num][2] != 0):
+            for frame in range(
+                self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1
+            ):
+                if frame % self.frame_ranges[file_num][2] != 0:
                     continue
                 subTask = author.Task()
                 subTask.title = "Frame " + str(frame)
                 # Build render command from USD info
-                #renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
-                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(frame) + " --frame-count 1 --frame-inc " + str(self.frame_ranges[file_num][2]) + " --make-output-path -V2"]
-                if (self.output_path_overrides[file_num] != None):
-                    renderCommand[-1] += " --output " + self.output_path_overrides[file_num][frame - 1]
-                renderCommand[-1] += " " + self.filepaths[file_num] # + " &> /tmp/test.log"
+                # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
+                renderCommand = [
+                    "/bin/bash",
+                    "-c",
+                    "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
+                    + self.node.parm("renderer").eval()
+                    + " --frame "
+                    + str(frame)
+                    + " --frame-count 1 --frame-inc "
+                    + str(self.frame_ranges[file_num][2])
+                    + " --make-output-path -V2",
+                ]
+                if self.output_path_overrides[file_num] != None:
+                    renderCommand[-1] += (
+                        " --output " + self.output_path_overrides[file_num][frame - 1]
+                    )
+                renderCommand[-1] += (
+                    " " + self.filepaths[file_num]
+                )  # + " &> /tmp/test.log"
                 # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", self.node.parm("renderer").eval(),
                 #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
                 # if (self.output_path_overrides[i] != None):
                 #     renderCommand.extend(
                 #         ["--output", self.output_path_overrides[i]])
                 # renderCommand.append(self.filepaths[i])
-                
+
                 # Create command object
                 command = author.Command()
                 command.argv = renderCommand
@@ -150,7 +173,7 @@ class TractorSubmit:
 
     def spoolJob(self):
         self.input_usd_info()
-        if (len(self.filepaths) > 0):
+        if len(self.filepaths) > 0:
             self.input_priority()
             self.input_blades()
             self.add_tasks()
@@ -179,7 +202,9 @@ def validate_files(node: hou.Node, parm: hou.Parm) -> Sequence[str]:
         # Make sure the pattern matched at least one file
         if not len(new_filepaths) > 0:
             hou.ui.displayMessage(
-                f"File pattern didn't match any files:\n{pattern}", severity=hou.severityType.Warning)
+                f"File pattern didn't match any files:\n{pattern}",
+                severity=hou.severityType.Warning,
+            )
 
         # Make sure each new filepath is a USD
         for filepath in new_filepaths:
@@ -187,7 +212,9 @@ def validate_files(node: hou.Node, parm: hou.Parm) -> Sequence[str]:
                 continue
             if os.path.splitext(filepath)[1] not in [".usd", ".usda", ".usdc", ".usdz"]:
                 hou.ui.displayMessage(
-                    f"File pattern captured non-USD file:\n{pattern}\nmatched\n{filepath}", severity=hou.severityType.Error)
+                    f"File pattern captured non-USD file:\n{pattern}\nmatched\n{filepath}",
+                    severity=hou.severityType.Error,
+                )
 
             filepaths.append(filepath)
 

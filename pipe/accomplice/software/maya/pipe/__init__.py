@@ -21,7 +21,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # Load the pipeline's shelves once the UI has finished loading
-print('LOADING SHELVES')
+print("LOADING SHELVES")
 cmds.evalDeferred("pipe.shelves.load()")
 
 # Get a reference to the pipe server
@@ -29,8 +29,7 @@ server = get_proxy()
 
 # Create a job to notify the pipe on exit
 cmds.scriptJob(
-    event=['quitApplication',
-            f"pipe.server.exit()"],
+    event=["quitApplication", f"pipe.server.exit()"],
     permanent=True,
 )
 

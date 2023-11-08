@@ -12,7 +12,7 @@ class SoftwareProxyInterface(metaclass=ABCMeta):
     def __subclasshook__(cls, subclass) -> bool:
         """Determine if the given class is a subclass."""
         return interface.check_methods(cls, subclass)
-    
+
     @abstractmethod
     def __init__(self, pipe_port: int):
         """Initialize the SoftwareProxy."""

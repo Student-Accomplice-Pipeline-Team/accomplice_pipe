@@ -2,17 +2,17 @@ import maya.cmds as cmds
 import maya.api.OpenMaya as om
 
 release = cmds.about(version=True)
-if 'Preview' in release:
+if "Preview" in release:
     version = 2023
 else:
     version = int(cmds.about(version=True))
 
 
 def trailingNumbers(list, SLMesh, extraAttribs):
-    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     trailingNumbers = []
     for obj in list:
-        if obj[len(obj)-1] in numbers:
+        if obj[len(obj) - 1] in numbers:
             trailingNumbers.append(obj)
     return trailingNumbers
 
@@ -20,7 +20,7 @@ def trailingNumbers(list, SLMesh, extraAttribs):
 def duplicatedNames(list, SLMesh, extraAttribs):
     duplicatedNames = []
     print(list)
-    objNames = [[i, i.split('|')[-1]] for i in list]
+    objNames = [[i, i.split("|")[-1]] for i in list]
     seen = set()
     return [n[0] for n in objNames if n[1] in seen or seen.add(n[1])]
     # for item in list:
@@ -32,7 +32,7 @@ def duplicatedNames(list, SLMesh, extraAttribs):
 def namespaces(list, SLMesh, extraAttribs):
     namespaces = []
     for obj in list:
-        if ':' in obj:
+        if ":" in obj:
             namespaces.append(obj)
     return namespaces
 
@@ -40,13 +40,14 @@ def namespaces(list, SLMesh, extraAttribs):
 def shapeNames(list, SLMesh, extraAttribs):
     shapeNames = []
     for obj in list:
-        new = obj.split('|')
+        new = obj.split("|")
         shape = cmds.listRelatives(obj, shapes=True)
         if shape is not None:
             name = new[-1] + "Shape"
             if not shape[0] == name:
                 shapeNames.append(obj)
     return shapeNames
+
 
 # Topology checks
 
@@ -61,7 +62,7 @@ def triangles(list, SLMesh, extraAttribs):
             numOfEdges = faceIt.getEdges()
             if len(numOfEdges) == 3:
                 faceIndex = faceIt.index()
-                componentName = str(objectName) + '.f[' + str(faceIndex) + ']'
+                componentName = str(objectName) + ".f[" + str(faceIndex) + "]"
                 triangles.append(componentName)
             else:
                 pass
@@ -83,7 +84,7 @@ def ngons(list, SLMesh, extraAttribs):
             numOfEdges = faceIt.getEdges()
             if len(numOfEdges) > 4:
                 faceIndex = faceIt.index()
-                componentName = str(objectName) + '.f[' + str(faceIndex) + ']'
+                componentName = str(objectName) + ".f[" + str(faceIndex) + "]"
                 ngons.append(componentName)
             else:
                 pass
@@ -104,7 +105,7 @@ def hardEdges(list, SLMesh, extraAttribs):
         while not edgeIt.isDone():
             if edgeIt.isSmooth == False and edgeIt.onBoundary() == False:
                 edgeIndex = edgeIt.index()
-                componentName = str(objectName) + '.e[' + str(edgeIndex) + ']'
+                componentName = str(objectName) + ".e[" + str(edgeIndex) + "]"
                 hardEdges.append(componentName)
             else:
                 pass
@@ -123,7 +124,7 @@ def lamina(list, SLMesh, extraAttribs):
             laminaFaces = faceIt.isLamina()
             if laminaFaces == True:
                 faceIndex = faceIt.index()
-                componentName = str(objectName) + '.f[' + str(faceIndex) + ']'
+                componentName = str(objectName) + ".f[" + str(faceIndex) + "]"
                 lamina.append(componentName)
             else:
                 pass
@@ -145,7 +146,7 @@ def zeroAreaFaces(list, SLMesh, extraAttribs):
             faceArea = faceIt.getArea()
             if faceArea <= 0.00000001:
                 faceIndex = faceIt.index()
-                componentName = str(objectName) + '.f[' + str(faceIndex) + ']'
+                componentName = str(objectName) + ".f[" + str(faceIndex) + "]"
                 zeroAreaFaces.append(componentName)
             else:
                 pass
@@ -165,8 +166,7 @@ def zeroLengthEdges(list, SLMesh, extraAttribs):
         objectName = selIt.getDagPath().getPath()
         while not edgeIt.isDone():
             if edgeIt.length() <= 0.00000001:
-                componentName = str(objectName) + \
-                    '.f[' + str(edgeIt.index()) + ']'
+                componentName = str(objectName) + ".f[" + str(edgeIt.index()) + "]"
                 zeroLengthEdges.append(componentName)
             edgeIt.next()
         selIt.next()
@@ -178,8 +178,9 @@ def selfPenetratingUVs(list, SLMesh, extraAttribs):
     for obj in list:
         shape = cmds.listRelatives(obj, shapes=True, fullPath=True)
         convertToFaces = cmds.ls(
-            cmds.polyListComponentConversion(shape, tf=True), fl=True)
-        overlapping = (cmds.polyUVOverlap(convertToFaces, oc=True))
+            cmds.polyListComponentConversion(shape, tf=True), fl=True
+        )
+        overlapping = cmds.polyUVOverlap(convertToFaces, oc=True)
         if overlapping is not None:
             for obj in overlapping:
                 selfPenetratingUVs.append(obj)
@@ -195,7 +196,7 @@ def noneManifoldEdges(list, SLMesh, extraAttribs):
         while not edgeIt.isDone():
             if edgeIt.numConnectedFaces() > 2:
                 edgeIndex = edgeIt.index()
-                componentName = str(objectName) + '.e[' + str(edgeIndex) + ']'
+                componentName = str(objectName) + ".e[" + str(edgeIndex) + "]"
                 noneManifoldEdges.append(componentName)
             else:
                 pass
@@ -213,7 +214,7 @@ def openEdges(list, SLMesh, extraAttribs):
         while not edgeIt.isDone():
             if edgeIt.numConnectedFaces() < 2:
                 edgeIndex = edgeIt.index()
-                componentName = str(objectName) + '.e[' + str(edgeIndex) + ']'
+                componentName = str(objectName) + ".e[" + str(edgeIndex) + "]"
                 openEdges.append(componentName)
             else:
                 pass
@@ -231,8 +232,7 @@ def poles(list, SLMesh, extraAttribs):
         while not vertexIt.isDone():
             if vertexIt.numConnectedEdges() > 5:
                 vertexIndex = vertexIt.index()
-                componentName = str(objectName) + \
-                    '.vtx[' + str(vertexIndex) + ']'
+                componentName = str(objectName) + ".vtx[" + str(vertexIndex) + "]"
                 poles.append(componentName)
             else:
                 pass
@@ -250,8 +250,7 @@ def starlike(list, SLMesh, extraAttribs):
         while not polyIt.isDone():
             if polyIt.isStarlike() == False:
                 polygonIndex = polyIt.index()
-                componentName = str(objectName) + \
-                    '.e[' + str(polygonIndex) + ']'
+                componentName = str(objectName) + ".e[" + str(polygonIndex) + "]"
                 starlike.append(componentName)
             else:
                 pass
@@ -261,6 +260,7 @@ def starlike(list, SLMesh, extraAttribs):
                 polyIt.next()
         selIt.next()
     return starlike
+
 
 # UV checks
 
@@ -273,8 +273,7 @@ def missingUVs(list, SLMesh, extraAttribs):
         objectName = selIt.getDagPath().getPath()
         while not faceIt.isDone():
             if faceIt.hasUVs() == False:
-                componentName = str(objectName) + \
-                    '.f[' + str(faceIt.index()) + ']'
+                componentName = str(objectName) + ".f[" + str(faceIt.index()) + "]"
                 missingUVs.append(componentName)
             if version < 2020:
                 faceIt.next(None)
@@ -296,15 +295,17 @@ def uvRange(list, SLMesh, extraAttribs):
                 if index == 0:
                     for eachUV in eachUVs:
                         if eachUV < 0 or eachUV > 10:
-                            componentName = str(
-                                objectName) + '.f[' + str(faceIt.index()) + ']'
+                            componentName = (
+                                str(objectName) + ".f[" + str(faceIt.index()) + "]"
+                            )
                             uvRange.append(componentName)
                             break
                 if index == 1:
                     for eachUV in eachUVs:
                         if eachUV < 0:
-                            componentName = str(
-                                objectName) + '.f[' + str(faceIt.index()) + ']'
+                            componentName = (
+                                str(objectName) + ".f[" + str(faceIt.index()) + "]"
+                            )
                             uvRange.append(componentName)
                             break
             if version < 2020:
@@ -331,16 +332,18 @@ def crossBorder(list, SLMesh, extraAttribs):
                         if U == None:
                             U = int(eachUV)
                         if U != int(eachUV):
-                            componentName = str(
-                                objectName) + '.f[' + str(faceIt.index()) + ']'
+                            componentName = (
+                                str(objectName) + ".f[" + str(faceIt.index()) + "]"
+                            )
                             crossBorder.append(componentName)
                 if index == 1:
                     for eachUV in eachUVs:
                         if V == None:
                             V = int(eachUV)
                         if V != int(eachUV):
-                            componentName = str(
-                                objectName) + '.f[' + str(faceIt.index()) + ']'
+                            componentName = (
+                                str(objectName) + ".f[" + str(faceIt.index()) + "]"
+                            )
                             crossBorder.append(componentName)
             if version < 2020:
                 faceIt.next(None)
@@ -349,17 +352,21 @@ def crossBorder(list, SLMesh, extraAttribs):
         selIt.next()
     return crossBorder
 
+
 # General checks
 
 
 def unfrozenTransforms(list, SLMesh, extraAttribs):
     unfrozenTransforms = []
     for obj in list:
-        translation = cmds.xform(
-            obj, q=True, worldSpace=True, translation=True)
+        translation = cmds.xform(obj, q=True, worldSpace=True, translation=True)
         rotation = cmds.xform(obj, q=True, worldSpace=True, rotation=True)
         scale = cmds.xform(obj, q=True, worldSpace=True, scale=True)
-        if not translation == [0.0, 0.0, 0.0] or not rotation == [0.0, 0.0, 0.0] or not scale == [1.0, 1.0, 1.0]:
+        if (
+            not translation == [0.0, 0.0, 0.0]
+            or not rotation == [0.0, 0.0, 0.0]
+            or not scale == [1.0, 1.0, 1.0]
+        ):
             unfrozenTransforms.append(obj)
     return unfrozenTransforms
 
@@ -377,21 +384,21 @@ def shaders(list, SLMesh, extraAttribs):
     shaders = []
     matname = ""
     try:
-        matname = extraAttribs['matname']
+        matname = extraAttribs["matname"]
     except:
         return shaders
     if not matname:
         return shaders
-    
+
     for obj in list:
         print("obj:", obj)
         shadingGrps = None
         # only works properly if history is cleared
         shape = cmds.listRelatives(obj, shapes=True, fullPath=True)
-        if cmds.nodeType(shape) == 'mesh':
+        if cmds.nodeType(shape) == "mesh":
             materials = []
             if shape is not None:
-                shadingGrps = cmds.listConnections(shape, type='shadingEngine')
+                shadingGrps = cmds.listConnections(shape, type="shadingEngine")
                 materials = cmds.ls(cmds.listConnections(shadingGrps), materials=True)
                 print("materials: ", materials)
             if not materials[0] == matname:
@@ -404,7 +411,7 @@ def history(list, SLMesh, extraAttribs):
     for obj in list:
         shape = cmds.listRelatives(obj, shapes=True, fullPath=True)
         if shape is not None:
-            if cmds.nodeType(shape[0]) == 'mesh':
+            if cmds.nodeType(shape[0]) == "mesh":
                 historySize = len(cmds.listHistory(shape))
                 if historySize > 1:
                     history.append(obj)
@@ -438,7 +445,7 @@ def parentGeometry(list, SLMesh, extraAttribs):
             for i in parents:
                 parentsChildren = cmds.listRelatives(i, fullPath=True)
                 for l in parentsChildren:
-                    if cmds.nodeType(l) == 'mesh':
+                    if cmds.nodeType(l) == "mesh":
                         shapeNode = True
         if shapeNode == True:
             parentGeometry.append(obj)

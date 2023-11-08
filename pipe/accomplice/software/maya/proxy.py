@@ -18,23 +18,27 @@ class MayaProxy(HTTPSoftwareProxy):
 
     # TODO: Define colorspace variables to force the correct colorspace
     maya_env_vars = {
-        'PYTHONPATH': str(maya_pipe_dir) + ':' + '/groups/accomplice/pipeline/lib',
-        'MAYA_SCRIPT_PATH': str(maya_pipe_dir) + ':' + str(maya_pipe_dir.joinpath('pipe', 'shelves')),
-
+        "PYTHONPATH": str(maya_pipe_dir) + ":" + "/groups/accomplice/pipeline/lib",
+        "MAYA_SCRIPT_PATH": str(maya_pipe_dir)
+        + ":"
+        + str(maya_pipe_dir.joinpath("pipe", "shelves")),
         # This is commented out so that, instead of Maya pulling in from the shelves in the pipe directly, they are copied to the user's directory in the shelves's load function
         # Note that these local copies are deleted when Maya is closed
-        # 'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'), 
-
-        'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
-        'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
-        'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
-        'OCIO': None,
+        # 'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'),
+        "XBMLANGPATH": maya_pipe_dir.joinpath("icons"),
+        "MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET": 1,
+        "MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1": 1,
+        "OCIO": None,
     }
 
     def __init__(
         self,
         pipe_port: int,
-        command: str = ('/usr/local/bin/maya' if sys.platform.startswith('linux') else 'C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe'),
+        command: str = (
+            "/usr/local/bin/maya"
+            if sys.platform.startswith("linux")
+            else "C:\\Program Files\\Autodesk\\Maya2024\\bin\\maya.exe"
+        ),
         args: Optional[Sequence[str]] = None,
         env_vars: Mapping[str, Optional[Union[str, int]]] = maya_env_vars,
     ) -> None:

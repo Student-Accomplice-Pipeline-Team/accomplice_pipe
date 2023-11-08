@@ -2,7 +2,9 @@
 
 from .interface import DatabaseInterface
 
+
 class Database(DatabaseInterface):
     """Database"""
+
     def __init__(self):
         pass

@@ -2,9 +2,9 @@ import os
 import pipe
 from PySide2 import QtWidgets, QtCore, QtGui
 
-'''import pipe.pipeHandlers.environment as env
+"""import pipe.pipeHandlers.environment as env
 import pipe.pipeHandlers.permissions as permissions
-import pipe.tools.python.stringUtilities as stringUtilities'''
+import pipe.tools.python.stringUtilities as stringUtilities"""
 
 import maya.cmds as mc
 
@@ -20,14 +20,14 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         self.videoOutputType = "qt"
         self.width = 1920
         self.height = 1080
-        
+
         self.destination = destination
 
-        #self.env = env.Environment()
-        #self.baseDir = os.path.abspath(os.path.join(self.env.project_dir, os.pardir, "Editing", "Animation"))
-        #print(self.baseDir)
+        # self.env = env.Environment()
+        # self.baseDir = os.path.abspath(os.path.join(self.env.project_dir, os.pardir, "Editing", "Animation"))
+        # print(self.baseDir)
 
-        #self.sequences = self.getSequences()
+        # self.sequences = self.getSequences()
         self.shots = sorted(pipe.server.get_shot_list())
 
         self.setupUI()
@@ -48,14 +48,14 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         self.sequenceLayout = QtWidgets.QVBoxLayout()
         self.listLayout.addLayout(self.sequenceLayout)
 
-        '''self.sequenceLabel = QtWidgets.QLabel("Sequences")
+        """self.sequenceLabel = QtWidgets.QLabel("Sequences")
         self.sequenceLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.sequenceLayout.addWidget(self.sequenceLabel)
 
         self.sequenceListWidget = QtWidgets.QListWidget()
         self.sequenceListWidget.setFixedWidth(150)
         self.sequenceListWidget.addItems(self.sequences)
-        self.sequenceLayout.addWidget(self.sequenceListWidget)'''
+        self.sequenceLayout.addWidget(self.sequenceListWidget)"""
 
         self.shotLayout = QtWidgets.QVBoxLayout()
         self.listLayout.addLayout(self.shotLayout)
@@ -69,7 +69,7 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         self.shotListWidget.addItems(self.shots)
         self.shotLayout.addWidget(self.shotListWidget)
 
-        #self.sequenceListWidget.itemClicked.connect(self.updateUI)
+        # self.sequenceListWidget.itemClicked.connect(self.updateUI)
 
         # BUTTONS
         self.buttonLayout = QtWidgets.QHBoxLayout()
@@ -125,22 +125,36 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         print(fileName)
 
         try:
-            mc.playblast(f=fileName, forceOverwrite=True, viewer=False, percent=self.videoScalePct,
-                         format=self.videoFormat, compression=self.videoCompression, widthHeight = [self.width, self.height])
+            mc.playblast(
+                f=fileName,
+                forceOverwrite=True,
+                viewer=False,
+                percent=self.videoScalePct,
+                format=self.videoFormat,
+                compression=self.videoCompression,
+                widthHeight=[self.width, self.height],
+            )
 
             # Set permissions
-            #permissions.set_permissions(f"{fileName}.mov")
+            # permissions.set_permissions(f"{fileName}.mov")
 
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Error",
-                                           "Error exporting playblast. See the script editor for details.")
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Error",
+                "Error exporting playblast. See the script editor for details.",
+            )
             print(e)
             return
 
         messageBox = QtWidgets.QMessageBox(self)
         messageBox.setText("Playblast exported successfully!")
-        openOutputFolderButton = messageBox.addButton("Open Output Folder", QtWidgets.QMessageBox.AcceptRole)
-        openOutputFolderButton.clicked.connect(lambda: os.system('xdg-open "%s"' % os.path.dirname(fileName)))
+        openOutputFolderButton = messageBox.addButton(
+            "Open Output Folder", QtWidgets.QMessageBox.AcceptRole
+        )
+        openOutputFolderButton.clicked.connect(
+            lambda: os.system('xdg-open "%s"' % os.path.dirname(fileName))
+        )
         openOutputFolderButton.clicked.connect(self.close)
         closeButton = messageBox.addButton("Close", QtWidgets.QMessageBox.RejectRole)
         closeButton.clicked.connect(self.close)
@@ -150,7 +164,7 @@ class PlayblastExporter(QtWidgets.QMainWindow):
         self.show()
 
 
-class mayaRun():
+class mayaRun:
     def run(self):
         self.playblastExporter = PlayblastExporter()
         self.playblastExporter.show()

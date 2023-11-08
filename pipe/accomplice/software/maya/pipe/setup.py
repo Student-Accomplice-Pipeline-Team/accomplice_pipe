@@ -10,39 +10,39 @@ from pathlib import Path
 import pipe.shelves
 
 # Initialize the custom Maya UI elements after the UI is fully loaded
-#cmds.evalDeferred("import pipe.tools.maya.ui")
+# cmds.evalDeferred("import pipe.tools.maya.ui")
 
-#from requests import Response
+# from requests import Response
 
-#from pipe.shared.env.vars import SERVER_PORT
-#from pipe.shared.server import ServerSession
+# from pipe.shared.env.vars import SERVER_PORT
+# from pipe.shared.server import ServerSession
 
-#from . import pipe  # For coding
-#import pipe         # For runtime
+# from . import pipe  # For coding
+# import pipe         # For runtime
 
-#pipe.get_asset('ed')
+# pipe.get_asset('ed')
 
-#conn = pipe._get_connection()
-#conn.request('GET', '/')
-#conn.getresponse()
+# conn = pipe._get_connection()
+# conn.request('GET', '/')
+# conn.getresponse()
 
-#conn.request('GET', '/something')
-#conn.getresponse()
+# conn.request('GET', '/something')
+# conn.getresponse()
 
 
-#pipe._get_session().get('/')
-#pipe._get_session().get('/test1')
+# pipe._get_session().get('/')
+# pipe._get_session().get('/test1')
 
-#pipe.register()
-#pipe.request_cmdport()
+# pipe.register()
+# pipe.request_cmdport()
 
-#server_port = os.getenv(SERVER_PORT)
+# server_port = os.getenv(SERVER_PORT)
 
 
 # Notify the proxy of which port is the command port
 # with ServerSession(server_port) as s:
 #     response = s.post('/software/register')
-    #response.
+# response.
 
 # conn = http.client.HTTPConnection('localhost', server_port)
 # conn.request('PUT', '/')
