@@ -11,6 +11,7 @@
 /pipe/tools/**/backup
 /pipe/accomplice/unfamiliar_tools
 
+
 # Ignore IDE files
 **/.idea/
 **/.vscode/
@@ -35,7 +36,7 @@
 
 
 # Ignore Houdini env.json
-pipe/accomplice/software/houdini/package/env.json
+/pipe/accomplice/software/houdini/package/env.json
 
 # Ignore HDA backup files
 *_bak*.hdanc
