@@ -49,6 +49,9 @@ def import_layout():
             cmds.select(shape_node, replace=True)
             cmds.mayaUsdLayerEditorWindow(reload=True)
 
+            # Scale up layout
+            cmds.scale(100, 100, 100)
+
         cmds.deleteUI(window_tag, window=True)
     
     import_button = cmds.button(label="Import Layout", command=_import)
