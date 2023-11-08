@@ -69,46 +69,63 @@ class TractorSubmit:
         # For loop for getting variables from dynamically changing parameters
         for pattern_num in range(1, num_patterns + 1):
             # Get filepaths for the pattern
-            filepaths = validate_files(self.node, self.node.parm("filepath" + str(pattern_num)))
+            filepaths = validate_files(
+                self.node, self.node.parm("filepath" + str(pattern_num))
+            )
 
             for filepath in filepaths:
                 # Add the file to the filepaths
                 self.filepaths.append(filepath)
-                
+
                 # Get the frame range for the file
-                frame_range = None                
+                frame_range = None
                 trange = self.node.parm("trange" + str(pattern_num)).evalAsString()
-                if trange == 'file':
+                if trange == "file":
                     file_stage = Usd.Stage.Open(filepath)
                     frame_range = [
                         int(file_stage.GetStartTimeCode()),
                         int(file_stage.GetEndTimeCode()),
                         1,
                     ]
-                elif trange == 'range':
+                elif trange == "range":
                     frame_range = [
-                        self.node.parm("framerange" + str(pattern_num) + "x").evalAsInt(),
-                        self.node.parm("framerange" + str(pattern_num) + "y").evalAsInt(),
-                        self.node.parm("framerange" + str(pattern_num) + "z").evalAsInt(),
+                        self.node.parm(
+                            "framerange" + str(pattern_num) + "x"
+                        ).evalAsInt(),
+                        self.node.parm(
+                            "framerange" + str(pattern_num) + "y"
+                        ).evalAsInt(),
+                        self.node.parm(
+                            "framerange" + str(pattern_num) + "z"
+                        ).evalAsInt(),
                     ]
-                elif trange == 'single':
+                elif trange == "single":
                     frame = self.node.parm("frame" + str(pattern_num)).evalAsInt()
                     frame_range = [
                         frame,
                         frame,
                         1,
                     ]
-                
+
                 self.frame_ranges.append(frame_range)
 
                 # Get the output path overrides for the file
                 output_path_override = None
-                if int(self.node.parm("useoutputoverride" + str(pattern_num)).eval()) == 1:
+                if (
+                    int(self.node.parm("useoutputoverride" + str(pattern_num)).eval())
+                    == 1
+                ):
                     output_path_override = []
-                    hou.hscript(f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}")
+                    hou.hscript(
+                        f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
+                    )
                     for frame in range(frame_range[0], frame_range[1] + 1):
-                        output_path_override.append(self.node.parm("outputoverride" + str(pattern_num)).evalAtFrame(frame))
-                
+                        output_path_override.append(
+                            self.node.parm(
+                                "outputoverride" + str(pattern_num)
+                            ).evalAtFrame(frame)
+                        )
+
                 self.output_path_overrides.append(output_path_override)
 
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
@@ -139,17 +156,36 @@ class TractorSubmit:
             task.title = os.path.basename(self.filepaths[file_num])
 
             # For loop creating a sub-task for each frame to be rendered in the USD
-            for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1):
-                if (frame % self.frame_ranges[file_num][2] != 0):
+            for frame in range(
+                self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1
+            ):
+                if frame % self.frame_ranges[file_num][2] != 0:
                     continue
                 subTask = author.Task()
                 subTask.title = "Frame " + str(frame)
                 # Build render command from USD info
-                #renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
-                renderCommand = ["/bin/bash", "-c", "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer " + self.node.parm("renderer").eval() + " --frame " + str(frame) + " --frame-inc " + str(self.frame_ranges[file_num][2]) + " --make-output-path -V2"]
-                if (self.output_path_overrides[file_num] != None):
-                    renderCommand[-1] += " --output " + self.output_path_overrides[file_num][frame - self.frame_ranges[file_num][0]]
-                renderCommand[-1] += " " + self.filepaths[file_num] # + " &> /tmp/test.log"
+                # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
+                renderCommand = [
+                    "/bin/bash",
+                    "-c",
+                    "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
+                    + self.node.parm("renderer").eval()
+                    + " --frame "
+                    + str(frame)
+                    + " --frame-inc "
+                    + str(self.frame_ranges[file_num][2])
+                    + " --make-output-path -V2",
+                ]
+                if self.output_path_overrides[file_num] != None:
+                    renderCommand[-1] += (
+                        " --output "
+                        + self.output_path_overrides[file_num][
+                            frame - self.frame_ranges[file_num][0]
+                        ]
+                    )
+                renderCommand[-1] += (
+                    " " + self.filepaths[file_num]
+                )  # + " &> /tmp/test.log"
                 # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", self.node.parm("renderer").eval(),
                 #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
                 # if (self.output_path_overrides[i] != None):
@@ -175,7 +211,7 @@ class TractorSubmit:
             self.input_priority()
             self.input_blades()
             self.add_tasks()
-            #print(self.job.asTcl())
+            # print(self.job.asTcl())
             self.job.spool()
             hou.ui.displayMessage("Job sent to tractor")
 

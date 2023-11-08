@@ -16,8 +16,10 @@ class MayaProxy(HTTPSoftwareProxy):
 
     maya_pipe_dir = Path(__file__).resolve().parent
     pipe_dir = maya_pipe_dir.parent.parent
-    program_dir = '/opt' if sys.platform.startswith('linux') else 'C:\\Program Files'
-    project_dir = '/groups/accomplice' if sys.platform.startswith('linux') else 'G:\\accomplice'
+    program_dir = "/opt" if sys.platform.startswith("linux") else "C:\\Program Files"
+    project_dir = (
+        "/groups/accomplice" if sys.platform.startswith("linux") else "G:\\accomplice"
+    )
 
     maya_env_vars = {
         "PYTHONPATH": str(maya_pipe_dir) + ":" + "/groups/accomplice/pipeline/lib",
@@ -26,12 +28,19 @@ class MayaProxy(HTTPSoftwareProxy):
         + str(maya_pipe_dir.joinpath("pipe", "shelves")),
         # This is commented out so that, instead of Maya pulling in from the shelves in the pipe directly, they are copied to the user's directory in the shelves's load function
         # Note that these local copies are deleted when Maya is closed
-        # 'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'), 
-
-        'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
-        'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
-        'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
-        'OCIO': os.path.join(program_dir, 'pixar', 'RenderManProServer-25.2', 'lib', 'ocio', 'ACES-1.2', 'config.ocio'),
+        # 'MAYA_SHELF_PATH': maya_pipe_dir.joinpath('pipe', 'shelves'),
+        "XBMLANGPATH": maya_pipe_dir.joinpath("icons"),
+        "MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET": 1,
+        "MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1": 1,
+        "OCIO": os.path.join(
+            program_dir,
+            "pixar",
+            "RenderManProServer-25.2",
+            "lib",
+            "ocio",
+            "ACES-1.2",
+            "config.ocio",
+        ),
     }
 
     def __init__(
