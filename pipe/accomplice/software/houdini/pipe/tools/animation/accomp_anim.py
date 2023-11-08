@@ -99,34 +99,6 @@ class AnimationImporter:
 
         node.allowEditingOfContents()
         self.set_anim_type(node)
-        self.character_material_update(node)
-
-    def get_path_to_materials(self, node):
-        asset_name = self.get_asset_name(node)
-        asset_dir = None  # TODO: get asset dir from server!
-        if asset_dir is None:
-            return None
-        return os.path.join(asset_dir, "materials")
-
-    def character_material_update(self, node):
-        mat_sublayer = node.node("materials")
-        path_to_materials = self.get_path_to_materials(node)
-        if path_to_materials is None:
-            hou.ui.displayMessage(
-                "Could not find asset's material folder. Alembic naming may not match. Please manually pull in the material folder to reference in the materials node within."
-            )
-        else:
-            material_file = os.path.join(
-                path_to_materials, self.get_asset_name(node) + "_shader.usda"
-            )
-            mat_sublayer.parm("filepath1").set(material_file)
-
-        mat = node.node("assign_material")
-        mat.parm("nummaterials").set(1)
-        mat.parm("primpattern1").set('/anim/`chs("../asset_name")`/geo')
-        mat.parm("matspecpath1").set(
-            '/anim/`chs("../asset_name")`/materials/`chs("../asset_name")`_shader'
-        )
 
     def set_anim_type(self, node):
         anim_type = node.parm("anim_type")

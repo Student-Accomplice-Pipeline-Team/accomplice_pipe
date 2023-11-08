@@ -38,10 +38,10 @@ class Character_Shaders(edit.EditShader):
             self.asset = self.character
             node.parm("toggle").set(1)
             print(self.character.path)
-
-            ref = node.node("reference1")
-            ref.parm("primpath").set("/" + self.character.name + "/materials")
-
+            
+            ref = node.node('reference1')
+            ref.parm('primpath').set('/anim/' + self.character.name + '/materials')
+            
         else:
             node.parm("toggle").set(0)
         print(character)
@@ -75,13 +75,11 @@ class Character_Shaders(edit.EditShader):
 
     def load_USD(self, node):
         stage = node.parent()
-
-        sublayer = stage.createNode(
-            "reference", node_name=self.character.name + "_materials"
-        )
-        sublayer.parm("filepath1").set(self.character.get_material_path())
-        node.setInput(1, sublayer)
-
+        
+        reference = stage.createNode('reference', node_name=self.character.name + '_materials')
+        reference.parm('filepath1').set(self.character.get_material_path())
+        node.setInput(1, reference)
+        
     def create_materials(self):
         metadata = self.asset.get_metadata()
         self.geo_variant_name = "Standard"
