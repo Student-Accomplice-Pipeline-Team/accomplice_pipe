@@ -39,7 +39,7 @@ class LoadShotUsds:
 
             usd_path = shot.get_shot_usd_path(department)
             if not os.path.exists(usd_path):
-                UsdUtils.create_empty_usd_at_filepath(usd_path, department)
+                UsdUtils.create_usd_with_department_prim(usd_path, department)
             
             # reference.parm('filepath1').set(shot.get_shot_usd_path(department))
             # department_reference_nodes.append(reference)
@@ -48,7 +48,7 @@ class LoadShotUsds:
     def set_current_department(myself: hou.Node, department=None):
         if department is None:
             department = HoudiniUtils.get_department()
-        print('my department is:')
+        print('my department is:', department)
         myself.parm('current_department').set(department)
 
     def uncheck_current_department(myself: hou.Node):
