@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import os
 from pathlib import Path
 from typing import Mapping, Optional, Sequence, Union
 
@@ -15,8 +16,9 @@ class MayaProxy(HTTPSoftwareProxy):
 
     maya_pipe_dir = Path(__file__).resolve().parent
     pipe_dir = maya_pipe_dir.parent.parent
+    program_dir = '/opt' if sys.platform.startswith('linux') else 'C:\\Program Files'
+    project_dir = '/groups/accomplice' if sys.platform.startswith('linux') else 'G:\\accomplice'
 
-    # TODO: Define colorspace variables to force the correct colorspace
     maya_env_vars = {
         'PYTHONPATH': str(maya_pipe_dir) + ':' + '/groups/accomplice/pipeline/lib',
         'MAYA_SCRIPT_PATH': str(maya_pipe_dir) + ':' + str(maya_pipe_dir.joinpath('pipe', 'shelves')),
@@ -28,7 +30,7 @@ class MayaProxy(HTTPSoftwareProxy):
         'XBMLANGPATH': maya_pipe_dir.joinpath('icons'),
         'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
         'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
-        'OCIO': None,
+        'OCIO': os.path.join(program_dir, 'pixar', 'RenderManProServer-25.2', 'lib', 'ocio', 'ACES-1.2', 'config.ocio'),
     }
 
     def __init__(
