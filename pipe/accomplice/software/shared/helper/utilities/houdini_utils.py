@@ -72,10 +72,13 @@ class HoudiniNodeUtils():
     
     def configure_new_scene(shot: Shot, department_name:str=None):
         # Create a new scene
-        if department_name != 'main' and department_name is not None:
-            new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
-        else:
+        assert shot is not None, "Shot must be defined."
+        assert department_name is None or department_name in shot.available_departments, f"Department {department_name} is not available for shot {shot.name}."
+        
+        if department_name == 'main' or department_name is None:
             new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
+        else:
+            new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
         new_scene_creator.create()
 
     class NewSceneCreator(ABC):
@@ -94,6 +97,7 @@ class HoudiniNodeUtils():
 
         def create_load_shot_node(self, input_node: hou.Node=None):
             if input_node is None:
+                import pdb; pdb.set_trace()
                 load_shot_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_load_department_layers')
             else:
                 load_shot_node = input_node.createOutputNode('accomp_load_department_layers')
@@ -226,6 +230,12 @@ class HoudiniUtils:
                 default_choice=1
             )
             return warning_response
+
+    @staticmethod
+    def prompt_user_for_shot_and_department():
+        shot = HoudiniUtils.prompt_user_for_shot()
+        user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+        return shot,user_selected_department
 
     @staticmethod
     def prompt_user_for_shot():
