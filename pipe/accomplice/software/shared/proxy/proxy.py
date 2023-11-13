@@ -208,8 +208,9 @@ class _PipeProxy(PipeProxyInterface):
             return Shot(
                 shot_dictionary['code'],
                 # NOTE: shot path is now set in the Shot constructor
-                shot_dictionary['sg_cut_in'],
-                shot_dictionary['sg_cut_out']
+                # shot_dictionary['sg_cut_in'],
+                # shot_dictionary['sg_cut_out']
+                shot_dictionary['sg_cut_duration']
             )
         
         return Shot(
