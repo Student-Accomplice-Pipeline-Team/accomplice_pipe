@@ -373,11 +373,19 @@ class Shot(JsonSerializable):
             Returns:
                 Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
             """
-            handle_start = global_start_frame
-            shot_start = global_start_frame + handle_frames
-            shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_start = global_start_frame
+            # shot_start = global_start_frame + handle_frames
+            # shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_end = shot_end + handle_frames
+            # return handle_start, shot_start, shot_end, handle_end
+            shot_start = global_start_frame + self.cut_in # self.cut_in is 0 based, so we don't need to subtract 1 from global_start_frame
+            handle_start = shot_start - handle_frames
+            
+            shot_end = global_start_frame + self.cut_out
             handle_end = shot_end + handle_frames
+
             return handle_start, shot_start, shot_end, handle_end
+
 
     
     def get_shotfile(self, department: Optional[str] = None) -> str:
