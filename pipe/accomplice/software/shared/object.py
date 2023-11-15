@@ -339,12 +339,11 @@ class Shot(JsonSerializable):
     available_departments = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
     checked_out = False
 
-    def __init__(self, name: str, duration: Optional[int] = None) -> None:
+    def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
         self.name = name
         self.path = self._get_path_from_name(name)
-        # self.cut_in = cut_in
-        # self.cut_out = cut_out
-        self.duration = duration
+        self.cut_in = cut_in
+        self.cut_out = cut_out
         
     def _get_path_from_name(self, name):
         name_components = name.split('_')
@@ -353,8 +352,7 @@ class Shot(JsonSerializable):
         return f'/groups/accomplice/pipeline/production/sequences/{name_components[0]}/shots/{name_components[1]}'
     
     def get_total_frames_in_shot(self):
-        # return self.cut_out - self.cut_in + 1
-        return self.duration
+        return self.cut_out - self.cut_in + 1
     
     def get_shotfile_folder(self, department: Optional[str] = None) -> str:
         if department == 'main' or department == None:
@@ -375,11 +373,19 @@ class Shot(JsonSerializable):
             Returns:
                 Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
             """
-            handle_start = global_start_frame
-            shot_start = global_start_frame + handle_frames
-            shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_start = global_start_frame
+            # shot_start = global_start_frame + handle_frames
+            # shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_end = shot_end + handle_frames
+            # return handle_start, shot_start, shot_end, handle_end
+            shot_start = global_start_frame + self.cut_in # self.cut_in is 0 based, so we don't need to subtract 1 from global_start_frame
+            handle_start = shot_start - handle_frames
+            
+            shot_end = global_start_frame + self.cut_out
             handle_end = shot_end + handle_frames
+
             return handle_start, shot_start, shot_end, handle_end
+
 
     
     def get_shotfile(self, department: Optional[str] = None) -> str:
