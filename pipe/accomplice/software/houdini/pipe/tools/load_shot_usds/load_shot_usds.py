@@ -86,6 +86,6 @@ class LoadShotUsds: # TODO: note that this node has been updated to be called 'a
     
     def refresh_all_reference_nodes(myself: hou.Node):
         for department in Shot.available_departments:
-            if department == 'main':
+            if department == 'main' or department == 'layout': # Layout is now reloaded in a separate node
                 continue
             myself.parm('reload_' + department).pressButton()
