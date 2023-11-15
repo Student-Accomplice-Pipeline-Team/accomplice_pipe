@@ -39,8 +39,10 @@ class Character_Shaders(edit.EditShader):
             node.parm('toggle').set(1)
             print(self.character.path)
             
-            ref = node.node('reference1')
-            ref.parm('primpath').set('/anim/' + self.character.name + '/materials')
+            self.ref = node.node('referenced_materials')
+            self.ref.parm('primpath').set('/anim/' + self.character.name + '/materials')
+            
+            self.load_USD()
             
         else:
             node.parm('toggle').set(0)
@@ -73,12 +75,9 @@ class Character_Shaders(edit.EditShader):
         
         vs.update_symlink(save_path, version_path)
         
-    def load_USD(self, node):
-        stage = node.parent()
+    def load_USD(self):
         
-        reference = stage.createNode('reference', node_name=self.character.name + '_materials')
-        reference.parm('filepath1').set(self.character.get_material_path())
-        node.setInput(1, reference)
+        self.ref.parm('filepath1').set(self.character.get_material_path())
         
     def create_materials(self):
         
