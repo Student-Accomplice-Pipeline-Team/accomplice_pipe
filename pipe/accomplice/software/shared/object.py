@@ -339,12 +339,11 @@ class Shot(JsonSerializable):
     available_departments = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
     checked_out = False
 
-    def __init__(self, name: str, duration: Optional[int] = None) -> None:
+    def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
         self.name = name
         self.path = self._get_path_from_name(name)
-        # self.cut_in = cut_in
-        # self.cut_out = cut_out
-        self.duration = duration
+        self.cut_in = cut_in
+        self.cut_out = cut_out
         
     def _get_path_from_name(self, name):
         name_components = name.split('_')
@@ -353,8 +352,7 @@ class Shot(JsonSerializable):
         return f'/groups/accomplice/pipeline/production/sequences/{name_components[0]}/shots/{name_components[1]}'
     
     def get_total_frames_in_shot(self):
-        # return self.cut_out - self.cut_in + 1
-        return self.duration
+        return self.cut_out - self.cut_in + 1
     
     def get_shotfile_folder(self, department: Optional[str] = None) -> str:
         if department == 'main' or department == None:

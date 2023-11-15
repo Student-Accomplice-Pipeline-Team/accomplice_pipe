@@ -331,8 +331,7 @@ class ShotQueryHelper(ShotGridQueryHelper):
             'code',
             'id',
             'sg_cut_in',
-            'sg_cut_out',
-            'sg_cut_duration'
+            'sg_cut_out'
         ]
     
     def _get_all_shot_json(self):

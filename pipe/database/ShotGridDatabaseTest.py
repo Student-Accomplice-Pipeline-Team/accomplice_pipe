@@ -2,7 +2,6 @@ import unittest
 
 from accomplice.sg_config import SG_CONFIG
 from .ShotGridDatabase import ShotGridDatabase
-from pipe.shared.object import Shot
 
 # Run test in Studini with
 # from database import ShotGridDatabaseTest
@@ -76,14 +75,6 @@ class ShotGridDatabaseShotTest(unittest.TestCase):
         SG_CONFIG['SCRIPT_KEY'],
         SG_CONFIG['ACCOMPLICE_ID']
     )
-
-    def test_shot_duration(self):
-        shot_dictionary = self.db.get_shot('A_010')
-        shot = Shot(
-            shot_dictionary['code'],
-            shot_dictionary['sg_cut_duration']
-        )
-        self.assertEqual(shot.get_total_frames_in_shot(), 141)
 
 class AsynchronousShotGridDatabaseTest(unittest.TestCase):
     db = ShotGridDatabase( # If we find that there are errors with test order, we can put this in setUp
