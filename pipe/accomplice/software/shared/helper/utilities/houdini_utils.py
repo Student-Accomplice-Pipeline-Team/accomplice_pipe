@@ -142,6 +142,7 @@ class HoudiniNodeUtils():
             end_null.setDisplayFlag(True)
 
             restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
+            restructure_scene_graph_node.bypass(1)
             self.create_department_usd_rop_node(restructure_scene_graph_node)
 
         def create_import_layout_node(self):
