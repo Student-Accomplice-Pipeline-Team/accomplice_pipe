@@ -82,7 +82,7 @@ class HoudiniNodeUtils():
         new_scene_creator.create()
 
     class NewSceneCreator(ABC):
-        def __init__(self, shot: Shot, stage: hou.Node=hou.node('stage')):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             self.shot = shot
             self.stage = stage
             self.my_created_nodes = []
@@ -105,7 +105,7 @@ class HoudiniNodeUtils():
             return load_shot_node
 
     class MainSceneCreator(NewSceneCreator):
-        def __init__(self, shot: Shot, stage: hou.Node = hou.node('stage')):
+        def __init__(self, shot: Shot, stage: hou.Node = hou.node('/stage')):
             super().__init__(shot, stage)
         
         def add_nodes(self):
@@ -123,7 +123,7 @@ class HoudiniNodeUtils():
                 return usd_rop_node
 
     class DepartmentSceneCreator(NewSceneCreator):
-        def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('stage')):
+        def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
             self.department_name = department_name
             super().__init__(shot, stage)
         
@@ -142,6 +142,7 @@ class HoudiniNodeUtils():
             end_null.setDisplayFlag(True)
 
             restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
+            restructure_scene_graph_node.bypass(1)
             self.create_department_usd_rop_node(restructure_scene_graph_node)
 
         def create_import_layout_node(self):
