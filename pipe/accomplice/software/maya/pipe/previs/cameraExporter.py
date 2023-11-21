@@ -9,8 +9,10 @@ import shutil
 
 
 class CameraExporter:
-    def __init__(self):
-        print("starting i guess...")
+
+    def __init__(self, context='RLO'):
+        print ('starting i guess...')
+        self.context = context
 
     def run(self):
         print("About to export Camera...")
@@ -185,7 +187,7 @@ class CameraExporter:
     def exporter(self):
         shot = pipe.server.get_shot(self.shot_selection)
 
-        self.camera_filepath = os.path.join(shot.path, "camera", "RLO")
+        self.camera_filepath = os.path.join(shot.path, 'camera', self.context)
         if not os.path.exists(self.camera_filepath):
             os.makedirs(self.camera_filepath)
 

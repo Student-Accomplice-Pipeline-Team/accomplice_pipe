@@ -125,7 +125,11 @@ class Asset(JsonSerializable):
 
         for geovar in geovars:
             hierarchy[geovar] = {}
-
+            matvars = self.get_mat_variants(geovar)
+            for matvar in matvars:
+                material = MaterialVariant(matvar)
+                hierarchy[geovar][matvar] = material
+            
         data.hierarchy = hierarchy
 
         if not os.path.exists(path):
@@ -133,6 +137,33 @@ class Asset(JsonSerializable):
 
         with open(meta_path, "w") as outfile:
             outfile.write(data.to_json())
+            
+    def update_metadata(self):
+        meta = self.get_metadata()
+        
+        if not meta:
+            print('no metadata found')
+            self.create_metadata()
+            meta = self.get_metadata()
+            
+        geovars = self.get_geo_variants()
+        
+        for geovar in geovars:
+            if geovar not in meta.hierarchy:
+                print('adding')
+                meta.hierarchy[geovar] = {}
+                matvars = self.get_mat_variants(geovar)
+                for matvar in matvars:
+                    material = MaterialVariant(matvar)
+                    meta.hierarchy[geovar][matvar] = material
+    
+        print(meta.hierarchy)
+        
+        metadata_path = self.get_metadata_path()
+ 
+        with open(metadata_path, 'w') as outfile:
+            toFile = meta.to_json()
+            outfile.write(toFile)
 
     def get_geo_variants(self):
         if str(os.name) == "nt":
@@ -151,20 +182,18 @@ class Asset(JsonSerializable):
         return geo_variants
 
     def get_mat_variants(self, geo_variant):
-        if os.name == "nt":
-            path = Path(self.get_geo_path().replace("/groups/", "G:\\"))
-        else:
-            path = Path(self.get_geo_path())
-        path = path / "textures"
+
+        path = Path(self.get_geo_path().replace('geo', 'textures'))
+        
+        path = path / geo_variant
+        print(path)
         mat_variants = []
 
         if path.exists():
-            files = path.glob("*_DiffuseColor*1001.png.tex")
+            files = path.glob('*/')
 
             for file in files:
-                mat_variants.append(
-                    re.search("(.*_).*(_DiffuseColor_.*1001.*\.tex)", str(file)).group()
-                )
+                mat_variants.append(str(file.name))
         return mat_variants
 
     def get_textures_path(self, geo_variant, material_variant):
@@ -367,15 +396,24 @@ class Shot(JsonSerializable):
             global_start_frame (int): The global start frame for the shot.
             handle_frames (int): The number of extra frames to include for handles.
 
-        Returns:
-            Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
-        """
-        handle_start = global_start_frame
-        shot_start = global_start_frame + handle_frames
-        shot_end = shot_start + self.get_total_frames_in_shot() - 1
-        handle_end = shot_end + handle_frames
-        return handle_start, shot_start, shot_end, handle_end
+            Returns:
+                Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
+            """
+            # handle_start = global_start_frame
+            # shot_start = global_start_frame + handle_frames
+            # shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_end = shot_end + handle_frames
+            # return handle_start, shot_start, shot_end, handle_end
+            shot_start = global_start_frame + self.cut_in # self.cut_in is 0 based, so we don't need to subtract 1 from global_start_frame
+            handle_start = shot_start - handle_frames
+            
+            shot_end = global_start_frame + self.cut_out
+            handle_end = shot_end + handle_frames
 
+            return handle_start, shot_start, shot_end, handle_end
+
+
+    
     def get_shotfile(self, department: Optional[str] = None) -> str:
         shot_folder = self.get_shotfile_folder(department)
 

@@ -7,8 +7,7 @@ import os
 
 data_cache = DataCache()
 
-
-class LoadShotUsds:
+class LoadShotUsds: # TODO: note that this node has been updated to be called 'accomp_load_department_layers' in the hda. When you have time, it would make sense to rewrite this code so that people don't get confused.
     def get_departments_menu_list():
         # Houdini dropdown menues must have an even number of items
         menu_options = []
@@ -42,8 +41,8 @@ class LoadShotUsds:
 
             usd_path = shot.get_shot_usd_path(department)
             if not os.path.exists(usd_path):
-                UsdUtils.create_empty_usd_at_filepath(usd_path, department)
-
+                UsdUtils.create_usd_with_department_prim(usd_path, department)
+            
             # reference.parm('filepath1').set(shot.get_shot_usd_path(department))
             # department_reference_nodes.append(reference)
             myself.parm(department + "_usd_path").set(usd_path)
@@ -51,8 +50,8 @@ class LoadShotUsds:
     def set_current_department(myself: hou.Node, department=None):
         if department is None:
             department = HoudiniUtils.get_department()
-        print("my department is:")
-        myself.parm("current_department").set(department)
+        print('my department is:', department)
+        myself.parm('current_department').set(department)
 
     def uncheck_current_department(myself: hou.Node):
         """Callback for when the current department dropdown is changed"""
@@ -64,19 +63,14 @@ class LoadShotUsds:
 
     def on_created(myself: hou.Node):
         # shot = HoudiniUtils.get_shot_for_file()
-        shot = data_cache.retrieve_from_cache("shot", HoudiniUtils.get_shot_for_file)
+        shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
+        # import pdb; pdb.set_trace()
+        # print('THIS IS THE SHOT NAME! :', shot)
         user_selected_department = None
         if shot is None:
-            # Inform user that they're not in a shot file
-            hou.ui.displayMessage(
-                "It appears that you are not using a shot file. To simulate being in a shot file, you can select a shot with the following menu"
-            )
-            shot = HoudiniUtils.prompt_user_for_shot()
-            user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
-            hou.ui.displayMessage(
-                "Dive into this node in order to pull in the desired layout."
-            )
-
+            hou.ui.displayMessage("It appears that you are not using a shot file. To simulate being in a shot file, you can select a shot with the following menu.")
+            shot, user_selected_department = HoudiniUtils.prompt_user_for_shot_and_department()
+        
         LoadShotUsds.update_department_reference_node_paths(myself, shot)
         if user_selected_department is not None:
             LoadShotUsds.set_current_department(myself, user_selected_department)
@@ -84,6 +78,7 @@ class LoadShotUsds:
             LoadShotUsds.set_current_department(myself)
         LoadShotUsds.uncheck_current_department(myself)
 
+    
     def get_shot_usd_path(department_specific=False):
         shot = data_cache.retrieve_from_cache("shot", HoudiniUtils.get_shot_for_file)
         if department_specific:
@@ -93,6 +88,6 @@ class LoadShotUsds:
 
     def refresh_all_reference_nodes(myself: hou.Node):
         for department in Shot.available_departments:
-            if department == "main":
+            if department == 'main' or department == 'layout': # Layout is now reloaded in a separate node
                 continue
             myself.parm("reload_" + department).pressButton()

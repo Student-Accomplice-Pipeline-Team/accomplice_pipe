@@ -72,16 +72,17 @@ class HoudiniNodeUtils:
 
     def configure_new_scene(shot: Shot, department_name: str = None):
         # Create a new scene
-        if department_name != "main" and department_name is not None:
-            new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(
-                shot, department_name
-            )
-        else:
+        assert shot is not None, "Shot must be defined."
+        assert department_name is None or department_name in shot.available_departments, f"Department {department_name} is not available for shot {shot.name}."
+        
+        if department_name == 'main' or department_name is None:
             new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
+        else:
+            new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
         new_scene_creator.create()
 
     class NewSceneCreator(ABC):
-        def __init__(self, shot: Shot, stage: hou.Node = hou.node("stage")):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             self.shot = shot
             self.stage = stage
             self.my_created_nodes = []
@@ -94,15 +95,17 @@ class HoudiniNodeUtils:
             self.add_nodes()
             self.stage.layoutChildren(items=self.my_created_nodes)
 
-        def create_load_shot_node(self):
-            load_shot_node = HoudiniNodeUtils.create_node(
-                self.stage, "accomp_load_shot_usds"
-            )
+        def create_load_shot_node(self, input_node: hou.Node=None):
+            if input_node is None:
+                import pdb; pdb.set_trace()
+                load_shot_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_load_department_layers')
+            else:
+                load_shot_node = input_node.createOutputNode('accomp_load_department_layers')
             self.my_created_nodes.append(load_shot_node)
             return load_shot_node
 
     class MainSceneCreator(NewSceneCreator):
-        def __init__(self, shot: Shot, stage: hou.Node = hou.node("stage")):
+        def __init__(self, shot: Shot, stage: hou.Node = hou.node('/stage')):
             super().__init__(shot, stage)
 
         def add_nodes(self):
@@ -124,24 +127,34 @@ class HoudiniNodeUtils:
                 return usd_rop_node
 
     class DepartmentSceneCreator(NewSceneCreator):
-        def __init__(
-            self, shot: Shot, department_name: str, stage: hou.Node = hou.node("stage")
-        ):
+        def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
             self.department_name = department_name
             super().__init__(shot, stage)
 
         # Override
         def add_nodes(self):
-            load_shot_node = self.create_load_shot_node()
-            configure_department_scene_graph = self.create_configure_scene_graph_node()
-            self.create_department_usd_rop_node(configure_department_scene_graph)
-            merge_node = self.create_merge_node(
-                load_shot_node, configure_department_scene_graph
-            )
+            import_layout_node = self.create_import_layout_node()
+            load_shot_node = self.create_load_shot_node(import_layout_node)
+            layer_break_node = self.add_layer_break_node(load_shot_node)
 
-        def create_department_usd_rop_node(
-            self, configure_department_scene_graph: hou.Node
-        ):
+            begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
+            self.my_created_nodes.append(begin_null)
+
+
+            end_null = begin_null.createOutputNode('null', 'END_' + self.department_name)
+            self.my_created_nodes.append(end_null)
+            end_null.setDisplayFlag(True)
+
+            restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
+            restructure_scene_graph_node.bypass(1)
+            self.create_department_usd_rop_node(restructure_scene_graph_node)
+
+        def create_import_layout_node(self):
+            import_layout_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_import_layout')
+            self.my_created_nodes.append(import_layout_node)
+            return import_layout_node
+        
+        def create_department_usd_rop_node(self, configure_department_scene_graph: hou.Node):
             # Add the usd rop node
             usd_rop_node = configure_department_scene_graph.createOutputNode(
                 "usd_rop", "OUT_" + self.shot.name + "_" + self.department_name
@@ -155,40 +168,23 @@ class HoudiniNodeUtils:
 
             self.my_created_nodes.append(usd_rop_node)
             return usd_rop_node
+        
+        def add_layer_break_node(self, input_node: hou.Node):
+            layer_break_node = input_node.createOutputNode('layerbreak')
+            layer_break_node.setComment("Keep this node here unless you have a specific reason to delete it.")
+            self.my_created_nodes.append(layer_break_node)
+            return layer_break_node
+        
+        def add_restructure_scene_graph_node(self, input_node: hou.Node):
+            restructure_scene_graph_node = input_node.createOutputNode('restructurescenegraph')
+            restructure_scene_graph_node.setComment("This node can help you put your work into the proper location in the scene graph. Simply adjust the 'primitives' parameter to include the prims you want to move. If you don't do this, your scene will probably still work. If you do this and it breaks, you can probably ignore this node. Reach out to a pipeline technician if you have any questions.")
 
-        def create_configure_scene_graph_node(self):
-            # Create a null node for the department work coming in
-            in_department_work = HoudiniNodeUtils.create_node(self.stage, "null")
-            in_department_work.setName("IN_" + self.department_name)
-            self.my_created_nodes.append(in_department_work)
+            # Set the primpattern to include everything that's not a decendant of /scene
+            restructure_scene_graph_node.parm('primpattern').set('')
+            restructure_scene_graph_node.parm('primnewparent').set('/scene/' + self.department_name)
+            self.my_created_nodes.append(restructure_scene_graph_node)
+            return restructure_scene_graph_node
 
-            configure_department_scene_graph = in_department_work.createOutputNode(
-                "accomp_configure_department_scene_graph", "configure_scene_graph"
-            )
-            self.my_created_nodes.append(configure_department_scene_graph)
-
-            return configure_department_scene_graph
-
-        def create_merge_node(
-            self, load_shot_node: hou.Node, configure_department_scene_graph: hou.Node
-        ):
-            # Create a merge node
-            merge_node = HoudiniNodeUtils.create_node(hou.node("stage"), "merge")
-
-            # Connect 2nd output of configure_department_scene_graph to the merge node
-            merge_node.setInput(0, configure_department_scene_graph, output_index=1)
-
-            # Set the second input to the merge to be the load_shot_node:
-            merge_node.setInput(1, load_shot_node)
-            self.my_created_nodes.append(merge_node)
-
-            # Create a null node called 'OUT_entire_scene_preview'
-            out_entire_scene_preview = merge_node.createOutputNode(
-                "null", "OUT_entire_scene_preview"
-            )
-            out_entire_scene_preview.setDisplayFlag(True)
-            self.my_created_nodes.append(out_entire_scene_preview)
-            return merge_node
 
 
 class HoudiniPathUtils:
@@ -248,6 +244,12 @@ class HoudiniUtils:
                 default_choice=1,
             )
             return warning_response
+
+    @staticmethod
+    def prompt_user_for_shot_and_department():
+        shot = HoudiniUtils.prompt_user_for_shot()
+        user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+        return shot,user_selected_department
 
     @staticmethod
     def prompt_user_for_shot():

@@ -101,7 +101,7 @@ global proc shelf_SA_Previs () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "from pipe.previs import CameraExporter\n\ncam = CameraExporter()\n\ncam.run()" 
+        -command "from pipe.previs import CameraExporter\n\ncam = CameraExporter('RLO')\n\ncam.run()" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
