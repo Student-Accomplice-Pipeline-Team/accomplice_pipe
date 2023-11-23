@@ -156,35 +156,13 @@ class TractorSubmit:
             task.title = os.path.basename(self.filepaths[file_num])
             task.serialsubtasks = 1
 
+            render_task = author.Task()
+            render_task.title = "render"
+
             current_file_stage = Usd.Stage.Open(self.filepaths[file_num])
             output_path_attr = current_file_stage.GetPrimAtPath(
                 "/Render/Products/renderproduct"
             ).GetAttribute("productName")
-
-            exr_path = ""
-            if self.output_path_overrides[file_num] != None:
-                exr_path = self.output_path_overrides[file_num][
-                    self.frame_ranges[file_num][0]
-                ]
-            else:
-                exr_path = output_path_attr.Get(self.frame_ranges[file_num][0])
-
-            exr_dir, _ = os.path.split(exr_path)
-            png_dir = exr_dir + os.path.sep + "png"
-
-            setup_task = author.Task()
-            setup_task.title = "setup"
-            setup_command = author.Command(True)
-            setup_command.argv = [
-                "mkdir",
-                "-p",
-                png_dir if self.node.parm("createplayblasts").evalAsInt() else exr_dir,
-            ]
-            setup_task.addCommand(setup_command)
-            task.addChild(setup_task)
-
-            render_task = author.Task()
-            render_task.title = "render"
 
             # For loop creating a sub-task for each frame to be rendered in the USD
             for frame in range(
@@ -243,6 +221,10 @@ class TractorSubmit:
                         exr_path = output_path_attr.Get(frame)
 
                     exr_path_split = os.path.split(exr_path)
+                    png_dir = exr_path_split[0] + os.path.sep + "png"
+
+                    if not os.path.exists(png_dir):
+                        os.makedirs(png_dir, mode=775)
 
                     png_path = (
                         png_dir
@@ -275,6 +257,17 @@ class TractorSubmit:
             if self.node.parm("createplayblasts").evalAsInt():
                 create_mov = author.Command()
 
+                exr_path = ""
+                if self.output_path_overrides[file_num] != None:
+                    exr_path = self.output_path_overrides[file_num][
+                        frame - self.frame_ranges[file_num][0]
+                    ]
+                else:
+                    exr_path = output_path_attr.Get(frame)
+
+                exr_path_split = os.path.split(exr_path)
+                png_dir = exr_path_split[0] + os.path.sep + "png"
+
                 # fmt: off
                 create_mov.argv = [
                     "/usr/bin/ffmpeg",
@@ -284,17 +277,14 @@ class TractorSubmit:
                     "-pattern_type", "glob",
                     "-i", png_dir + os.path.sep + "*.png",
                     "-s", "1920x1080",
-                    # "-vcodec", "dnxhd",
-                    "-vcodec", "libx264",
+                    "-vcodec", "dnxhd",
                     "-pix_fmt", "yuv422p",
                     "-colorspace:v", "bt709",
                     "-color_primaries:v", "bt709",
                     "-color_trc:v", "bt709",
                     "-color_range:v", "tv",
-                    # "-b:v", "440M",
-                    "-crf", "25",
-                    # png_dir + os.path.sep + "playblast.mov",
-                    png_dir + os.path.sep + "playblast.mp4",
+                    "-b:v", "440M",
+                    png_dir + os.path.sep + "playblast.mov",
                 ]
                 # fmt: on
 
