@@ -153,7 +153,7 @@ class HoudiniNodeUtils():
             return import_layout_node
         
         def create_department_usd_rop_node(self, configure_department_scene_graph: hou.Node):
-            # Add the usd rop node
+            # Add the usd rop node/p
             usd_rop_node = configure_department_scene_graph.createOutputNode('usd_rop', 'OUT_' + self.shot.name + '_' + self.department_name)
             usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
             usd_rop_node.parm("lopoutput").set(self.shot.get_shot_usd_path(self.department_name))
@@ -216,7 +216,7 @@ class HoudiniNodeUtils():
         def create_tractor_node(self):
             tractor_node = HoudiniNodeUtils.create_node(self.stage, 'tractor_submit')
             tractor_node.parm('filepath1').set(self.shot.get_shot_usd_path())
-            tractor_node.parm('createplayblast').set(1)
+            tractor_node.parm('createplayblasts').set(1)
             return tractor_node
 
 
