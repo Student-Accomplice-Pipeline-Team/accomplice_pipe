@@ -21,8 +21,6 @@ class Exporter():
     def __init__(self):
         self.ANIM_DIR = "anim"
         self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
-        self.FBX_EXPORTER_SUFFIX = ":EXPORTSET_CarLocWS"
-        self.CAR_FBX_NAME = 'world_space_car_transform.fbx'
         
     def run(self):
         print("Alembic Exporter not ready yet")
@@ -47,7 +45,11 @@ class Exporter():
     
     #This is a GUI that presents four options of what you are exporting. The one selected will determine the location that the object is created in    
     def object_select_gui(self):
-        object_list = ["letty", "vaughn", "ed", "studentcar", "other"]
+        # object_list = ["letty", "vaughn", "ed", "studentcar", "other"]
+        self.alembic_objects = cmds.ls("*" + self.ALEMBIC_EXPORTER_SUFFIX)
+        self.alembic_objects = sorted(self.alembic_objects)
+        self.alembic_objects = [obj.replace(self.ALEMBIC_EXPORTER_SUFFIX, "") for obj in self.alembic_objects]
+        self.checked_objects = []
     
         if cmds.window("ms_selectObject_GUI", exists=True):
             cmds.deleteUI("ms_selectObject_GUI")
@@ -55,19 +57,43 @@ class Exporter():
         win = cmds.window("ms_selectObject_GUI", title="SELECT OBJECT GUI") 
         cmds.showWindow(win)
         cmds.columnLayout()
+
+        for obj in self.alembic_objects:
+            cmds.checkBox(label=obj, onc=lambda x, obj=obj: self.add_to_checked_objects(obj),
+                          ofc=lambda x, obj=obj: self.remove_from_checked_objects(obj))
+
         
-        selection = cmds.textScrollList( "Object_List", numberOfRows=8,
-	    	        	append=object_list,
-	    		        selectIndexedItem=1, showIndexedItem=1)
+        # selection = cmds.textScrollList( "Object_List", numberOfRows=8,
+	    # 	        	append=object_list,
+	    # 		        selectIndexedItem=1, showIndexedItem=1)
         
         cmds.rowLayout(numberOfColumns=1)
 
-        # selected_name = 
         
-        cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+        # cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+        cmds.button(label="Next", c=lambda x: self.choose_shot())
         cmds.setParent("..")
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
+    def add_to_checked_objects(self, obj):
+        if obj not in self.checked_objects:
+            self.checked_objects.append(obj)
+
+    def remove_from_checked_objects(self, obj):
+        if obj in self.checked_objects:
+            self.checked_objects.remove(obj)
+
+    def choose_shot(self):
+        try:
+            shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
+        except AssertionError:
+            self.shot_select_gui()
+        
+        if shot_name is None:
+            self.shot_select_gui()
+        else:
+            self.save_shot(shot_name)
+    
     def save_object(self, selected_object):
         
         #Delete Object Select GUI
@@ -420,6 +446,40 @@ class Exporter():
         else:
             if cmds.window('msFrameRangeWindowID', exists=True):
                 cmds.deleteUI('msFrameRangeWindowID')
+            self.export_checked_objects()
+    
+        
+    def export_checked_objects(self):
+        num_objects = len(self.checked_objects)
+        progressControl = mel.eval('$tmp = $gMainProgressBar')
+
+        # Configure and show the progress bar
+        cmds.progressBar(progressControl, edit=True, beginProgress=True, isInterruptable=True, status='Exporting Objects...', maxValue=num_objects)
+
+        for i, obj in enumerate(self.checked_objects, start=1):
+            if cmds.progressBar(progressControl, query=True, isCancelled=True):
+                break
+            if cmds.progressBar(progressControl, query=True, progress=True) >= num_objects:
+                break
+
+            cmds.progressBar(progressControl, edit=True, step=1, status=f'Exporting: {obj}')
+            self.object_selection = obj
+            cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
             self.exporter()
-        
-        
+
+        # End and delete the progress bar
+        cmds.progressBar(progressControl, edit=True, endProgress=True)
+
+        # for obj in self.checked_objects:
+        #     self.object_selection = obj
+        #     # Ensure the object is selected in Maya
+        #     cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+        #     # Call the exporter method for each selected object
+        #     self.exporter()
+        # Close the SELECT OBJECT GUI window
+        if cmds.window("ms_selectObject_GUI", exists=True):
+            cmds.deleteUI("ms_selectObject_GUI")
+
+        # Show completion notification
+        exported_objects_str = ", ".join(self.checked_objects)
+        cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
