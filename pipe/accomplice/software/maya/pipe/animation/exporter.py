@@ -450,9 +450,36 @@ class Exporter():
     
         
     def export_checked_objects(self):
-        for obj in self.checked_objects:
+        num_objects = len(self.checked_objects)
+        progressControl = mel.eval('$tmp = $gMainProgressBar')
+
+        # Configure and show the progress bar
+        cmds.progressBar(progressControl, edit=True, beginProgress=True, isInterruptable=True, status='Exporting Objects...', maxValue=num_objects)
+
+        for i, obj in enumerate(self.checked_objects, start=1):
+            if cmds.progressBar(progressControl, query=True, isCancelled=True):
+                break
+            if cmds.progressBar(progressControl, query=True, progress=True) >= num_objects:
+                break
+
+            cmds.progressBar(progressControl, edit=True, step=1, status=f'Exporting: {obj}')
             self.object_selection = obj
-            # Ensure the object is selected in Maya
             cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
-            # Call the exporter method for each selected object
             self.exporter()
+
+        # End and delete the progress bar
+        cmds.progressBar(progressControl, edit=True, endProgress=True)
+
+        # for obj in self.checked_objects:
+        #     self.object_selection = obj
+        #     # Ensure the object is selected in Maya
+        #     cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+        #     # Call the exporter method for each selected object
+        #     self.exporter()
+        # Close the SELECT OBJECT GUI window
+        if cmds.window("ms_selectObject_GUI", exists=True):
+            cmds.deleteUI("ms_selectObject_GUI")
+
+        # Show completion notification
+        exported_objects_str = ", ".join(self.checked_objects)
+        cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
