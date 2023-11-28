@@ -77,6 +77,8 @@ class HoudiniNodeUtils():
         
         if department_name == 'main' or department_name is None:
             new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
+        elif department_name == 'lighting':
+            new_scene_creator = HoudiniNodeUtils.LightingSceneCreator(shot)
         else:
             new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
         new_scene_creator.create()
@@ -97,7 +99,6 @@ class HoudiniNodeUtils():
 
         def create_load_shot_node(self, input_node: hou.Node=None):
             if input_node is None:
-                import pdb; pdb.set_trace()
                 load_shot_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_load_department_layers')
             else:
                 load_shot_node = input_node.createOutputNode('accomp_load_department_layers')
@@ -141,9 +142,10 @@ class HoudiniNodeUtils():
             self.my_created_nodes.append(end_null)
             end_null.setDisplayFlag(True)
 
-            restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
-            restructure_scene_graph_node.bypass(1)
-            self.create_department_usd_rop_node(restructure_scene_graph_node)
+            self.restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
+            self.restructure_scene_graph_node.bypass(1)
+            self.create_department_usd_rop_node(self.restructure_scene_graph_node)
+            self.post_add_department_specific_nodes()
 
         def create_import_layout_node(self):
             import_layout_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_import_layout')
@@ -151,7 +153,7 @@ class HoudiniNodeUtils():
             return import_layout_node
         
         def create_department_usd_rop_node(self, configure_department_scene_graph: hou.Node):
-            # Add the usd rop node
+            # Add the usd rop node/p
             usd_rop_node = configure_department_scene_graph.createOutputNode('usd_rop', 'OUT_' + self.shot.name + '_' + self.department_name)
             usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
             usd_rop_node.parm("lopoutput").set(self.shot.get_shot_usd_path(self.department_name))
@@ -167,6 +169,7 @@ class HoudiniNodeUtils():
         
         def add_restructure_scene_graph_node(self, input_node: hou.Node):
             restructure_scene_graph_node = input_node.createOutputNode('restructurescenegraph')
+            restructure_scene_graph_node.parm('flatteninput').set(0)
             restructure_scene_graph_node.setComment("This node can help you put your work into the proper location in the scene graph. Simply adjust the 'primitives' parameter to include the prims you want to move. If you don't do this, your scene will probably still work. If you do this and it breaks, you can probably ignore this node. Reach out to a pipeline technician if you have any questions.")
 
             # Set the primpattern to include everything that's not a decendant of /scene
@@ -174,6 +177,47 @@ class HoudiniNodeUtils():
             restructure_scene_graph_node.parm('primnewparent').set('/scene/' + self.department_name)
             self.my_created_nodes.append(restructure_scene_graph_node)
             return restructure_scene_graph_node
+        
+        def post_add_department_specific_nodes():
+            pass
+    
+    class LightingSceneCreator(DepartmentSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'lighting', stage)
+        
+        def post_add_department_specific_nodes(self):
+            motion_blur_node = self.restructure_scene_graph_node.createOutputNode('accomp_motion_blur')
+            self.my_created_nodes.append(motion_blur_node)
+            render_settings_node = motion_blur_node.createOutputNode('hdprmanrenderproperties') # TODO: When you know where these are going to be rendered out, you can automate setting this.
+            self.my_created_nodes.append(render_settings_node)
+            final_scene_usd_rop_node = self.add_final_scene_usd_rop_node(render_settings_node)
+            self.my_created_nodes.append(final_scene_usd_rop_node)
+
+            entire_scene_sublayer = self.create_sublayer_node_to_import_entire_scene()
+            self.my_created_nodes.append(entire_scene_sublayer)
+
+            tractor_node = self.create_tractor_node()
+            self.my_created_nodes.append(tractor_node)
+
+        def add_final_scene_usd_rop_node(self, input_node: hou.Node):
+            usd_rop_node = input_node.createOutputNode('usd_rop', 'OUT_' + self.shot.name)
+            usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
+            usd_rop_node.parm("lopoutput").set(self.shot.get_shot_usd_path())
+            usd_rop_node.parm('striplayerbreaks').set(0) # Turn off layer breaks so that the USD contains all the layers for rendering
+
+            return usd_rop_node
+        
+        def create_sublayer_node_to_import_entire_scene(self):
+            sublayer = HoudiniNodeUtils.create_node(self.stage, 'sublayer')
+            sublayer.setName(self.shot.name + '_preview')
+            sublayer.parm('filepath1').set(self.shot.get_shot_usd_path())
+            return sublayer
+        
+        def create_tractor_node(self):
+            tractor_node = HoudiniNodeUtils.create_node(self.stage, 'tractor_submit')
+            tractor_node.parm('filepath1').set(self.shot.get_shot_usd_path())
+            tractor_node.parm('createplayblasts').set(1)
+            return tractor_node
 
 
 class HoudiniPathUtils():
