@@ -178,7 +178,7 @@ class HoudiniNodeUtils():
             self.my_created_nodes.append(restructure_scene_graph_node)
             return restructure_scene_graph_node
         
-        def post_add_department_specific_nodes():
+        def post_add_department_specific_nodes(self):
             pass
     
     class LightingSceneCreator(DepartmentSceneCreator):
