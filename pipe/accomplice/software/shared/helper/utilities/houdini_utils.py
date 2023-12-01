@@ -21,13 +21,6 @@ class HoudiniFXUtils():
         fx_directory = shot.get_shotfile_folder('fx')
         return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
     
-    @staticmethod
-    def get_car_fbx_transform_path(shot):
-        # cfx_folder = self.get_shotfile_folder('cfx')
-        # return os.path.join(cfx_folder, 'car_transform_test.fbx') # TODO: update this when you know the naming convention
-        return "/groups/accomplice/pipeline/production/sequences/A/shots/180/cfx/car_transform_test.fbx"
-
-    
 
 
 
