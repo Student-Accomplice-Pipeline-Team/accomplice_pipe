@@ -21,8 +21,6 @@ class Exporter():
     def __init__(self):
         self.ANIM_DIR = "anim"
         self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
-        self.FBX_EXPORTER_SUFFIX = ":EXPORTSET_CarLocWS"
-        self.CAR_FBX_NAME = 'world_space_car_transform.fbx'
         
     def run(self):
         print("Alembic Exporter not ready yet")
@@ -47,7 +45,10 @@ class Exporter():
     
     #This is a GUI that presents four options of what you are exporting. The one selected will determine the location that the object is created in    
     def object_select_gui(self):
-        object_list = ["letty", "vaughn", "ed", "studentcar", "other"]
+        self.alembic_objects = cmds.ls("*" + self.ALEMBIC_EXPORTER_SUFFIX)
+        self.alembic_objects = sorted(self.alembic_objects)
+        self.alembic_objects = [obj.replace(self.ALEMBIC_EXPORTER_SUFFIX, "") for obj in self.alembic_objects]
+        self.checked_objects = []
     
         if cmds.window("ms_selectObject_GUI", exists=True):
             cmds.deleteUI("ms_selectObject_GUI")
@@ -55,19 +56,43 @@ class Exporter():
         win = cmds.window("ms_selectObject_GUI", title="SELECT OBJECT GUI") 
         cmds.showWindow(win)
         cmds.columnLayout()
+
+        for obj in self.alembic_objects:
+            cmds.checkBox(label=obj, onc=lambda x, obj=obj: self.add_to_checked_objects(obj),
+                          ofc=lambda x, obj=obj: self.remove_from_checked_objects(obj))
+
         
-        selection = cmds.textScrollList( "Object_List", numberOfRows=8,
-	    	        	append=object_list,
-	    		        selectIndexedItem=1, showIndexedItem=1)
+        # selection = cmds.textScrollList( "Object_List", numberOfRows=8,
+	    # 	        	append=object_list,
+	    # 		        selectIndexedItem=1, showIndexedItem=1)
         
         cmds.rowLayout(numberOfColumns=1)
 
-        # selected_name = 
         
-        cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+        # cmds.button(label="Next", c=lambda x: self.save_object(self.getSelected(selection)[0]))
+        cmds.button(label="Next", c=lambda x: self.choose_shot())
         cmds.setParent("..")
     
     #Stores the selected object in a variable to be used later. Triggers a text prompt if "other" was selected. Else triggers the Shot select gui
+    def add_to_checked_objects(self, obj):
+        if obj not in self.checked_objects:
+            self.checked_objects.append(obj)
+
+    def remove_from_checked_objects(self, obj):
+        if obj in self.checked_objects:
+            self.checked_objects.remove(obj)
+
+    def choose_shot(self):
+        try:
+            shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
+        except AssertionError:
+            self.shot_select_gui()
+        
+        if shot_name is None:
+            self.shot_select_gui()
+        else:
+            self.save_shot(shot_name)
+    
     def save_object(self, selected_object):
         
         #Delete Object Select GUI
@@ -76,25 +101,20 @@ class Exporter():
         
         self.object_selection = selected_object
         
-        if self.object_selection == "other":
-            self.other_object_gui()
+        # Select the object in the scene for alembic exporting
+        cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+
+
+        # If we can determine the shot name from the current maya file, then we can skip the shot selection GUI
+        try:
+            shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
+        except AssertionError:
+            self.shot_select_gui()
+        
+        if shot_name is None:
+            self.shot_select_gui()
         else:
-            # Select the object in the scene for alembic exporting
-            # Because there is a descrepancy between the name of the car in the pipeline (studentcar) and the name of the rig (heroCar), we hard code the selection here
-            if self.object_selection == 'studentcar':
-                cmds.select('heroCar' + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
-            else:
-                cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
-            # If we can determine the shot name from the current maya file, then we can skip the shot selection GUI
-            try:
-                shot_name = FilePathUtils.get_shot_name_from_file_path(cmds.file(q=True, sn=True))
-            except AssertionError:
-                self.shot_select_gui()
-            
-            if shot_name is None:
-                self.shot_select_gui()
-            else:
-                self.save_shot(shot_name)
+            self.save_shot(shot_name)
     
     #Stores the selected shot in a variable to be used later and triggers the framerange gui
     def save_shot(self, selected_shot):
@@ -169,33 +189,6 @@ class Exporter():
                 pass
 
     
-    #Prompts user to enter the name of the object        
-    def other_object_gui(self):
-
-        windowID = 'msOtherObjWindowID'
-        
-        if cmds.window(windowID, exists=True):
-            cmds.deleteUI(windowID)
-
-        self.window = cmds.window(windowID, title="Other Object", sizeable=False, iconName='Short Name',
-                                  resizeToFitChildren=True)
-
-        cmds.rowColumnLayout(nr=5)
-
-        cmds.columnLayout( adjustableColumn=True )
-        cmds.text( label='Enter the name of the object which alembics are being saved (No spaces)' )
-
-        # text box
-        cmds.rowLayout(nc=1)
-        self.prefix = cmds.textFieldGrp('comment', label='Object Name:')
-        cmds.setParent('..')
-
-        # Create export button
-        cmds.columnLayout(adjustableColumn=True, columnAlign='center')
-        cmds.button(label='Save', command=lambda x: self.object_name_results())
-        cmds.setParent('..')
-        cmds.showWindow(self.window)
-        
     #Gets object name, changes spaces to underscores if any   
     def object_name_results(self):
         self.object_selection = cmds.textFieldGrp('comment', q=True, text=True)
@@ -210,20 +203,23 @@ class Exporter():
      #   if not, it creates a base version and an .element file and an object_main.abc   
     def exporter(self):
 
-        asset = self.object_selection
+        asset = self.object_selection.lower()
+        if asset == "herocar": # This is due to a descrepancy with the naming convention between the Maya and Houdini files. In Maya, the rig is called heroCar, and in Houdini, everything is set up for it to be studentcar.
+            asset = "studentcar"
+
         print(asset)
         shot = pipe.server.get_shot(self.shot_selection)
         
         #File path for exporting alembics for CFX
-        cfx_filepath = shot.path + '/cfx'
+        cfx_filepath = shot.get_shotfile_folder('cfx')
         if not self.dir_exists(cfx_filepath):
             os.mkdir(cfx_filepath)
             p.set_RWE(cfx_filepath)
             
-        self.alem_filepath = cfx_filepath + "/" + self.object_selection.lower() + ".abc"
+        self.alem_filepath = cfx_filepath + "/" + asset + ".abc"
 
         #File path for exporting wrapped alembics from ANIM
-        anim_filepath = shot.path + '/anim'
+        anim_filepath = shot.get_shotfile_folder('anim')
         if not self.dir_exists(anim_filepath):
             os.mkdir(anim_filepath)
             p.set_RWE(anim_filepath)
@@ -420,6 +416,47 @@ class Exporter():
         else:
             if cmds.window('msFrameRangeWindowID', exists=True):
                 cmds.deleteUI('msFrameRangeWindowID')
-            self.exporter()
+            self.export_checked_objects()
+    
         
+    def export_checked_objects(self):
+        num_objects = len(self.checked_objects)
+        progressControl = mel.eval('$tmp = $gMainProgressBar')
+
+        # Configure and show the progress bar
+        cmds.progressBar(progressControl, edit=True, beginProgress=True, isInterruptable=True, status='Exporting Objects...', maxValue=num_objects)
+
+        for i, obj in enumerate(self.checked_objects, start=1):
+            if cmds.progressBar(progressControl, query=True, isCancelled=True):
+                break
+            if cmds.progressBar(progressControl, query=True, progress=True) >= num_objects:
+                break
+
+            cmds.progressBar(progressControl, edit=True, step=1, status=f'Exporting: {obj}')
+            self.object_selection = obj
+            cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+            self.exporter()
+
+        # End and delete the progress bar
+        cmds.progressBar(progressControl, edit=True, endProgress=True)
+
+        # for obj in self.checked_objects:
+        #     self.object_selection = obj
+        #     # Ensure the object is selected in Maya
+        #     cmds.select(self.object_selection + self.ALEMBIC_EXPORTER_SUFFIX, replace=True)
+        #     # Call the exporter method for each selected object
+        #     self.exporter()
+        # Close the SELECT OBJECT GUI window
+        if cmds.window("ms_selectObject_GUI", exists=True):
+            cmds.deleteUI("ms_selectObject_GUI")
+
+        # Show completion notification
+        exported_objects_str = ", ".join(self.checked_objects)
+        cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
+    
+    def open_studini_anim_shot_file(): # TODO: finish this when you have the time :)
+        # Run /groups/accomplice/pipeline/pipe/main.py --pipe=accomplice houdini
+        import subprocess
+        subprocess.Popen(['/groups/accomplice/pipeline/pipe/main.py', '--pipe=accomplice', 'houdini'])
+        # Open the anim shot file
         
