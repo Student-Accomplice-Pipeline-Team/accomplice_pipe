@@ -1,7 +1,7 @@
 from PySide2 import QtWidgets
 
 class ListWithFilter(QtWidgets.QDialog):
-    def __init__(self, title:str, items:list, parent=None):
+    def __init__(self, title:str, items:list, accept_button_name = "OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None):
         super(ListWithFilter, self).__init__(parent)
         self.setWindowTitle(title)
         
@@ -10,9 +10,15 @@ class ListWithFilter(QtWidgets.QDialog):
         # Layout
         layout = QtWidgets.QVBoxLayout(self)
 
-        # Filter field
-        self.filter_field = QtWidgets.QLineEdit()
-        layout.addWidget(self.filter_field)
+        if list_label is not None:
+            assert isinstance(list_label, str)
+            self.list_label = QtWidgets.QLabel(list_label)
+            layout.addWidget(self.list_label)
+        
+        if include_filter_field:
+            self.filter_field = QtWidgets.QLineEdit()
+            self.filter_field.setPlaceholderText("Type here to filter...")
+            layout.addWidget(self.filter_field)
 
         # List box
         self.list_widget = QtWidgets.QListWidget()
@@ -20,13 +26,21 @@ class ListWithFilter(QtWidgets.QDialog):
         layout.addWidget(self.list_widget)
 
         # OK and Cancel buttons
-        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        layout.addWidget(buttons)
+        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        layout.addWidget(self.buttons)
 
         # Connect signals
-        self.filter_field.textChanged.connect(self.filter_items)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
+        if include_filter_field:
+            self.filter_field.textChanged.connect(self.filter_items)
+
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.set_button_names(accept_button_name, cancel_button_name)
+
+    def set_button_names(self, ok_name="OK", cancel_name="Cancel"):
+        self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setText(ok_name)
+        self.buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText(cancel_name)
 
     def filter_items(self):
         filter_text = self.filter_field.text().lower()
