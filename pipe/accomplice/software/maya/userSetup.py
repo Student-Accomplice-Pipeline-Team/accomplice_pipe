@@ -10,5 +10,14 @@ def main():
     install.execute()
 
 
+
 if not cmds.about(batch=True):
     cmds.evalDeferred(main)
+
+def postSceneCallback():
+    # Set the default clipping plane of the perspective camera to be a min of 0.1 and a max of 1000000
+    cmds.setAttr('perspShape.nearClipPlane', 0.01)
+    cmds.setAttr('perspShape.farClipPlane', 3000000)
+    cmds.setAttr('hardwareRenderingGlobals.defaultLightIntensity', 1)
+
+cmds.scriptJob(event=["PostSceneRead", postSceneCallback], protected=True)
