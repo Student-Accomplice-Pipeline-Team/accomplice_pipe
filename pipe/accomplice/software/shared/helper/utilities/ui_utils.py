@@ -32,7 +32,11 @@ class ListWithFilter(QtWidgets.QDialog):
         filter_text = self.filter_field.text().lower()
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
-            item.setHidden(filter_text not in item.text().lower())
+            item_text = item.text().lower()
+            if all(char in item_text for char in filter_text):
+                item.setHidden(False)
+            else:
+                item.setHidden(True)
 
     def get_selected_item(self):
         selected_items = self.list_widget.selectedItems()
