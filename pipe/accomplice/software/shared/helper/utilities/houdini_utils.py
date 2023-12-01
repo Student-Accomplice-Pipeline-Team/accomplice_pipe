@@ -5,6 +5,8 @@ import pipe
 from ...object import Shot
 from .file_path_utils import FilePathUtils
 from abc import ABC, abstractmethod
+from .ui_utils import ListWithFilter
+
 # from pipe.shared.proxy import proxy
 
 # server = proxy.get_proxy()
@@ -18,13 +20,6 @@ class HoudiniFXUtils():
         USD_CACHE_FOLDER_NAME = "usd_cache"
         fx_directory = shot.get_shotfile_folder('fx')
         return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
-    
-    @staticmethod
-    def get_car_fbx_transform_path(shot):
-        # cfx_folder = self.get_shotfile_folder('cfx')
-        # return os.path.join(cfx_folder, 'car_transform_test.fbx') # TODO: update this when you know the naming convention
-        return "/groups/accomplice/pipeline/production/sequences/A/shots/180/cfx/car_transform_test.fbx"
-
     
 
 
@@ -243,6 +238,7 @@ class HoudiniPathUtils():
         return os.path.join(folder_path, f"{base_name}.usd")
     
 
+
 class HoudiniUtils:
     def _get_my_path():
         return hou.hipFile.path()
@@ -285,17 +281,13 @@ class HoudiniUtils:
     @staticmethod
     def prompt_user_for_shot():
         shot_names = sorted(pipe.server.get_shot_list())
-        shot_response = hou.ui.selectFromList(
-            shot_names,
-            exclusive=True,
-            message="Select the Shot File that you'd like to open.",
-            title="Open Shot File",
-            column_header="Shots"
-        )
-        if shot_response:
-            shot_name = shot_names[shot_response[0]]
-            shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)
-            return shot
+        dialog = ListWithFilter("Open Shot File", shot_names)
+
+        if dialog.exec_():
+            selected_shot_name = dialog.get_selected_item()
+            if selected_shot_name:
+                shot = pipe.server.get_shot(selected_shot_name, retrieve_from_shotgrid=True)
+                return shot
         return None
         
     @staticmethod
