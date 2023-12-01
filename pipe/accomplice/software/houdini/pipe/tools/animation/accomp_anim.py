@@ -88,6 +88,10 @@ class AnimationImporter():
         node.parm('./anim_name').set(anim_name)
         node.parm('./asset_name').set(asset_name)
         node.parm('./anim_descr').set(anim_description)
+        
+        # triggers a script in the character materials node
+        materials_node = node.node('Materials')
+        materials_node.hdaModule().set_character(materials_node)
 
         node.allowEditingOfContents()
         self.set_anim_type(node)
