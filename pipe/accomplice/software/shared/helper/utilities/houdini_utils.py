@@ -7,9 +7,6 @@ from .file_path_utils import FilePathUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 
-# from pipe.shared.proxy import proxy
-
-# server = proxy.get_proxy()
 server = pipe.server
 
 class HoudiniFXUtils():
@@ -20,6 +17,25 @@ class HoudiniFXUtils():
         USD_CACHE_FOLDER_NAME = "usd_cache"
         fx_directory = shot.get_shotfile_folder('fx')
         return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
+    
+    @staticmethod
+    def get_fx_working_directory(shot: Shot):
+        FX_WORKING_FOLDER_NAME = "working_files"
+        fx_directory = shot.get_shotfile_folder('fx')
+        return os.path.join(fx_directory, FX_WORKING_FOLDER_NAME)
+    
+    @staticmethod
+    def get_names_of_fx_files_in_working_directory(shot: Shot):
+        # Find all the files in the working directory that end with '.hipnc' and return the names of the files without the extension
+        EXTENSION = '.hipnc'
+        fx_working_directory = HoudiniFXUtils.get_fx_working_directory(shot)
+        fx_files = [f for f in os.listdir(fx_working_directory) if os.path.isfile(os.path.join(fx_working_directory, f)) and f.endswith(EXTENSION)]
+        fx_file_names = [f.replace(EXTENSION, '') for f in fx_files]
+        return fx_file_names
+    
+    @staticmethod
+    def get_working_file_path(shot: Shot, fx_name: str):
+        return os.path.join(HoudiniFXUtils.get_fx_working_directory(shot), fx_name + '.hipnc' if not fx_name.endswith('.hipnc') else fx_name)
     
 
 
@@ -237,12 +253,112 @@ class HoudiniPathUtils():
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
     
+class HoudiniSceneOpenerFactory:
+    def __init__(self, shot, department_name):
+        self.shot = shot
+        self.department_name = department_name
+    
+    def get_shot_opener(self):
+        if self.department_name == 'fx':
+            return FXSceneOpener(self.shot)
+        else:
+            return HoudiniShotOpener(self.shot, self.department_name)
+            
+class HoudiniShotOpener:
+    def __init__(self, shot, department_name):
+        self.shot = shot
+        self.department_name = department_name
+    
+    def create_new_shot_file(self, file_path):
+        # Ensure directory exists
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+        
+        hou.hipFile.clear(suppress_save_prompt=True)
+        hou.hipFile.save(file_path)
+        
+        HoudiniUtils.configure_new_shot_file(self.shot, self.department_name)
+        
+        hou.hipFile.save(file_path)
+    
+    def open_file_path(self, file_path):
+        # If the file already exists, go ahead and load it!
+        if os.path.isfile(file_path):
+            hou.hipFile.load(file_path, suppress_save_prompt=True)
+        
+        else: # Otherwise create a new file and save it!
+            self.create_new_shot_file(file_path)
+    
+    
+    def open_shot(self):
+        if self.department_name is None:
+            return
+
+        file_path = self.shot.get_shotfile(self.department_name)
+        self.open_file_path(file_path)
+        
+    
+class FXSceneOpener(HoudiniShotOpener):
+    def __init__(self, shot):
+        super().__init__(shot, 'fx')
+    
+    def open_shot(self):
+        # See which subfile the user wants to open, first by prompting the user with the existing files in the working directory
+        fx_file_names = HoudiniFXUtils.get_names_of_fx_files_in_working_directory(self.shot)
+        fx_subfile_dialog = ListWithFilter("Open FX File for Shot " + self.shot.name, fx_file_names, accept_button_name="Open", cancel_button_name="Create New", list_label="Select the FX file you'd like to open. If you don't see the file you want, click 'Create New' to create a new FX file.", include_filter_field=False)
+        
+        file_path = None
+        if fx_subfile_dialog.exec_():
+            selected_fx_file_name = fx_subfile_dialog.get_selected_item()
+            if selected_fx_file_name:
+                file_path = HoudiniFXUtils.get_working_file_path(self.shot, selected_fx_file_name)
+        else: # If the user didn't select a file prompt them to create a new one!
+            new_fx_file_dialog = ListWithFilter("Create New FX File for Shot " + self.shot.name, HoudiniFXUtils.supported_FX_names, accept_button_name="Create", cancel_button_name="Other", list_label="Select the type of FX file you'd like to create from the known FX types. Otherwise click 'Other' to create a new FX type.", include_filter_field=False)
+            if new_fx_file_dialog.exec_():
+                selected_fx_file_name = new_fx_file_dialog.get_selected_item()
+                if selected_fx_file_name:
+                    file_path = HoudiniFXUtils.get_working_file_path(self.shot, selected_fx_file_name)
+            else:
+                # Prompt the user for the name of the file they want to create
+                new_fx_type = hou.ui.readInput(
+                    "Enter the name of the new FX file you'd like to create.",
+                    title="Create New FX File for shot " + self.shot.name
+                    )
+                if new_fx_type[0] == 0:
+                    new_fx_type_name = new_fx_type[1]
+                    new_fx_type_name = new_fx_type_name.replace(' ', '_').lower()
+                    if new_fx_type_name == '':
+                        print("No file was created.")
+                        return
+                    file_path = HoudiniFXUtils.get_working_file_path(self.shot, new_fx_type[1])
+                else:
+                    print("No file was created.")
+                    return
+
+
+        self.open_file_path(file_path)
+        
 
 
 class HoudiniUtils:
     def _get_my_path():
         return hou.hipFile.path()
     
+    @staticmethod
+    def configure_new_shot_file(shot: Shot, department_name: str):
+        HoudiniNodeUtils.configure_new_scene(shot, department_name)
+        HoudiniUtils.set_frame_range_from_shot(shot)
+    
+    @staticmethod
+    def open_shot_file():
+        if HoudiniUtils.check_for_unsaved_changes() == 1:
+            return
+    
+        shot, department = HoudiniUtils.prompt_user_for_shot_and_department()
+        shot_opener = HoudiniSceneOpenerFactory(shot, department).get_shot_opener()
+        shot_opener.open_shot()
+
+
+
     @staticmethod
     def get_shot_name() -> str or None:
         """ Returns the shot name based on the current Houdini session's file path """
@@ -275,6 +391,8 @@ class HoudiniUtils:
     @staticmethod
     def prompt_user_for_shot_and_department():
         shot = HoudiniUtils.prompt_user_for_shot()
+        if shot is None:
+            return None, None
         user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
         return shot,user_selected_department
 
