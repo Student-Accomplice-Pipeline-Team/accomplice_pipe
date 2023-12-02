@@ -70,58 +70,80 @@ def update_symlink(sym_path, new_version_path):
 
 
 
-class VersionManager:
-    def __init__(self, symbolic_file_location):
+class SymlinkFreeVersionManager:
+    def __init__(self, current_file_location):
         """
         Initializes an instance of the class.
 
         Args:
-            symbolic_file_location (str): The location of the file that we are encapsulating in this version manager.
+            current_file_location (str): The location of the file that we are encapsulating in this version manager.
         Returns:
             None
         """
 
-        assert os.path.exists(symbolic_file_location), "The file at the given location does not exist."
+        assert os.path.exists(current_file_location), "The file at the given location does not exist."
 
-        log.info('Initializing Version Manager for ' + symbolic_file_location)
+        log.info('Initializing Version Manager for ' + current_file_location)
 
-        self.sym_path = symbolic_file_location
-        self.file_name_without_extension = pathlib.Path(self.sym_path).stem
-        self.versions_folder = os.path.join(os.path.dirname(self.sym_path), '.versions', os.path.basename(self.sym_path).split('.')[0])
+        self.main_path = current_file_location
+        self.file_name_without_extension = pathlib.Path(self.main_path).stem
+        self.versions_folder = os.path.join(os.path.dirname(self.main_path), '.versions', self.file_name_without_extension)
 
         # If it doesn't exist, create it.
         if not pathlib.Path(self.versions_folder).exists():
             pathlib.Path(self.versions_folder).mkdir(parents=True, exist_ok=True)
 
-        # If the path given is not a symbolic link, we need to create one.
-        if not pathlib.Path(self.sym_path).is_symlink():
-            # Copy the file to the verions folder and create a symbolic link to it.
-            new_version_path = self.get_next_version()
-            assert not os.path.exists(new_version_path), "The file already exists in the versions folder."
-            shutil.copy(self.sym_path, new_version_path)
-
-            # Also copy to a backups folder
-            backups_folder = os.path.join(os.path.dirname(self.sym_path), '.backups')
-            if not os.path.exists(backups_folder):
-                os.makedirs(backups_folder)
-            shutil.copy(self.sym_path, os.path.join(backups_folder, os.path.basename(self.sym_path)))
-
-            self.update_symlink(new_version_path)
-            
         # If the version note file doesn't exist, create it.
         self.version_note_file = os.path.join(self.versions_folder, self.file_name_without_extension + '_version_notes.json')
         if not os.path.exists(self.version_note_file):
+            # If this file doesn't exist, we can assume that this is the first version.
             with open(self.version_note_file, 'w') as f:
                 json.dump(
                     {
-                        1: 'First version.'
+                        0: 'First version.', # The key is the version number, the value is the note.
+                        'current_version': 0 # This is the current version number, which changes if users change the file version
+                            
                     }
                     ,
                     f
                 )
-        
-        self._semaphore = threading.Semaphore()
-        # self.is_editing = False
+
+            # This will give us the path to a first version
+            new_version_path = self.get_next_version_path()
+            assert not os.path.exists(new_version_path), "The file already exists in the versions folder."
+            shutil.copy(self.main_path, new_version_path)
+
+            # Also copy to a backups folder just in case :)
+            backups_folder = os.path.join(os.path.dirname(self.main_path), '.backups')
+            if not os.path.exists(backups_folder):
+                os.makedirs(backups_folder)
+            shutil.copy(self.main_path, os.path.join(backups_folder, os.path.basename(self.main_path)))
+
+            assert self.get_version_number_for_file_path(new_version_path) == self.get_current_version_number(), "The version number of the new file is not correct."
+            assert self.get_version_number_for_file_path(new_version_path) == 0, "The version number of the new file is not correct."
+            self.set_version(self.get_version_number_for_file_path(new_version_path))
+    
+    def get_main_path(self):
+        """
+        Returns the path to the main file.
+        """
+        return self.main_path
+
+    def set_version(self, version_number:int):
+        """
+        Sets the current version number.
+        """
+        with open(self.version_note_file, 'r') as f:
+            notes = json.load(f)
+            notes['current_version'] = version_number
+        with open(self.version_note_file, 'w') as f:
+            json.dump(notes, f)
+    
+    def get_version_number_for_file_path(self, file_path:str):
+        """
+        Returns the version number for the given file path.
+        """
+        return extract_version(file_path)[0]
 
     def get_note_for_version(self, version_number:int):
         """
@@ -143,10 +165,18 @@ class VersionManager:
             json.dump(notes, f)
     
     def get_current_version_path(self):
-        return os.path.realpath(self.sym_path)
+        current_version = self.get_current_version_number()
+        path = self.get_path_for_version(current_version)
+        return path
     
     def get_current_version_number(self):
-        return extract_version(self.get_current_version_path())[0]
+        """
+        Returns the current version number.
+        """
+        with open(self.version_note_file, 'r') as f:
+            notes = json.load(f)
+            assert 'current_version' in notes, "The current version number is not in the version note file."
+            return notes['current_version']
     
     def get_current_version_timestamp(self):
         return os.path.getmtime(self.get_current_version_path())
@@ -160,46 +190,40 @@ class VersionManager:
         """
         return [(f, extract_version(f)[0], os.path.getmtime(f), self.get_note_for_version(extract_version(f)[0])) for f in self.get_all_versions_associated_with_file()]
     
-    def get_file_for_version(self, version_number:int):
+    def get_path_for_version(self, version_number:int):
         """
         Returns the path to the version with the given version number.
         """
-        matching_files = [f for f in self.get_all_versions_associated_with_file() if extract_version(f)[0] == version_number]
+        matching_files = [f for f in self.get_all_versions_associated_with_file() if self.get_version_number_for_file_path(f) == version_number]
         print(matching_files)
         assert len(matching_files) == 1, "There should only be one file with the given version number."
         return matching_files[0]
     
-    def get_next_version(self):
+    def get_next_version_path(self):
         """
         Returns the path to the next version of the file.
         """
-        return get_next_version(self.sym_path)
-    
-    def update_symlink(self, new_version_path):
-        """
-        Updates the symlink to point to the given file.
-        """
-        update_symlink(self.sym_path, new_version_path)
+        return get_next_version(self.main_path)
 
     def save_new_version(self, version_note=None):
         """
         Saves a new version of the file.
         """
-        with self._semaphore:
-            print('my stack trace:')
-            new_version_path = self.get_next_version()
-            assert not os.path.exists(new_version_path), "The file already exists in the versions folder."
-            shutil.copy(self.sym_path, new_version_path)
-            self.update_symlink(new_version_path)
-            
-            if version_note:
-                self.set_note_for_version(self.get_current_version_number(), version_note)
+        new_version_path = self.get_next_version_path()
+        assert not os.path.exists(new_version_path), "The file already exists in the versions folder."
+        shutil.copy(self.main_path, new_version_path)
+        # assert self.get_version_for_file_path(new_version_path) == self.get_current_version_number() + 1, "The version number of the new file is not correct."
+        self.set_version(self.get_version_number_for_file_path(new_version_path))
+        
+        if version_note:
+            self.set_note_for_version(self.get_current_version_number(), version_note)
         
     
     def switch_to_version(self, version_number:int):
         """
         Reverts the file to the given version number.
         """
-        new_version_path = self.get_file_for_version(version_number)
+        new_version_path = self.get_path_for_version(version_number)
         assert os.path.exists(new_version_path), "The file does not exist."
-        self.update_symlink(new_version_path)
+        shutil.copy(new_version_path, self.main_path)
+        self.set_version(version_number)

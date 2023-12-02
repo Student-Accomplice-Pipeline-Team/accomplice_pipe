@@ -1,6 +1,6 @@
 import maya.cmds as cmds
 import os
-from pipe.shared.versions import VersionManager
+from pipe.shared.versions import SymlinkFreeVersionManager
 import time
 from PySide2 import QtWidgets
 import pipe
@@ -13,9 +13,9 @@ class MayaFileManager:
         # import pdb; pdb.set_trace()
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = VersionManager(current_file_path)
+            vm = SymlinkFreeVersionManager(current_file_path)
 
-            if not OpenNewFileManager.check_for_unsaved_changes():
+            if MayaFileManager.check_for_unsaved_changes_and_inform_user():
                 return
             
             # # Prompt the user for a version note
@@ -39,7 +39,7 @@ class MayaFileManager:
     def show_current_version():
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = VersionManager(current_file_path)
+            vm = SymlinkFreeVersionManager(current_file_path)
             current_version = vm.get_current_version_number()
             cmds.confirmDialog(title='Current Version', message=f'The current version is {current_version}.', button=['Ok'])
     
@@ -47,7 +47,7 @@ class MayaFileManager:
     def switch_version_ui():
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = VersionManager(current_file_path)
+            vm = SymlinkFreeVersionManager(current_file_path)
             version_table = vm.get_version_table()
 
             # Sort the version table by timestamp
@@ -71,25 +71,25 @@ class MayaFileManager:
     @staticmethod
     def switch_to_selected_version(version_number):
         # Ask if they want to save the current version
-        if not OpenNewFileManager.check_for_unsaved_changes():
+        if MayaFileManager.check_for_unsaved_changes_and_inform_user():
             return
 
         cmds.confirmDialog(title='Version Switched', message=f'Switched to version {version_number}.', button=['Ok'])
         if cmds.window("versionSwitchWindow", exists=True):
             cmds.deleteUI("versionSwitchWindow", window=True)
         current_file_path = cmds.file(query=True, sceneName=True)
-        vm = VersionManager(current_file_path)
+        vm = SymlinkFreeVersionManager(current_file_path)
         vm.switch_to_version(version_number)
 
         # Open the file in Maya
-        OpenNewFileManager.open_file(vm.sym_path)
+        OpenNewFileManager.open_file(vm.get_main_path())
 
     @staticmethod
     def edit_version_note():
         current_file_path = cmds.file(query=True, sceneName=True)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if current_file_path:
-            vm = VersionManager(current_file_path)
+            vm = SymlinkFreeVersionManager(current_file_path)
             current_version = vm.get_current_version_number()
             existing_note = vm.get_note_for_version(current_version)
 
@@ -106,13 +106,22 @@ class MayaFileManager:
                 new_note = cmds.promptDialog(query=True, text=True)
                 vm.set_note_for_version(current_version, new_note)
                 # cmds.confirmDialog(title='Note Updated', message='The note has been updated.', button=['Ok'])
+    
+    @staticmethod
+    def check_for_unsaved_changes_and_inform_user():
+        """
+        Checks if the current file has unsaved changes. If it does, informs the user and returns True."""
+        if cmds.file(query=True, modified=True):
+            cmds.confirmDialog(title='Unsaved Changes', message='The current file has unsaved changes. Please save before continuing.', button=['Ok'])
+            return True
+        return False
 
 class OpenNewFileManager:
     @staticmethod
     def open_file(file_path): # TODO: update this to use the Version Manager!
         """ Opens a new Maya file """
         cmds.file(file_path, open=True, force=True)
-        vm = VersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
+        vm = SymlinkFreeVersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
 
     @staticmethod
     def create_new_file(file_path:str, shot):
@@ -125,7 +134,7 @@ class OpenNewFileManager:
         OpenNewFileManager.set_frame_range(shot)
         cmds.file(save=True)
 
-        vm = VersionManager(file_path)
+        vm = SymlinkFreeVersionManager(file_path)
         
     @staticmethod
     def set_frame_range(shot, global_start_frame=1001, handle_frames=5):
@@ -134,12 +143,12 @@ class OpenNewFileManager:
         cmds.playbackOptions(minTime=shot_start, maxTime=shot_end)
 
     @staticmethod
-    def check_for_unsaved_changes():
+    def ask_to_continue_with_unsaved_changes(message="The current file has unsaved changes. Continue anyway?"):
         unsaved_changes = cmds.file(query=True, modified=True)
         if unsaved_changes:
             response = cmds.confirmDialog(
                 title="Unsaved Changes",
-                message="The current file has unsaved changes. Continue anyway?",
+                message=message,
                 button=["Continue", "Cancel"],
                 defaultButton="Cancel",
                 cancelButton="Cancel",
@@ -151,7 +160,7 @@ class OpenNewFileManager:
     
     @staticmethod
     def open_shot_file():
-        unsaved_changes = OpenNewFileManager.check_for_unsaved_changes()
+        unsaved_changes = OpenNewFileManager.ask_to_continue_with_unsaved_changes()
         if not unsaved_changes:
             return
         
