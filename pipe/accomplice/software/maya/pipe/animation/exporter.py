@@ -5,6 +5,7 @@ import os, shutil
 import pipe.shared.permissions as p
 from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
 import maya.mel as mel
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 
 import pipe
 from pxr import Sdf
@@ -459,4 +460,75 @@ class Exporter():
         import subprocess
         subprocess.Popen(['/groups/accomplice/pipeline/pipe/main.py', '--pipe=accomplice', 'houdini'])
         # Open the anim shot file
+
+class SimpleLogger():
+    def __init__(self) -> None:
+        self.log = ""
+    def error(self, message):
+        self.log += "ERROR:" + message + "\n"
+    def info(self, message):
+        self.log += "INFO:" + message + "\n"
+    def get_log(self):
+        return self.log
+
+class MultiShotExporter:
+    def __init__(self):
+        self.logger = SimpleLogger()
+
+    def run(self):
+        from .maya_file_manager import MayaFileManager
+        if MayaFileManager.check_for_unsaved_changes_and_inform_user():
+            return
+
+        shots_to_export = MultiShotExporter.get_shots_to_export()
+        self.logger.info(f'Shots to export: {shots_to_export}')
+
+        characters_to_export = MultiShotExporter.get_rigs_to_export()
+        self.logger.info(f'Characters to export: {characters_to_export}')
+
+        for shot in shots_to_export:
+            self.logger.info(f'Exporting rigs from shot {shot}')
+            self.export_rigs_from_shot(shot, characters_to_export)
+    
+        print(self.logger.get_log())
+    
+    def get_shots_to_export(self):
+        shot_selection_dialog = ListWithCheckboxFilter("Select Which Shots You Would Like To Export", sorted(pipe.server.get_shot_list()), list_label="Shots", include_filter_field=True)
+        shot_selection_dialog.exec_()
+
+        selected_items = shot_selection_dialog.get_selected_items()
+        return selected_items
         
+    def get_rigs_to_export(self):
+        rigs = ['vaughn', 'letty', 'ed', 'heroCar']
+        rig_selection_dialog = ListWithCheckboxFilter("Select Which Rigs You Would Like To Export", sorted(rigs), list_label="Rigs", include_filter_field=True)
+        rig_selection_dialog.exec_()
+
+        selected_items = rig_selection_dialog.get_selected_items()
+        return selected_items
+    
+    def get_only_characters_in_open_shot(self, characters_to_export):
+        characters_to_export_in_shot = []
+        for character in characters_to_export:
+            exporter = Exporter()
+            export_full_name = character + exporter.ALEMBIC_EXPORTER_SUFFIX
+
+            if not cmds.objExists(export_full_name):
+                self.logger.error(f'Character {character} does not exist in the scene. Not exporting.')
+            else:
+                characters_to_export_in_shot.append(character)
+        return characters_to_export_in_shot
+        
+    
+    def export_rigs_from_shot(self, shot, rigs):
+        # Open the corresponding shot file
+        file_path = shot.get_maya_shotfile_path()
+        cmds.file(file_path, open=True, force=True)
+
+        # Create an exporter object and set the selected objects and shot_selection attributes... This is kind of a hack, but probably the easiest way to do it for now
+        exporter = Exporter()
+        exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
+        exporter.shot_selection = shot.get_name()
+        exporter.startFrame = cmds.playbackOptions(q=True, min=True)
+        exporter.endFrame = cmds.playbackOptions(q=True, max=True)
+        exporter.export_checked_objects()

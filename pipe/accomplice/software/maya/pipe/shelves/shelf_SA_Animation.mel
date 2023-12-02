@@ -316,6 +316,40 @@ global proc shelf_SA_Animation () {
         -manage 1
         -visible 1
         -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nExports Animation USDs for multiple shots... Duh..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Multi-Shot USD Exporter" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Multi-Shot USD Exporter" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "exportCache.png" 
+        -image1 "exportCache.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.exporter import MultiShotExporter\n\nMultiShotExporter.run()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
         -annotation "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code adapted from: https://andytech.art/fixing-mayas-most-destructive-keyboard-shortcut\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''def fixMayaPasteCommand():\n    \n    import maya.cmds as mc\n    import maya.mel as mel\n    curPanel = mc.getPanel(underPointer = True)\n    \n    if curPanel == '':\n        curPanel = mc.getPanel(withFocus=True)\n    \n    checkPanel = mc.getPanel(typeOf=curPanel)\n    \n    if checkPanel != 'scriptedPanel':\n        if checkPanel == None:\n            return\n        print ('Pasting is dangerous in the ' + checkPanel + '\\n')\n        result = mc.confirmDialog(\n            title = 'Disabled pasting in the ' + checkPanel,\n            message = 'Are you sure you want to paste? Bad things might happen!',\n            button = ['Yes','No'],\n            defaultButton = 'No',\n            cancelButton = 'No',\n            icon = 'warning'\n        )\n        if result == 'Yes':\n            mel.eval('cutCopyPaste \"paste\"')\n        else:\n            print('Decided not to paste...\\n')\n    else:\n        print ('Pasting in the ' + curPanel + '\\n')\n        mel.eval('cutCopyPaste \"paste\"')\n\nfixMayaPasteCommand()'''\n\n\nconfig = {\n\t\"lang\": \"python\",\n\t\"code\": python_code,\n\t\"key\": \"v\",\n\t\"ctl\": True\n}\nsetHotkey('fixMayaPasteCommand',config)\n\n" 
         -enableBackground 0
         -backgroundColor 0 0 0 

@@ -121,7 +121,7 @@ class OpenNewFileManager:
     def open_file(file_path): # TODO: update this to use the Version Manager!
         """ Opens a new Maya file """
         cmds.file(file_path, open=True, force=True)
-        vm = SymlinkFreeVersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
+        # vm = SymlinkFreeVersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
 
     @staticmethod
     def create_new_file(file_path:str, shot):
@@ -134,7 +134,7 @@ class OpenNewFileManager:
         OpenNewFileManager.set_frame_range(shot)
         cmds.file(save=True)
 
-        vm = SymlinkFreeVersionManager(file_path)
+        # vm = SymlinkFreeVersionManager(file_path)
         
     @staticmethod
     def set_frame_range(shot, global_start_frame=1001, handle_frames=5):
@@ -172,17 +172,22 @@ class OpenNewFileManager:
             shot_name = shot_dialog.get_selected_item()
             if shot_name:
                 shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)
+                OpenNewFileManager.open_shot(shot)
                 
-                file_path = shot.get_maya_shotfile_path()
-                
-                if os.path.isfile(file_path): # If the file exists
-                    # Open the file
-                    OpenNewFileManager.open_file(file_path)
-                else: # Otherwise, open a new tile and save it
-                    dialog = InfoDialog("Create New File", "Shot " + shot_name + " does not yet exist. Would you like to create it?", include_cancel_button=True)
-                    response = dialog.exec_()
-                    if response == QtWidgets.QDialog.Accepted:
-                        OpenNewFileManager.create_new_file(file_path, shot)
-                    else:
-                        dialog = InfoDialog("Shot not created.", "The shot was not created.")
-                        response = dialog.exec_()
+
+    @staticmethod
+    def open_shot(shot):
+        file_path = shot.get_maya_shotfile_path()
+        
+        if os.path.isfile(file_path): # If the file exists
+            # Open the file
+            OpenNewFileManager.open_file(file_path)
+        else: # Otherwise, open a new tile and save it
+            dialog = InfoDialog("Create New File", "Shot " + shot.get_name() + " does not yet exist. Would you like to create it?", include_cancel_button=True)
+            response = dialog.exec_()
+            if response == QtWidgets.QDialog.Accepted:
+                OpenNewFileManager.create_new_file(file_path, shot)
+            else:
+                dialog = InfoDialog("Shot not created.", "The shot was not created.")
+                response = dialog.exec_()
+        
