@@ -57,3 +57,25 @@ class ListWithFilter(QtWidgets.QDialog):
         if selected_items:
             return selected_items[0].text()
         return None
+
+
+class InfoDialog(QtWidgets.QDialog):
+    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):
+        super(InfoDialog, self).__init__(parent)
+        self.setWindowTitle(dialog_title)
+        
+        layout = QtWidgets.QVBoxLayout()
+
+        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message
+        layout.addWidget(message_label)  # Add the label to the layout
+
+        ok_button = QtWidgets.QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        layout.addWidget(ok_button)
+
+        if include_cancel_button:
+            cancel_button = QtWidgets.QPushButton("Cancel")
+            cancel_button.clicked.connect(self.reject)
+            layout.addWidget(cancel_button)
+
+        self.setLayout(layout)
