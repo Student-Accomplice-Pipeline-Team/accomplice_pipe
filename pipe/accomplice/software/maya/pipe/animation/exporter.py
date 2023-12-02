@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+import time
 import pymel.core as pm
 from pathlib import Path
 import os, shutil
@@ -254,8 +255,8 @@ class Exporter():
     def get_alembic_command(self):
         """ Gets the command needed to export the alembic. Updates the alem_filepath to match"""
 
-        start = self.startFrame
-        end = self.endFrame
+        start = str(self.startFrame)
+        end = str(self.endFrame)
         root = ""
         curr_selection = cmds.ls(selection=True)
         for obj in curr_selection:
@@ -462,12 +463,26 @@ class Exporter():
         # Open the anim shot file
 
 class SimpleLogger():
-    def __init__(self) -> None:
+    def __init__(self, main_prefix="SimpleLogger") -> None:
         self.log = ""
+        self.print_errors = True
+        self.print_info = True
+        self.include_timestamps = True
+        self.main_prefix = main_prefix
+
+    def add_message(self, prefix, message, should_print):
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S") if self.include_timestamps else ""
+        new_message = f"{self.main_prefix} \t {prefix} {message} {timestamp}\n"
+        self.log += new_message
+        if should_print:
+            print(new_message)
+
     def error(self, message):
-        self.log += "ERROR:" + message + "\n"
+        self.add_message("ERROR:", message, self.print_errors)
+
     def info(self, message):
-        self.log += "INFO:" + message + "\n"
+        self.add_message("INFO:", message, self.print_info)
+
     def get_log(self):
         return self.log
 
@@ -480,10 +495,13 @@ class MultiShotExporter:
         if MayaFileManager.check_for_unsaved_changes_and_inform_user():
             return
 
-        shots_to_export = MultiShotExporter.get_shots_to_export()
+        shots_to_export = self.get_shots_to_export()
         self.logger.info(f'Shots to export: {shots_to_export}')
 
-        characters_to_export = MultiShotExporter.get_rigs_to_export()
+        shots_to_export = [pipe.server.get_shot(shot) for shot in shots_to_export] # Convert the shot names to shot objects
+        assert all([shot is not None for shot in shots_to_export]), "One or more of the shots you selected does not exist in the database."
+
+        characters_to_export = self.get_rigs_to_export()
         self.logger.info(f'Characters to export: {characters_to_export}')
 
         for shot in shots_to_export:
@@ -522,13 +540,18 @@ class MultiShotExporter:
     
     def export_rigs_from_shot(self, shot, rigs):
         # Open the corresponding shot file
+        self.logger.info(f'Opening shot file for shot {shot.get_name()}')
         file_path = shot.get_maya_shotfile_path()
         cmds.file(file_path, open=True, force=True)
+        self.logger.info(f'Opened shot file for shot {shot.get_name()}')
 
         # Create an exporter object and set the selected objects and shot_selection attributes... This is kind of a hack, but probably the easiest way to do it for now
         exporter = Exporter()
         exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
+        self.logger.info(f'Exporting characters {exporter.checked_objects} from shot {shot.get_name()}')
         exporter.shot_selection = shot.get_name()
         exporter.startFrame = cmds.playbackOptions(q=True, min=True)
+        self.logger.info(f'Start frame: {exporter.startFrame}')
         exporter.endFrame = cmds.playbackOptions(q=True, max=True)
+        self.logger.info(f'End frame: {exporter.endFrame}')
         exporter.export_checked_objects()
