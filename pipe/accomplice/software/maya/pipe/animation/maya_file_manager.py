@@ -1,5 +1,6 @@
 import maya.cmds as cmds
 import os
+import pathlib
 from pipe.shared.versions import SymlinkFreeVersionManager
 import time
 from PySide2 import QtWidgets
@@ -115,6 +116,27 @@ class MayaFileManager:
             cmds.confirmDialog(title='Unsaved Changes', message='The current file has unsaved changes. Please save before continuing.', button=['Ok'])
             return True
         return False
+    
+    @staticmethod
+    def get_names_of_all_maya_shots_that_have_been_created(ensure_shots_in_shotgrid=True):
+        """
+        Returns a list of the names of all Maya shots that have been created.
+        """
+        import glob
+        base_dir = "/groups/accomplice/pipeline/production/sequences" # TODO: Where's a better place to get this from?
+
+        # Pattern to match all Maya files in the specified structure
+        pattern = os.path.join(base_dir, "*", "shots", "*", "anim", "*_*.mb")
+
+        # Find all files that match the pattern
+        maya_files = list(glob.glob(pattern))
+
+        base_names = sorted([pathlib.Path(f).stem.replace('_anim', '') for f in maya_files])
+        if ensure_shots_in_shotgrid:
+            all_shot_names = pipe.server.get_shot_list()
+            return [base_name for base_name in base_names if base_name in all_shot_names]
+        return base_names
+
 
 class OpenNewFileManager:
     @staticmethod

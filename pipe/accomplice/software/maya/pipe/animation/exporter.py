@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+from .maya_file_manager import MayaFileManager
 import time
 import pymel.core as pm
 from pathlib import Path
@@ -493,7 +494,6 @@ class MultiShotExporter:
         self.export_all_characters = False
 
     def run(self):
-        from .maya_file_manager import MayaFileManager
         if MayaFileManager.check_for_unsaved_changes_and_inform_user():
             return
 
@@ -506,6 +506,8 @@ class MultiShotExporter:
         
         # Prompt the user is they simply want to export every possible character in the shot, or only select characters
         response = cmds.confirmDialog(title='Export Characters', message='Would you like to export all characters in the shot, or only select characters?', button=['All', 'Select'], defaultButton='Select', cancelButton='All', dismissString='All')
+
+        characters_to_export = []
         if response == 'All':
             self.export_all_characters = True
         else:
@@ -519,7 +521,7 @@ class MultiShotExporter:
         print(self.logger.get_log())
     
     def get_shots_to_export(self):
-        shot_selection_dialog = ListWithCheckboxFilter("Select Which Shots You Would Like To Export", sorted(pipe.server.get_shot_list()), list_label="Shots", include_filter_field=True)
+        shot_selection_dialog = ListWithCheckboxFilter("Select Which Shots You Would Like To Export", sorted(MayaFileManager.get_names_of_all_maya_shots_that_have_been_created()), list_label="Shots", include_filter_field=True)
         shot_selection_dialog.exec_()
 
         selected_items = shot_selection_dialog.get_selected_items()
@@ -557,6 +559,7 @@ class MultiShotExporter:
         if not self.export_all_characters:
             exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
         else:
+            assert len(rigs) == 0, "You cannot select characters to export if you are exporting all characters in the shot."
             exporter.checked_objects = [obj.replace(self.ALEMBIC_EXPORTER_SUFFIX, "") for obj in cmds.ls("*" + self.ALEMBIC_EXPORTER_SUFFIX)] # TODO: it would be nice to put all this logic in one place
 
         self.logger.info(f'Exporting characters {exporter.checked_objects} from shot {shot.get_name()}')
