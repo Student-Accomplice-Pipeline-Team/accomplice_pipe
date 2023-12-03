@@ -489,6 +489,8 @@ class SimpleLogger():
 class MultiShotExporter:
     def __init__(self):
         self.logger = SimpleLogger()
+        self.ALEMBIC_EXPORTER_SUFFIX = Exporter().ALEMBIC_EXPORTER_SUFFIX
+        self.export_all_characters = False
 
     def run(self):
         from .maya_file_manager import MayaFileManager
@@ -501,8 +503,14 @@ class MultiShotExporter:
         shots_to_export = [pipe.server.get_shot(shot) for shot in shots_to_export] # Convert the shot names to shot objects
         assert all([shot is not None for shot in shots_to_export]), "One or more of the shots you selected does not exist in the database."
 
-        characters_to_export = self.get_rigs_to_export()
-        self.logger.info(f'Characters to export: {characters_to_export}')
+        
+        # Prompt the user is they simply want to export every possible character in the shot, or only select characters
+        response = cmds.confirmDialog(title='Export Characters', message='Would you like to export all characters in the shot, or only select characters?', button=['All', 'Select'], defaultButton='Select', cancelButton='All', dismissString='All')
+        if response == 'All':
+            self.export_all_characters = True
+        else:
+            characters_to_export = self.get_rigs_to_export()
+            self.logger.info(f'Characters to export: {characters_to_export}')
 
         for shot in shots_to_export:
             self.logger.info(f'Exporting rigs from shot {shot}')
@@ -528,8 +536,7 @@ class MultiShotExporter:
     def get_only_characters_in_open_shot(self, characters_to_export):
         characters_to_export_in_shot = []
         for character in characters_to_export:
-            exporter = Exporter()
-            export_full_name = character + exporter.ALEMBIC_EXPORTER_SUFFIX
+            export_full_name = character + self.ALEMBIC_EXPORTER_SUFFIX
 
             if not cmds.objExists(export_full_name):
                 self.logger.error(f'Character {character} does not exist in the scene. Not exporting.')
@@ -547,7 +554,11 @@ class MultiShotExporter:
 
         # Create an exporter object and set the selected objects and shot_selection attributes... This is kind of a hack, but probably the easiest way to do it for now
         exporter = Exporter()
-        exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
+        if not self.export_all_characters:
+            exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
+        else:
+            exporter.checked_objects = [obj.replace(self.ALEMBIC_EXPORTER_SUFFIX, "") for obj in cmds.ls("*" + self.ALEMBIC_EXPORTER_SUFFIX)] # TODO: it would be nice to put all this logic in one place
+
         self.logger.info(f'Exporting characters {exporter.checked_objects} from shot {shot.get_name()}')
         exporter.shot_selection = shot.get_name()
         exporter.startFrame = int(cmds.playbackOptions(q=True, min=True))
