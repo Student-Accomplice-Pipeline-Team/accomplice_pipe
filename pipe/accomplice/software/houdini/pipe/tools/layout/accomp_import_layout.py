@@ -14,7 +14,7 @@ class ImportLayout:
     def on_created(self):
         # This is necessary to ensure that the node doesn't attempt to load 
         # the USD file before the import_from parameter has been set.
-        self.node.parm("import_from").set("default")
+        self.node.parm("import_from").set("specified_shot")
 
     def get_shot_menu(self):
         shot_names = data_cache.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
@@ -26,7 +26,6 @@ class ImportLayout:
                 menu_items.append(shot_name)
                 menu_items.append(shot_name)
         
-        print('Shot menu items: ', menu_items)
         return sorted(menu_items)
 
 
@@ -34,9 +33,20 @@ class ImportLayout:
         assert self.node is not None, "Node is None"
 
         path = None
+            
+        if self.node.evalParm("import_from") == "specified_shot":
+            shot_name = self.node.evalParm("specified_shot")
+            shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
+            path = shot.get_layout_path()
         
-        if self.node.evalParm("import_from") == "default":
-        
+        elif self.node.evalParm("import_from") == "master":
+            current_sequence = hou.hipFile.basename()[0]
+            master_shot_name = current_sequence + "_000"
+            master_shot = data_cache.retrieve_from_cache(master_shot_name, pipe.server.get_shot, master_shot_name)
+            if os.path.isfile(master_shot.get_layout_path()):
+                path = master_shot.get_layout_path()
+    
+        elif self.node.evalParm("import_from") == "auto":
             current_shot_name = hou.hipFile.basename()[:5]
             if re.match(r"[A-Z]_[0-9][0-9][0-9A-Z]", current_shot_name):
             
@@ -67,10 +77,4 @@ class ImportLayout:
                                 path = previous_shot.get_layout_path()
                                 break
             
-        elif self.node.evalParm("import_from") == "specified_shot":
-            shot_name = self.node.evalParm("specified_shot")
-            shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
-            path = shot.get_layout_path()
-            
         return path
-
