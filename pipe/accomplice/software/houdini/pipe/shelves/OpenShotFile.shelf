@@ -7,48 +7,10 @@
 
   <tool name="open_shot_file" label="Open Shot File" icon="PLASMA_App">
     <helpText><![CDATA[Open shot file.]]></helpText>
-    <script scriptType="python"><![CDATA[import os
-import pipe
-import hou
-from pathlib import Path
-import sys
+    <script scriptType="python"><![CDATA[
 from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
-from pipe.shared.object import Shot
 
-def configure_new_shot_file(shot: Shot, department_name: str):
-    HoudiniNodeUtils.configure_new_scene(shot, department_name)
-    HoudiniUtils.set_frame_range_from_shot(shot)
-
-def open_shot_file():
-    if HoudiniUtils.check_for_unsaved_changes() == 1:
-        return
-    
-    shot = HoudiniUtils.prompt_user_for_shot()
-    
-    if shot:
-        subfile_type = HoudiniUtils.prompt_user_for_subfile_type()
-
-        if subfile_type:
-            file_path = shot.get_shotfile(subfile_type)
-            
-            # If the file already exists, go ahead and load it!
-            if os.path.isfile(file_path):
-                hou.hipFile.load(file_path, suppress_save_prompt=True)
-            
-            # Otherwise create a new file and save it!
-            else:
-                # Ensure directory exists
-                Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-                
-                hou.hipFile.clear(suppress_save_prompt=True)
-                hou.hipFile.save(file_path)
-                
-                configure_new_shot_file(shot, subfile_type)
-                
-                hou.hipFile.save(file_path)
-
-
-open_shot_file()
+HoudiniUtils.open_shot_file()
 ]]></script>
   </tool>
 </shelfDocument>
