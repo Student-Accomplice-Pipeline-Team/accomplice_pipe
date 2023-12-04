@@ -1,10 +1,13 @@
 import maya.cmds as cmds
+from .maya_file_manager import MayaFileManager
+import time
 import pymel.core as pm
 from pathlib import Path
 import os, shutil
 import pipe.shared.permissions as p
 from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
 import maya.mel as mel
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 
 import pipe
 from pxr import Sdf
@@ -21,7 +24,17 @@ class Exporter():
     def __init__(self):
         self.ANIM_DIR = "anim"
         self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
+        self.confirm_dialog = True # Whether or not to show the confirmation dialog after exporting. Useful to turn off when exporting multiple shots at once
+        self.ensure_plugin_loaded()
         
+    def ensure_plugin_loaded(self):
+        
+        alembic_export_plugin_name = "AbcExport.so"  # Replace with the actual plugin name
+        # Check if the plugin is loaded
+        if not cmds.pluginInfo(alembic_export_plugin_name, query=True, loaded=True):
+            # Load the plugin
+            cmds.loadPlugin(alembic_export_plugin_name)
+
     def run(self):
         print("Alembic Exporter not ready yet")
         
@@ -253,8 +266,8 @@ class Exporter():
     def get_alembic_command(self):
         """ Gets the command needed to export the alembic. Updates the alem_filepath to match"""
 
-        start = self.startFrame
-        end = self.endFrame
+        start = str(self.startFrame)
+        end = str(self.endFrame)
         root = ""
         curr_selection = cmds.ls(selection=True)
         for obj in curr_selection:
@@ -452,11 +465,119 @@ class Exporter():
 
         # Show completion notification
         exported_objects_str = ", ".join(self.checked_objects)
-        cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
+        if self.confirm_dialog:
+            cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
     
     def open_studini_anim_shot_file(): # TODO: finish this when you have the time :)
         # Run /groups/accomplice/pipeline/pipe/main.py --pipe=accomplice houdini
         import subprocess
         subprocess.Popen(['/groups/accomplice/pipeline/pipe/main.py', '--pipe=accomplice', 'houdini'])
         # Open the anim shot file
+
+class SimpleLogger():
+    def __init__(self, main_prefix="SimpleLogger") -> None:
+        self.log = ""
+        self.print_errors = True
+        self.print_info = True
+        self.include_timestamps = True
+        self.main_prefix = main_prefix
+
+    def add_message(self, prefix, message, should_print):
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S") if self.include_timestamps else ""
+        new_message = f"{self.main_prefix}: \t {prefix} {message} {timestamp}\n"
+        self.log += new_message
+        if should_print:
+            print(new_message)
+
+    def error(self, message):
+        self.add_message("ERROR:", message, self.print_errors)
+
+    def info(self, message):
+        self.add_message("INFO:", message, self.print_info)
+
+    def get_log(self):
+        return self.log
+
+class MultiShotExporter:
+    def __init__(self):
+        self.logger = SimpleLogger(main_prefix='MultiShotExporter Log')
+        self.ALEMBIC_EXPORTER_SUFFIX = Exporter().ALEMBIC_EXPORTER_SUFFIX
+        self.export_all_characters = False
+
+    def run(self):
+        if MayaFileManager.check_for_unsaved_changes_and_inform_user():
+            return
+
+        shots_to_export = self.get_shots_to_export()
+        self.logger.info(f'Shots to export: {shots_to_export}')
+
+        shots_to_export = [pipe.server.get_shot(shot) for shot in shots_to_export] # Convert the shot names to shot objects
+        assert all([shot is not None for shot in shots_to_export]), "One or more of the shots you selected does not exist in the database."
+
         
+        # Prompt the user is they simply want to export every possible character in the shot, or only select characters
+        response = cmds.confirmDialog(title='Export Characters', message='Would you like to export all characters in the shot, or only select characters?', button=['All', 'Select'], defaultButton='Select', cancelButton='All', dismissString='All')
+
+        characters_to_export = []
+        if response == 'All':
+            self.export_all_characters = True
+        else:
+            characters_to_export = self.get_rigs_to_export()
+            self.logger.info(f'Characters to export: {characters_to_export}')
+
+        for shot in shots_to_export:
+            self.logger.info(f'Exporting rigs from shot {shot}')
+            self.export_rigs_from_shot(shot, characters_to_export)
+    
+        print(self.logger.get_log())
+    
+    def get_shots_to_export(self):
+        shot_selection_dialog = ListWithCheckboxFilter("Select Which Shots You Would Like To Export", sorted(MayaFileManager.get_names_of_all_maya_shots_that_have_been_created()), list_label="Shots", include_filter_field=True)
+        shot_selection_dialog.exec_()
+
+        selected_items = shot_selection_dialog.get_selected_items()
+        return selected_items
+        
+    def get_rigs_to_export(self):
+        rigs = ['vaughn', 'letty', 'ed', 'heroCar']
+        rig_selection_dialog = ListWithCheckboxFilter("Select Which Rigs You Would Like To Export", sorted(rigs), list_label="Rigs", include_filter_field=True)
+        rig_selection_dialog.exec_()
+
+        selected_items = rig_selection_dialog.get_selected_items()
+        return selected_items
+    
+    def get_only_characters_in_open_shot(self, characters_to_export):
+        characters_to_export_in_shot = []
+        for character in characters_to_export:
+            export_full_name = character + self.ALEMBIC_EXPORTER_SUFFIX
+
+            if not cmds.objExists(export_full_name):
+                self.logger.error(f'Character {character} does not exist in the scene. Not exporting.')
+            else:
+                characters_to_export_in_shot.append(character)
+        return characters_to_export_in_shot
+        
+    
+    def export_rigs_from_shot(self, shot, rigs):
+        # Open the corresponding shot file
+        self.logger.info(f'Opening shot file for shot {shot.get_name()}')
+        file_path = shot.get_maya_shotfile_path()
+        cmds.file(file_path, open=True, force=True)
+        self.logger.info(f'Opened shot file for shot {shot.get_name()}')
+
+        # Create an exporter object and set the selected objects and shot_selection attributes... This is kind of a hack, but probably the easiest way to do it for now
+        exporter = Exporter()
+        if not self.export_all_characters:
+            exporter.checked_objects = self.get_only_characters_in_open_shot(rigs)
+        else:
+            assert len(rigs) == 0, "You cannot select characters to export if you are exporting all characters in the shot."
+            exporter.checked_objects = [obj.replace(self.ALEMBIC_EXPORTER_SUFFIX, "") for obj in cmds.ls("*" + self.ALEMBIC_EXPORTER_SUFFIX)] # TODO: it would be nice to put all this logic in one place
+
+        self.logger.info(f'Exporting characters {exporter.checked_objects} from shot {shot.get_name()}')
+        exporter.shot_selection = shot.get_name()
+        exporter.confirm_dialog = False
+        exporter.startFrame = int(cmds.playbackOptions(q=True, min=True))
+        self.logger.info(f'Start frame: {exporter.startFrame}')
+        exporter.endFrame = int(cmds.playbackOptions(q=True, max=True))
+        self.logger.info(f'End frame: {exporter.endFrame}')
+        exporter.export_checked_objects()
