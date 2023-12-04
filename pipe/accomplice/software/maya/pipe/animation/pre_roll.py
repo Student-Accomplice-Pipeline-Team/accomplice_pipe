@@ -28,6 +28,7 @@ def setup_pre_roll():
 
 
     import maya.cmds as cmds
+    mc = cmds
 
     prompt_dialog = "integerPromptDialog"
     if cmds.window(prompt_dialog, exists=True):
