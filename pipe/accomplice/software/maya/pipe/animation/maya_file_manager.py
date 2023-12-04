@@ -143,7 +143,7 @@ class OpenNewFileManager:
     def open_file(file_path): # TODO: update this to use the Version Manager!
         """ Opens a new Maya file """
         cmds.file(file_path, open=True, force=True)
-        # vm = VersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
+        vm = VersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
 
     @staticmethod
     def create_new_file(file_path:str, shot):
@@ -156,7 +156,7 @@ class OpenNewFileManager:
         OpenNewFileManager.set_frame_range(shot)
         cmds.file(save=True)
 
-        # vm = VersionManager(file_path)
+        vm = VersionManager(file_path)
         
     @staticmethod
     def set_frame_range(shot, global_start_frame=1001, handle_frames=5):
