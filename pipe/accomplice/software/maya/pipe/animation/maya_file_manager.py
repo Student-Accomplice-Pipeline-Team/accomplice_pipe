@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 import os
 import pathlib
-from pipe.shared.versions import SymlinkFreeVersionManager
+from pipe.shared.versions import VersionManager
 import time
 from PySide2 import QtWidgets
 import pipe
@@ -14,7 +14,7 @@ class MayaFileManager:
         # import pdb; pdb.set_trace()
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = SymlinkFreeVersionManager(current_file_path)
+            vm = VersionManager(current_file_path)
 
             if MayaFileManager.check_for_unsaved_changes_and_inform_user():
                 return
@@ -40,7 +40,7 @@ class MayaFileManager:
     def show_current_version():
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = SymlinkFreeVersionManager(current_file_path)
+            vm = VersionManager(current_file_path)
             current_version = vm.get_current_version_number()
             cmds.confirmDialog(title='Current Version', message=f'The current version is {current_version}.', button=['Ok'])
     
@@ -48,7 +48,7 @@ class MayaFileManager:
     def switch_version_ui():
         current_file_path = cmds.file(query=True, sceneName=True)
         if current_file_path:
-            vm = SymlinkFreeVersionManager(current_file_path)
+            vm = VersionManager(current_file_path)
             version_table = vm.get_version_table()
 
             # Sort the version table by timestamp
@@ -79,7 +79,7 @@ class MayaFileManager:
         if cmds.window("versionSwitchWindow", exists=True):
             cmds.deleteUI("versionSwitchWindow", window=True)
         current_file_path = cmds.file(query=True, sceneName=True)
-        vm = SymlinkFreeVersionManager(current_file_path)
+        vm = VersionManager(current_file_path)
         vm.switch_to_version(version_number)
 
         # Open the file in Maya
@@ -90,7 +90,7 @@ class MayaFileManager:
         current_file_path = cmds.file(query=True, sceneName=True)
         # import pdb; pdb.set_trace()
         if current_file_path:
-            vm = SymlinkFreeVersionManager(current_file_path)
+            vm = VersionManager(current_file_path)
             current_version = vm.get_current_version_number()
             existing_note = vm.get_note_for_version(current_version)
 
@@ -143,7 +143,7 @@ class OpenNewFileManager:
     def open_file(file_path): # TODO: update this to use the Version Manager!
         """ Opens a new Maya file """
         cmds.file(file_path, open=True, force=True)
-        # vm = SymlinkFreeVersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
+        # vm = VersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
 
     @staticmethod
     def create_new_file(file_path:str, shot):
@@ -156,7 +156,7 @@ class OpenNewFileManager:
         OpenNewFileManager.set_frame_range(shot)
         cmds.file(save=True)
 
-        # vm = SymlinkFreeVersionManager(file_path)
+        # vm = VersionManager(file_path)
         
     @staticmethod
     def set_frame_range(shot, global_start_frame=1001, handle_frames=5):
