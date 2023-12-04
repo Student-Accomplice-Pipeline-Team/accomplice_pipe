@@ -7,7 +7,7 @@ from .file_path_utils import FilePathUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 
-server = pipe.server
+# server = pipe.server
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money']
@@ -237,7 +237,7 @@ class HoudiniPathUtils():
         shot_name = HoudiniUtils.get_shot_name()
         if shot_name is None:
             return None
-        shot = server.get_shot(shot_name)
+        shot = pipe.server.get_shot(shot_name)
         main_fx_folder_location = HoudiniFXUtils.get_fx_usd_cache_directory_path(shot)
         if main_fx_folder_location is None:
             return None
@@ -303,14 +303,17 @@ class FXSceneOpener(HoudiniShotOpener):
     
     def open_shot(self):
         # See which subfile the user wants to open, first by prompting the user with the existing files in the working directory
-        fx_file_names = HoudiniFXUtils.get_names_of_fx_files_in_working_directory(self.shot)
+        fx_file_names = ['main'] + HoudiniFXUtils.get_names_of_fx_files_in_working_directory(self.shot)
         fx_subfile_dialog = ListWithFilter("Open FX File for Shot " + self.shot.name, fx_file_names, accept_button_name="Open", cancel_button_name="Create New", list_label="Select the FX file you'd like to open. If you don't see the file you want, click 'Create New' to create a new FX file.", include_filter_field=False)
         
         file_path = None
         if fx_subfile_dialog.exec_():
             selected_fx_file_name = fx_subfile_dialog.get_selected_item()
             if selected_fx_file_name:
-                file_path = HoudiniFXUtils.get_working_file_path(self.shot, selected_fx_file_name)
+                if selected_fx_file_name == 'main':
+                    file_path = self.shot.get_shotfile('fx')
+                else:
+                    file_path = HoudiniFXUtils.get_working_file_path(self.shot, selected_fx_file_name)
         else: # If the user didn't select a file prompt them to create a new one!
             new_fx_file_dialog = ListWithFilter("Create New FX File for Shot " + self.shot.name, HoudiniFXUtils.supported_FX_names, accept_button_name="Create", cancel_button_name="Other", list_label="Select the type of FX file you'd like to create from the known FX types. Otherwise click 'Other' to create a new FX type.", include_filter_field=False)
             if new_fx_file_dialog.exec_():
@@ -375,7 +378,7 @@ class HoudiniUtils:
         shot_name = HoudiniUtils.get_shot_name()
         if shot_name is None:
             return None
-        return server.get_shot(HoudiniUtils.get_shot_name(), retrieve_from_shotgrid=retrieve_from_shotgrid)
+        return pipe.server.get_shot(HoudiniUtils.get_shot_name(), retrieve_from_shotgrid=retrieve_from_shotgrid)
 
     @staticmethod
     def check_for_unsaved_changes():
