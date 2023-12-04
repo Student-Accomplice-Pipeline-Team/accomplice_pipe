@@ -24,7 +24,17 @@ class Exporter():
     def __init__(self):
         self.ANIM_DIR = "anim"
         self.ALEMBIC_EXPORTER_SUFFIX = ":EXPORTSET_Alembic"
+        self.confirm_dialog = True # Whether or not to show the confirmation dialog after exporting. Useful to turn off when exporting multiple shots at once
+        self.ensure_plugin_loaded()
         
+    def ensure_plugin_loaded(self):
+        
+        alembic_export_plugin_name = "AbcExport.so"  # Replace with the actual plugin name
+        # Check if the plugin is loaded
+        if not cmds.pluginInfo(alembic_export_plugin_name, query=True, loaded=True):
+            # Load the plugin
+            cmds.loadPlugin(alembic_export_plugin_name)
+
     def run(self):
         print("Alembic Exporter not ready yet")
         
@@ -455,7 +465,8 @@ class Exporter():
 
         # Show completion notification
         exported_objects_str = ", ".join(self.checked_objects)
-        cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
+        if self.confirm_dialog:
+            cmds.confirmDialog(title='Export Complete', message=f'Exporting of the selected objects ({exported_objects_str}) has been completed.', button=['Ok'])
     
     def open_studini_anim_shot_file(): # TODO: finish this when you have the time :)
         # Run /groups/accomplice/pipeline/pipe/main.py --pipe=accomplice houdini
@@ -473,7 +484,7 @@ class SimpleLogger():
 
     def add_message(self, prefix, message, should_print):
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S") if self.include_timestamps else ""
-        new_message = f"{self.main_prefix} \t {prefix} {message} {timestamp}\n"
+        new_message = f"{self.main_prefix}: \t {prefix} {message} {timestamp}\n"
         self.log += new_message
         if should_print:
             print(new_message)
@@ -489,7 +500,7 @@ class SimpleLogger():
 
 class MultiShotExporter:
     def __init__(self):
-        self.logger = SimpleLogger()
+        self.logger = SimpleLogger(main_prefix='MultiShotExporter Log')
         self.ALEMBIC_EXPORTER_SUFFIX = Exporter().ALEMBIC_EXPORTER_SUFFIX
         self.export_all_characters = False
 
@@ -564,6 +575,7 @@ class MultiShotExporter:
 
         self.logger.info(f'Exporting characters {exporter.checked_objects} from shot {shot.get_name()}')
         exporter.shot_selection = shot.get_name()
+        exporter.confirm_dialog = False
         exporter.startFrame = int(cmds.playbackOptions(q=True, min=True))
         self.logger.info(f'Start frame: {exporter.startFrame}')
         exporter.endFrame = int(cmds.playbackOptions(q=True, max=True))
