@@ -40,7 +40,7 @@ class Character_Shaders(edit.EditShader):
             print(self.character.path)
             
             self.ref = node.node('referenced_materials')
-            self.ref.parm('primpath').set('/anim/' + self.character.name + '/materials')
+            #self.ref.parm('primpath').set('/scene/anim/' + self.character.name + '/materials')
             
             self.load_USD()
             
@@ -62,6 +62,8 @@ class Character_Shaders(edit.EditShader):
                 parm.set(3)
             elif self.character.name == 'bgcharacter':
                 parm.set(4)
+            elif self.character.name == 'constructionsign_rig':
+                parm.set(5)
                 
     def export_USD(self, node):
         save_node = node.node('saveUSD')
