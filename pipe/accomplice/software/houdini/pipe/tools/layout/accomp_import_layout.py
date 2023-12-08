@@ -4,6 +4,7 @@ import re
 import hou
 import json
 from pipe.shared.helper.utilities.optimization_utils import DataCache
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 
 data_cache = DataCache()
 
@@ -47,7 +48,8 @@ class ImportLayout:
                 path = master_shot.get_layout_path()
     
         elif self.node.evalParm("import_from") == "auto":
-            current_shot_name = hou.hipFile.basename()[:5]
+            # current_shot_name = hou.hipFile.basename()[:5]
+            current_shot_name = HoudiniUtils.get_shot_name() # This will also load it in properly for any Houdini file in a subdirectory of a shot directory
             if re.match(r"[A-Z]_[0-9][0-9][0-9A-Z]", current_shot_name):
             
                 shot_names = data_cache.retrieve_from_cache('shot_list', pipe.server.get_shot_list)
