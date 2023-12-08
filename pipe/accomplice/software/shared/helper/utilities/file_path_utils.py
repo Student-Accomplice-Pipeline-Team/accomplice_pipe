@@ -30,7 +30,7 @@ class FilePathUtils():
         return FilePathUtils.get_last_edited_date(file_path) > timestamp
     
     @staticmethod
-    def get_shot_name_from_file_path(file_path) -> str or None:
+    def get_shot_name_from_file_path(file_path, verify_shot_in_database=False) -> str or None:
         """ Returns the shot name from a file path """
 
         path_split, shots_index = FilePathUtils._get_path_split_and_shots_index(file_path)
@@ -41,7 +41,8 @@ class FilePathUtils():
         # So, the shot_name is composed of <SEQUENCE_NAME>_<SHOT_NAME>
         shot_name = path_split[shots_index - 1] + '_' + path_split[shots_index + 1]
 
-        verify_shot_name(shot_name)
+        if verify_shot_in_database:
+            verify_shot_name(shot_name)
 
         return shot_name
     
