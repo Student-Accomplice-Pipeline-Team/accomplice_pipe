@@ -1,5 +1,6 @@
 import hou
 import os
+import re
 from pathlib import Path
 import pipe
 from ...object import Shot
@@ -90,6 +91,8 @@ class HoudiniNodeUtils():
         
         if department_name == 'main' or department_name is None:
             new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
+        elif department_name == 'camera':
+            new_scene_creator = HoudiniNodeUtils.CameraSceneCreator(shot)
         elif department_name == 'lighting':
             new_scene_creator = HoudiniNodeUtils.LightingSceneCreator(shot)
         else:
@@ -150,8 +153,9 @@ class HoudiniNodeUtils():
             begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
             self.my_created_nodes.append(begin_null)
 
+            last_department_node = self.add_department_specific_nodes(begin_null)
 
-            end_null = begin_null.createOutputNode('null', 'END_' + self.department_name)
+            end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
             self.my_created_nodes.append(end_null)
             end_null.setDisplayFlag(True)
 
@@ -159,9 +163,12 @@ class HoudiniNodeUtils():
             self.restructure_scene_graph_node.bypass(1)
             self.create_department_usd_rop_node(self.restructure_scene_graph_node)
             self.post_add_department_specific_nodes()
+            self.post_set_selection()
+            self.post_set_view()
 
         def create_import_layout_node(self):
             import_layout_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_import_layout')
+            import_layout_node.parm('import_from').set('auto')
             self.my_created_nodes.append(import_layout_node)
             return import_layout_node
         
@@ -191,8 +198,99 @@ class HoudiniNodeUtils():
             self.my_created_nodes.append(restructure_scene_graph_node)
             return restructure_scene_graph_node
         
+        def add_department_specific_nodes(self, begin_null: hou.Node) -> hou.Node:
+            return begin_null
+
         def post_add_department_specific_nodes(self):
             pass
+
+        def post_set_selection(self):
+            pass
+
+        def post_set_view(self):
+            pass
+    
+    class CameraSceneCreator(DepartmentSceneCreator):
+        camera_prim_path = None
+        selected_node: hou.Node = None
+
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'camera', stage)
+            self.camera_prim_path = '/scene/camera/camera_' + self.shot.get_name()
+
+        def post_set_view(self):
+            desktop: hou.Desktop = hou.ui.curDesktop()
+            scene_viewer: hou.SceneViewer = desktop.paneTabOfType(hou.paneTabType.SceneViewer)
+            viewport: hou.GeometryViewport = scene_viewer.curViewport()
+            viewport.setCamera(self.camera_prim_path)
+        
+        def post_set_selection(self):
+            self.selected_node.setSelected(True, clear_all_selected=True)
+            self.selected_node.parmTuple('folder2').set((1,))
+        
+        def add_department_specific_nodes(self, begin_null) -> hou.Node:
+            reference_node = self.create_camera_reference_node(begin_null)
+            self.my_created_nodes.append(reference_node)
+            reference_node.parm('reload').pressButton()
+            
+            camera_edit_node = self.create_camera_edit_node(reference_node)
+            self.my_created_nodes.append(camera_edit_node)
+            self.selected_node = camera_edit_node
+            
+            return camera_edit_node
+        
+        def create_camera_reference_node(self, input_node: hou.Node):
+            # Get the filepath for the camera usd file
+            camera_filepath = self.shot.get_camera('RLO')
+
+            # Create reference node
+            reference_node: hou.Node = input_node.createOutputNode('reference')
+
+            # Set necessary parms
+            reference_node.parm('primpath1').set(self.camera_prim_path)
+            reference_node.parm('filepath1').set(camera_filepath)
+            reference_node.parm('timeoffset1').set(1000)
+            
+            return reference_node
+        
+        def create_camera_edit_node(self, input_node: hou.Node):
+            # Create camera node
+            camera_edit_node: hou.Node = input_node.createOutputNode('camera')
+            
+            # Set necessary parms
+            camera_edit_node.parm('createprims').set('off')
+            camera_edit_node.parm('primpattern').set(self.camera_prim_path)
+            camera_edit_node.parm('xn__xformOptransform_51a').set('world')
+            camera_edit_node.parm('scale').set(0.01)
+
+            # Turn off unnecessary parms
+            camera_edit_node.parm('projection_control').set('none')
+            camera_edit_node.parm('focalLength_control').set('none')
+            camera_edit_node.parm('aperture').set('none')
+            camera_edit_node.parm('horizontalApertureOffset_control').set('none')
+            camera_edit_node.parm('verticalApertureOffset_control').set('none')
+            camera_edit_node.parm('xn__houdiniguidescale_control_thb').set('none')
+            camera_edit_node.parm('xn__houdiniinviewermenu_control_2kb').set('none')
+            camera_edit_node.parm('xn__houdinibackgroundimage_control_ypb').set('none')
+            camera_edit_node.parm('xn__houdiniforegroundimage_control_ypb').set('none')
+
+            camera_edit_node.parm('xn__shutteropen_control_16a').set('none')
+            camera_edit_node.parm('xn__shutterclose_control_o8a').set('none')
+            camera_edit_node.parm('focusDistance_control').set('none')
+            camera_edit_node.parm('fStop_control').set('none')
+            camera_edit_node.parm('exposure_control').set('none')
+
+            # Set node name
+            camera_edit_node_num = 1
+            result = False
+            while result is False:
+                try:
+                    camera_edit_node.setName('camera_edit' + str(camera_edit_node_num))
+                    result = True
+                except:
+                    camera_edit_node_num += 1
+            
+            return camera_edit_node
     
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
