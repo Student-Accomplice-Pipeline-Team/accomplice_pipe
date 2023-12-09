@@ -208,9 +208,10 @@ class EditShader():
         #Load Renderman Maps
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
-        #print(tex_folder_path)
-
+        print(tex_folder_path)
+        print("hahahaah")
         files = tex_folder_path.glob('*_' + material.name + '_*.1001.*')
+        print(list(files))
         #print(next(files))
 
         for file in files:
