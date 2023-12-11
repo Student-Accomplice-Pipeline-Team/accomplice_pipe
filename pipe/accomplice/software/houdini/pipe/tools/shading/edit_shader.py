@@ -208,15 +208,13 @@ class EditShader():
         #Load Renderman Maps
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
-        print(tex_folder_path)
-        print("hahahaah")
         files = tex_folder_path.glob('*_' + material.name + '_*.1001.*')
-        print(list(files))
+        #print(list(files))
         #print(next(files))
 
         for file in files:
             path = str(file).replace('1001', '<UDIM>')
-            print(path)
+            #print(os.path.basename(path))
             if 'DiffuseColor' in path:
                 channels['DiffuseColor'] = path
             if 'SpecularFaceColor' in path:
@@ -229,14 +227,13 @@ class EditShader():
                 channels['Presence'] = path
             if 'Displacement' in path:
                 channels['Displacement'] = path
+        print('CHANNELS')
 
         for channel in channels:
-
+            print(os.path.basename(str(channels[channel])))
             if channel != 'Normal':
                 nodes[channel].parm('filename').set(channels[channel])
             else:
-                print('assigning b2r')
-                print(channels[channel])
                 nodes[channel].parm('b2r_texture').set(channels[channel])
 
         #Load Preview Maps
