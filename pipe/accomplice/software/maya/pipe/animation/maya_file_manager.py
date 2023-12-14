@@ -41,12 +41,33 @@ class MayaFileManager:
         self.versionSwitchWindow.setWindowTitle("Switch to Version (Current Version: " + str(current_version_number) + ")")
         layout = QtWidgets.QVBoxLayout(self.versionSwitchWindow)
 
-        for file, version_number, timestamp, note in version_table_sorted:
-            timestamp_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
-            btn = QtWidgets.QPushButton(f"Version {version_number} - {timestamp_readable} - Note: {note}")
-            btn.clicked.connect(lambda checked=False, vn=version_number: self.switch_to_selected_version(vn))
-            layout.addWidget(btn)
+        # Create a table widget with an extra column for the buttons
+        table = QtWidgets.QTableWidget()
+        table.setColumnCount(4)  # Increase column count to include the switch buttons
+        table.setHorizontalHeaderLabels(['Version', 'Date Modified', 'Note', ''])
+        table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
+        for row, (file, version_number, timestamp, note) in enumerate(version_table_sorted):
+            table.insertRow(table.rowCount())
+            timestamp_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+
+            # Set items for each cell in the row
+            table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(version_number)))
+            table.setItem(row, 1, QtWidgets.QTableWidgetItem(timestamp_readable))
+            table.setItem(row, 2, QtWidgets.QTableWidgetItem(note))
+
+            # Add a button for switching versions in the fourth column
+            btn = QtWidgets.QPushButton('Switch')
+            btn.clicked.connect(lambda checked=False, vn=version_number: self.switch_to_selected_version(vn))
+            table.setCellWidget(row, 3, btn)  # Add the button as a widget to the fourth column
+
+        # Resize columns to fit contents and ensure the window starts with an adequate size
+        table.resizeColumnsToContents()
+        # table.horizontalHeader().setStretchLastSection(True)  # Stretch the last column to fill the remaining space
+        self.versionSwitchWindow.setMinimumSize(900, 400)  # Set a minimum size for the window
+
+        # Add table to the layout
+        layout.addWidget(table)
         self.versionSwitchWindow.show()
 
     def switch_to_selected_version(self, version_number):

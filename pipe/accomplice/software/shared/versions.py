@@ -258,3 +258,42 @@ class VersionManager:
         os.symlink(self.main_path, new_version_path)
         log.info('Made a symlink at ' + new_version_path + ' to ' + self.main_path)
         self._set_version(version_number)
+
+
+from PySide2 import QtWidgets
+class DCCVersionManager:
+    def __init__(self):
+        self.vm = self.create_version_manager()
+
+    def create_version_manager(self):
+        raise NotImplementedError("Must be implemented in subclass")
+
+    def save_new_version(self):
+        if self.check_for_unsaved_changes_and_inform_user():
+            return
+
+        self.vm.save_new_version()
+        QtWidgets.QMessageBox.information(None, 'Version Saved', 'A new version has been saved.')
+
+    def show_current_version(self):
+        current_version = self.vm.get_current_version_number()
+        QtWidgets.QMessageBox.information(None, 'Current Version', f'The current version is {current_version}.')
+
+    def switch_version_ui(self):
+        # ... (same implementation as in the original class)
+        pass
+
+    def switch_to_selected_version(self, version_number):
+        if self.check_for_unsaved_changes_and_inform_user():
+            return
+
+        # ... (same implementation as in the original class)
+        pass
+
+    def edit_version_note(self):
+        # ... (same implementation as in the original class)
+        pass
+
+    @staticmethod
+    def check_for_unsaved_changes_and_inform_user():
+        raise NotImplementedError("Must be implemented in subclass")
