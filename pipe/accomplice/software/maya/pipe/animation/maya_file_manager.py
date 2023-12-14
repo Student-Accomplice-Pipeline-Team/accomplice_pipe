@@ -5,7 +5,6 @@ from pipe.shared.versions import VersionManager
 import time
 from PySide2 import QtWidgets
 import pipe
-# from pipe.accomplice.software.shared.helper.utilities.ui_utils import ListWithFilter
 from pipe.shared.helper.utilities.ui_utils import ListWithFilter, InfoDialog
 
 class MayaFileManager:
@@ -18,22 +17,9 @@ class MayaFileManager:
 
             if MayaFileManager.check_for_unsaved_changes_and_inform_user():
                 return
-            
-            # # Prompt the user for a version note
-            # result = cmds.promptDialog(
-            #     title='Save Version ' + str(vm.get_current_version_number() + 1),
-            #     message='Enter Note for New Version:',
-            #     button=['OK', 'Cancel'],
-            #     defaultButton='OK',
-            #     cancelButton='Cancel',
-            #     dismissString='Cancel')
 
             vm.save_new_version()
-            cmds.confirmDialog(title='Version Saved', message='A new version has been saved.', button=['Ok'])
-            # if result == 'OK':
-            #     version_note = cmds.promptDialog(query=True, text=True)
-            # else:
-            #     version_note = None
+            QtWidgets.QMessageBox.information(None, 'Version Saved', 'A new version has been saved.')
 
 
     @staticmethod
@@ -42,32 +28,35 @@ class MayaFileManager:
         if current_file_path:
             vm = VersionManager(current_file_path)
             current_version = vm.get_current_version_number()
-            cmds.confirmDialog(title='Current Version', message=f'The current version is {current_version}.', button=['Ok'])
+            QtWidgets.QMessageBox.information(None, 'Current Version', f'The current version is {current_version}.')
     
     @staticmethod
     def switch_version_ui():
         current_file_path = cmds.file(query=True, sceneName=True)
-        if current_file_path:
-            vm = VersionManager(current_file_path)
-            version_table = vm.get_version_table()
+        if not current_file_path:
+            return
+        vm = VersionManager(current_file_path)
+        version_table = vm.get_version_table()
 
-            # Sort the version table by timestamp
-            version_table_sorted = sorted(version_table, key=lambda x: x[2])  # x[2] is the timestamp
+        # Sort the version table by timestamp
+        version_table_sorted = sorted(version_table, key=lambda x: x[2])  # x[2] is the timestamp
 
-            current_version_number = vm.get_current_version_number()
+        current_version_number = vm.get_current_version_number()
 
-            if cmds.window("versionSwitchWindow", exists=True):
-                cmds.deleteUI("versionSwitchWindow", window=True)
+        if hasattr(MayaFileManager, 'versionSwitchWindow') and MayaFileManager.versionSwitchWindow:
+            MayaFileManager.versionSwitchWindow.close()
+        
+        MayaFileManager.versionSwitchWindow = QtWidgets.QWidget()
+        MayaFileManager.versionSwitchWindow.setWindowTitle("Switch to Version (Current Version: " + str(current_version_number) + ")")
+        layout = QtWidgets.QVBoxLayout(MayaFileManager.versionSwitchWindow)
 
-            cmds.window("versionSwitchWindow", title="Switch to Version (Current Version: " + str(current_version_number) + ")")
-            cmds.columnLayout(adjustableColumn=True)
-            for file, version_number, timestamp, note in version_table_sorted:
-                timestamp_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
-                cmds.button(label=f"Version {version_number} - {timestamp_readable} - Note: {note}", 
-                            command=lambda x, vn=version_number: MayaFileManager.switch_to_selected_version(vn))
+        for file, version_number, timestamp, note in version_table_sorted:
+            timestamp_readable = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))
+            btn = QtWidgets.QPushButton(f"Version {version_number} - {timestamp_readable} - Note: {note}")
+            btn.clicked.connect(lambda checked=False, vn=version_number: MayaFileManager.switch_to_selected_version(vn))
+            layout.addWidget(btn)
 
-            cmds.showWindow("versionSwitchWindow")
-
+        MayaFileManager.versionSwitchWindow.show()
 
     @staticmethod
     def switch_to_selected_version(version_number):
@@ -75,45 +64,40 @@ class MayaFileManager:
         if MayaFileManager.check_for_unsaved_changes_and_inform_user():
             return
 
-        cmds.confirmDialog(title='Version Switched', message=f'Switched to version {version_number}.', button=['Ok'])
-        if cmds.window("versionSwitchWindow", exists=True):
-            cmds.deleteUI("versionSwitchWindow", window=True)
+        if hasattr(MayaFileManager, 'versionSwitchWindow') and MayaFileManager.versionSwitchWindow:
+            MayaFileManager.versionSwitchWindow.close()
+
+        print("Switching to version " + str(version_number) + ".")
         current_file_path = cmds.file(query=True, sceneName=True)
         vm = VersionManager(current_file_path)
         vm.switch_to_version(version_number)
 
         # Open the file in Maya
         OpenNewFileManager.open_file(vm.get_main_path())
+        QtWidgets.QMessageBox.information(None, 'Version Switched', f'Switched to version {version_number}.')
 
     @staticmethod
     def edit_version_note():
         current_file_path = cmds.file(query=True, sceneName=True)
-        # import pdb; pdb.set_trace()
-        if current_file_path:
-            vm = VersionManager(current_file_path)
-            current_version = vm.get_current_version_number()
-            existing_note = vm.get_note_for_version(current_version)
+        if not current_file_path:
+            return
 
-            result = cmds.promptDialog(
-                title='Edit Note',
-                message=f'Enter Note for Version {current_version}:',
-                text=existing_note,
-                button=['OK', 'Cancel'],
-                defaultButton='OK',
-                cancelButton='Cancel',
-                dismissString='Cancel')
+        vm = VersionManager(current_file_path)
+        current_version = vm.get_current_version_number()
+        existing_note = vm.get_note_for_version(current_version)
 
-            if result == 'OK':
-                new_note = cmds.promptDialog(query=True, text=True)
-                vm.set_note_for_version(current_version, new_note)
-                # cmds.confirmDialog(title='Note Updated', message='The note has been updated.', button=['Ok'])
+        text, ok = QtWidgets.QInputDialog.getText(None, 'Edit Note', f'Enter Note for Version {current_version}:', text=existing_note)
+
+        if ok:
+            new_note = text
+            vm.set_note_for_version(current_version, new_note)
     
     @staticmethod
     def check_for_unsaved_changes_and_inform_user():
         """
         Checks if the current file has unsaved changes. If it does, informs the user and returns True."""
         if cmds.file(query=True, modified=True):
-            cmds.confirmDialog(title='Unsaved Changes', message='The current file has unsaved changes. Please save before continuing.', button=['Ok'])
+            result = QtWidgets.QMessageBox.warning(None, 'Unsaved Changes', 'The current file has unsaved changes. Please save before continuing.', QtWidgets.QMessageBox.Ok)
             return True
         return False
     
