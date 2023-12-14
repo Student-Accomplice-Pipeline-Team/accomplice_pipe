@@ -20,6 +20,8 @@
     <memberToolshelf name="model"/>
     <memberToolshelf name="labs_toolset"/>
     <memberToolshelf name="conveniences"/>
+    <memberToolshelf name="deform"/>
+    <memberToolshelf name="crowds"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">
@@ -28,5 +30,8 @@
     <memberToolshelf name="labs_toolset"/>
     <memberToolshelf name="topstools"/>
     <memberToolshelf name="constraints"/>
+    <memberToolshelf name="polygon"/>
+    <memberToolshelf name="crowds"/>
+    <memberToolshelf name="vellum"/>
   </shelfSet>
 </shelfDocument>
