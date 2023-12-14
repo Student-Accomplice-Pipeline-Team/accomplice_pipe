@@ -40,7 +40,7 @@ class DCCVersionManager(ABC):
         current_version = self.vm.get_current_version_number()
         QtWidgets.QMessageBox.information(None, 'Current Version', f'The current version is {current_version}.')
 
-    def switch_version_ui(self):
+    def switch_version(self):
         version_table = self.vm.get_version_table()
 
         # Sort the version table by timestamp
