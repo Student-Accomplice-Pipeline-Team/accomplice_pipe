@@ -40,7 +40,9 @@ class HoudiniFXUtils():
     def get_working_file_path(shot: Shot, fx_name: str):
         return os.path.join(HoudiniFXUtils.get_fx_working_directory(shot), fx_name + '.hipnc' if not fx_name.endswith('.hipnc') else fx_name)
     
-
+    @staticmethod
+    def open_houdini_fx_file():
+        HoudiniUtils.open_shot_file(department_name='fx')
 
 
 class HoudiniNodeUtils():
@@ -360,11 +362,12 @@ class HoudiniUtils:
         HoudiniUtils.set_frame_range_from_shot(shot)
     
     @staticmethod
-    def open_shot_file():
+    def open_shot_file(shot = None, department_name = None):
         if HoudiniUtils.check_for_unsaved_changes() == 1:
             return
     
-        shot, department = HoudiniUtils.prompt_user_for_shot_and_department()
+        if shot is None:
+            shot, department = HoudiniUtils.prompt_user_for_shot_and_department(department_name)
         shot_opener = HoudiniSceneOpenerFactory(shot, department).get_shot_opener()
         shot_opener.open_shot()
 
@@ -400,12 +403,28 @@ class HoudiniUtils:
             return warning_response
 
     @staticmethod
-    def prompt_user_for_shot_and_department():
+    def prompt_user_for_shot_and_department(selected_department=None):
+        """
+        Prompts the user to select a shot and department.
+
+        Args:
+            selected_department (str, optional): The pre-selected department. Defaults to None.
+
+        Returns:
+            tuple: A tuple containing the selected shot and department.
+
+        If the user cancels the shot selection, None is returned for both shot and department.
+        If no department is provided, the user is prompted to select a department.
+
+        """
         shot = HoudiniUtils.prompt_user_for_shot()
         if shot is None:
             return None, None
-        user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
-        return shot,user_selected_department
+        if selected_department is None:
+            user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+        else:
+            user_selected_department = selected_department
+        return shot, user_selected_department
 
     @staticmethod
     def prompt_user_for_shot():
