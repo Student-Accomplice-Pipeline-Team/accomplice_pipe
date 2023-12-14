@@ -6,6 +6,7 @@ from ...object import Shot
 from .file_path_utils import FilePathUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
+from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 
 # server = pipe.server
 
@@ -285,7 +286,7 @@ class HoudiniShotOpener:
     def open_file_path(self, file_path):
         # If the file already exists, go ahead and load it!
         if os.path.isfile(file_path):
-            hou.hipFile.load(file_path, suppress_save_prompt=True)
+            HoudiniUtils.open_file(file_path)
         
         else: # Otherwise create a new file and save it!
             self.create_new_shot_file(file_path)
@@ -348,6 +349,11 @@ class HoudiniUtils:
     def _get_my_path():
         return hou.hipFile.path()
     
+    @staticmethod
+    def open_file(file_path):
+        assert os.path.exists(file_path), "File does not exist: " + file_path
+        hou.hipFile.load(file_path, suppress_save_prompt=True)
+
     @staticmethod
     def configure_new_shot_file(shot: Shot, department_name: str):
         HoudiniNodeUtils.configure_new_scene(shot, department_name)
@@ -433,3 +439,16 @@ class HoudiniUtils:
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
         hou.playbar.setFrameRange(handle_start, handle_end)
         hou.playbar.setPlaybackRange(shot_start, shot_end)
+
+class HoudiniFileVersionManager(DCCVersionManager):
+    def get_my_path(self):
+        file_path = HoudiniUtils._get_my_path()
+        if 'untitled' in file_path.lower(): # By default, if you haven't saved anything yet, the file path will be 'untitled'
+            return None # The DCCVersionManager will throw an error if you return None here
+        return file_path
+
+    def open_file(self):
+        HoudiniUtils.open_file(self.vm.get_main_file_path())
+    
+    def check_for_unsaved_changes_and_inform_user(self):
+        return HoudiniUtils.check_for_unsaved_changes() == 1

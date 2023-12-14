@@ -21,6 +21,12 @@ class DCCVersionManager(ABC):
 
     @abstractmethod
     def check_for_unsaved_changes_and_inform_user(self):
+        """
+        Checks if the current file has unsaved changes and informs the user.
+
+        Returns:
+            bool: True if there are unsaved changes, False otherwise.
+        """
         raise NotImplementedError("Must be implemented in subclass")
 
     def save_new_version(self):

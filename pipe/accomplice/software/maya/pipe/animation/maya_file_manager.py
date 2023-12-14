@@ -10,6 +10,12 @@ from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 class MayaFileManager:
     @staticmethod
     def check_for_unsaved_changes_and_inform_user():
+        """
+        Checks if the current file has unsaved changes and informs the user.
+
+        Returns:
+            bool: True if there are unsaved changes, False otherwise.
+        """
         if cmds.file(query=True, modified=True):
             result = QtWidgets.QMessageBox.warning(None, 'Unsaved Changes', 'The current file has unsaved changes. Please save before continuing.', QtWidgets.QMessageBox.Ok)
             return True
@@ -50,7 +56,7 @@ class OpenNewFileManager:
     def open_file(file_path): # TODO: update this to use the Version Manager!
         """ Opens a new Maya file """
         cmds.file(file_path, open=True, force=True)
-        vm = VersionManager(file_path) # This ensures that a symlink version is created if it doesn't already exist.
+        vm = VersionManager(file_path) 
 
     @staticmethod
     def create_new_file(file_path:str, shot):
