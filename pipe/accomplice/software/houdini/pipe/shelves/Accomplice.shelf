@@ -8,6 +8,7 @@
   <shelfSet name="accomplice_1" label="Accomplice Geometry">
     <memberToolshelf name="accomp_files"/>
     <memberToolshelf name="accomplice_fx"/>
+    <memberToolshelf name="version_management"/>
     <memberToolshelf name="test_geometry"/>
     <memberToolshelf name="RenderManRIS"/>
     <memberToolshelf name="RenderMan25"/>

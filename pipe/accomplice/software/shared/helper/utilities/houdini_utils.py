@@ -448,7 +448,7 @@ class HoudiniFileVersionManager(DCCVersionManager):
         return file_path
 
     def open_file(self):
-        HoudiniUtils.open_file(self.vm.get_main_file_path())
+        HoudiniUtils.open_file(self.vm.get_main_path())
     
     def check_for_unsaved_changes_and_inform_user(self):
         return HoudiniUtils.check_for_unsaved_changes() == 1
