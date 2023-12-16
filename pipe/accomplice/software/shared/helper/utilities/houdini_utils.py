@@ -439,18 +439,12 @@ class HoudiniUtils:
         return None
         
     @staticmethod
-    def prompt_user_for_subfile_type() -> str:
+    def prompt_user_for_subfile_type() -> str or None:
         subfile_types = FilePathUtils.subfile_types
-        subfile_response = hou.ui.selectFromList(
-            subfile_types,
-            exclusive=True,
-            message="Select the Shot Subfile that you'd like to open.",
-            title="Open Shot Subfile",
-            column_header="Shot Subfiles"
-        )
-        if subfile_response:
-            subfile_type = subfile_types[subfile_response[0]]
-            return subfile_type
+        dialog = ListWithFilter("Open Shot Subfile", subfile_types, list_label="Select the Shot Subfile that you'd like to open.")
+        if dialog.exec_():
+            selected_subfile_type = dialog.get_selected_item()
+            return selected_subfile_type
         return None
 
     @staticmethod
