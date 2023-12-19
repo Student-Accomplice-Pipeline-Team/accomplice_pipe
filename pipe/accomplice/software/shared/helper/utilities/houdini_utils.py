@@ -8,10 +8,10 @@ from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 
-# server = pipe.server
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks']
+    FX_PREFIX = "/scene/fx"
     
     @staticmethod
     def get_fx_usd_cache_directory_path(shot: Shot):
@@ -48,6 +48,149 @@ class HoudiniFXUtils():
     def open_houdini_fx_file():
         HoudiniUtils.open_shot_file(department_name='fx')
 
+    # This file uses the template method pattern to setup the USD wrapper for a given effect
+    class USDEffectWrapper(ABC):
+        def __init__(self, null_node: hou.Node):
+            print('Initializing USDEffectWrapper')
+            self.selection = null_node
+            self.null_node = null_node
+            self.fx_start_null, self.fx_end_null = self.get_fx_range_nulls()
+            assert self.null_node is not None
+            assert self.null_node.type().name() == "null"
+
+            self.effect_name = self.get_effect_name(self.null_node.name())
+            self.effect_import_node = self.get_import_node()
+            self.effect_import_node.setName(self.effect_name, unique_name=True)
+            assert self.effect_import_node is not None
+            print('Finished initializing USDEffectWrapper')
+
+        def get_fx_range_nulls(self):
+            return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
+
+        def get_materials_node(self):
+            materials_node = None
+            # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
+            if self.effect_name in HoudiniFXUtils.supported_FX_names:
+                materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), self.effect_name + "_material")
+            else:
+                # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
+                # If nothing else, create a default materials subnetwork with a hint to create materials
+                materials_node = self.effect_import_node.parent().createNode('subnet')
+                subnetwork_nodes = []
+
+                # Inside the subnetwork node, create a material library node
+                material_library_node = HoudiniNodeUtils.create_node(materials_node, 'materiallibrary')
+                material_library_node.setName(self.effect_name + "_material_library", unique_name=True)
+                material_library_node.parm('matpathprefix').set(HoudiniFXUtils.FX_PREFIX + "/" + self.effect_name + "/materials/")
+
+                # Set input of the material library node to be the input of the subnetwork
+                
+                subnetwork_nodes.append(material_library_node)
+
+
+                # Create a pxrsurface node inside the material library node
+                pxrsurface_node = material_library_node.createNode('pxrsurface')
+
+                # Create an assign material node and connect it
+                assign_material_node = materials_node.createNode('assignmaterial')
+                assign_material_node.setInput(0, material_library_node)
+                # TODO: Set the material path and the geometry path
+                subnetwork_nodes.append(assign_material_node)
+
+                output_node = materials_node.node('output0')
+                output_node.setInput(0, assign_material_node)
+                subnetwork_nodes.append(output_node)
+
+                materials_node.layoutChildren(subnetwork_nodes)
+
+            return materials_node
+        
+        def add_auxiliary_nodes(self):
+            auxiliary_nodes = [self.effect_import_node]
+
+            # Add a subnetwork indicating a place to add materials
+            materials_node = self.get_materials_node()
+            materials_node.setName(self.effect_name + "_materials", unique_name=True)
+            HoudiniNodeUtils.insert_node_between_two_nodes(self.effect_import_node, self.fx_end_null, materials_node)
+            auxiliary_nodes.append(materials_node)
+            
+            # Connect a USD ROP to the LOP node
+            # usd_rop_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'usd_rop')
+            # Find the usd rop node that already exists
+            usd_rop_node = HoudiniNodeUtils.find_nodes_of_type(self.effect_import_node.parent(), 'usd_rop')[0]
+            # usd_rop_node.setInput(0, materials_node)
+            usd_rop_node.setName("OUT_" + self.effect_name, unique_name=True)
+            
+            # Set the range to include the entire timeline
+            usd_rop_node.parm('trange').set(1)
+
+            # Set the lop node output file to the save path of the lop node
+            usd_path = HoudiniPathUtils.get_fx_usd_cache_file_path(self.effect_name)
+            usd_rop_node.parm('lopoutput').set(usd_path)
+            auxiliary_nodes.append(usd_rop_node)
+
+            # Create a reference node that references the usd file
+            # reference_node = HoudiniNodeUtils.create_node(usd_rop_node.parent(), 'reference')
+            # reference_node.setName(self.effect_name + "_reference", unique_name=True)
+            # reference_node.parm('filepath1').set(usd_path)
+            # reference_node.parm('primpath1').set(HoudiniFXUtils.FX_PREFIX)
+            # reference_node.setDisplayFlag(True)
+            # auxiliary_nodes.append(reference_node)
+            
+            # Layout only the associated nodes
+            self.effect_import_node.parent().layoutChildren()
+
+            # Create a network box and add the nodes to it
+            # box = self.effect_import_node.parent().createNetworkBox()
+            # box.setComment("Configure " + self.effect_name)
+            # for node in auxiliary_nodes:
+            #     box.addNode(node)
+
+        def get_effect_name(self, original_node_name: str):
+            return original_node_name.replace("OUT_", "")
+        
+        @abstractmethod
+        def get_import_node(self) -> hou.Node:
+            pass
+
+        def wrap(self):
+            print('Wrapping effect: ' + self.effect_name)
+            print('Null node: ' + self.null_node.name())
+            assert self.effect_import_node is not None
+            assert self.effect_name is not None
+            self.add_auxiliary_nodes()
+            
+
+    class USDGeometryCacheEffectWrapper(USDEffectWrapper):
+        def __init__(self, null_node: list):
+            super().__init__(null_node)
+        
+        def get_import_node(self) -> hou.Node: # Override abstract method
+            sop_import_lop = self.create_sop_import_lop()
+            self.configure_sop_import_lop(sop_import_lop)
+            return sop_import_lop
+
+        def create_sop_import_lop(self):
+            """Creates SOP Import node from the first node in selection."""
+            lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sopimport')
+            lop_node = HoudiniNodeUtils.insert_node_between_two_nodes(self.fx_start_null, self.fx_end_null, lop_node)
+            return lop_node
+
+        def configure_sop_import_lop(self, lop_node: hou.Node):
+            # Set the name of the node
+            lop_node_name = self.effect_name
+            lop_node.setName(lop_node_name, unique_name=True)
+            
+            # Set the SOP path
+            # path = lop_node.relativePathTo(self.null_node)
+            lop_node.parm('soppath').set(self.null_node.path())
+
+            # Set the Import Path Prefix:
+            lop_node.parm('pathprefix').set(HoudiniFXUtils.FX_PREFIX + "/" + self.effect_name)
+
+            # Set save path
+            lop_node.parm('enable_savepath').set(True)
+            lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + self.effect_name + ".usd")
 
 class HoudiniNodeUtils():
     def __init__(self):
@@ -63,6 +206,22 @@ class HoudiniNodeUtils():
         'smoke_material': 'accomp_smoke_material::1.0',
         'skid_marks_material': 'accomp_skid_marks_material::1.0',
     }
+    
+    def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node between two existing nodes in Houdini.
+
+        Args:
+            first_node (hou.Node): The first node.
+            last_node (hou.Node): The last node.
+            node_to_insert (hou.Node): The node to insert between the first and last nodes.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        node_to_insert.setInput(0, first_node)
+        last_node.setInput(0, node_to_insert)
+        return node_to_insert
 
     def link_parm(source_node: hou.Node, target_node: hou.Node, parm: str):
         # import pdb; pdb.set_trace()
@@ -98,7 +257,23 @@ class HoudiniNodeUtils():
         new_scene_creator = HoudiniNodeUtils.SceneCreatorFactory(shot, department_name).get_scene_creator()
         new_scene_creator.create()
 
-    
+    def find_nodes_of_type(parent_node, node_type):
+        """
+        Searches for all child nodes of a specific type under a given parent node in Houdini.
+
+        Args:
+        - parent_path (str): The path of the parent node where the search will begin.
+        - node_type (str): The type of nodes to search for.
+
+        Returns:
+        - list of hou.Node: A list of nodes of the specified type.
+        """
+
+        # Find all child nodes of the specified type
+        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
+
+        return nodes_of_type
+
     class SceneCreatorFactory:
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
             self.shot = shot
@@ -186,6 +361,7 @@ class HoudiniNodeUtils():
 
         def create_import_layout_node(self):
             import_layout_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_import_layout')
+            import_layout_node.parm('import_from').set('auto') # Set the input from to be auto
             self.my_created_nodes.append(import_layout_node)
             return import_layout_node
         
@@ -282,9 +458,11 @@ class HoudiniNodeUtils():
             nodes_to_layout = []
             for animated_character in self.animated_geos:
                 for char_geo in self.animated_geos[animated_character]:
+                    if char_geo == 'packed': # Skip the packed null
+                        continue
                     object_merge = fx_geo_node.createNode('object_merge')
-                    object_merge.setName('IMPORT_' + animated_character + '_' + char_geo.name())
-                    char_geo.parm('objpath1').set(self.animated_geos[animated_character][char_geo].path())
+                    object_merge.setName(animated_character + '_' + char_geo)
+                    object_merge.parm('objpath1').set(self.animated_geos[animated_character][char_geo].path())
                     nodes_to_layout.append(object_merge)
             
 
@@ -308,7 +486,7 @@ class HoudiniNodeUtils():
                 dict: A dictionary containing the packed and unpacked nulls for the character.
             """
             character_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
-            character_geo_node.setName(character_name)
+            character_geo_node.setName('import_' + character_name)
             character_import_node = character_geo_node.createNode('lopimport')
             character_import_node.setName('import_' + character_name)
             character_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the character that's loaded here
@@ -335,7 +513,7 @@ class HoudiniNodeUtils():
         def import_layout(self):
             self.exclude_trees = True
             layout_geo_node = self.object_network.createNode('geo')
-            layout_geo_node.setName('layout')
+            layout_geo_node.setName('import_layout')
             layout_import_node = layout_geo_node.createNode('lopimport')
             layout_import_node.setName('import_layout')
             layout_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the layout that's loaded here
@@ -343,13 +521,27 @@ class HoudiniNodeUtils():
                 layout_import_node.parm('primpattern').set('/scene/layout/* - /scene/layout/trees/')
             else:
                 layout_import_node.parm('primpattern').set('/scene/layout')
-            layout_import_node.parm('timesample').set(0)
+            layout_import_node.parm('timesample').set(0) # Make it so that the node is not time dependent
 
         def post_add_department_specific_nodes(self):
             self.import_camera_geo()
             self.import_animation_geo()
             self.fx_geo_node = self.create_fx_geo_node()
+            # Color the fx geo node red
+            self.fx_geo_node.setColor(hou.Color((1, 0, 0)))
+            self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
+            self.fx_geo_node.setDisplayFlag(True)
+
             self.import_layout()
+            HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            self.object_network.layoutChildren()
+            
+            # Put import nodes into a box
+            nodes_to_put_in_box = [node for node in self.object_network.children() if node.name().startswith('import_')]
+            box = self.object_network.createNetworkBox()
+            box.setComment("Imported Geometry")
+            for node in nodes_to_put_in_box:
+                box.addNode(node)
 
 
 class HoudiniPathUtils():
