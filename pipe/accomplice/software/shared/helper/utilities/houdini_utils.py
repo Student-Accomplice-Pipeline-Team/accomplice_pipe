@@ -201,10 +201,10 @@ class HoudiniNodeUtils():
         'filecache': 'filecache::2.0',
 
         # FX Materials:
-        'money_material': 'accomp_money_material::1.0',
-        'sparks_material': 'accomp_sparks_material::1.0',
-        'smoke_material': 'accomp_smoke_material::1.0',
-        'skid_marks_material': 'accomp_skid_marks_material::1.0',
+        'money_material': 'accomp_money_material',
+        'sparks_material': 'accomp_sparks_material',
+        'smoke_material': 'accomp_smoke_material',
+        'skid_marks_material': 'accomp_skid_marks_material',
     }
     
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
