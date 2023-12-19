@@ -20,6 +20,23 @@ class HoudiniFXUtils():
         return os.path.join(fx_directory, USD_CACHE_FOLDER_NAME)
     
     @staticmethod
+    def get_paths_to_cached_fx(shot: Shot):
+        fx_usd_cache_directory_path = HoudiniFXUtils.get_fx_usd_cache_directory_path(shot)
+        if not os.path.isdir(fx_usd_cache_directory_path):
+            return []
+        return [os.path.join(fx_usd_cache_directory_path, f) for f in os.listdir(fx_usd_cache_directory_path) if os.path.isfile(os.path.join(fx_usd_cache_directory_path, f)) and f.endswith('.usd')]
+    
+    @staticmethod
+    def create_sublayer_nodes_for_cached_fx(shot: Shot):
+        cached_fx_paths = HoudiniFXUtils.get_paths_to_cached_fx(shot)
+        sublayer_nodes = []
+        for cached_fx_path in cached_fx_paths:
+            sublayer_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sublayer')
+            sublayer_node.parm('filepath1').set(cached_fx_path)
+            sublayer_nodes.append(sublayer_node)
+        return sublayer_nodes
+    
+    @staticmethod
     def get_fx_working_directory(shot: Shot):
         FX_WORKING_FOLDER_NAME = "working_files"
         fx_directory = shot.get_shotfile_folder('fx')
@@ -48,13 +65,18 @@ class HoudiniFXUtils():
     def open_houdini_fx_file():
         HoudiniUtils.open_shot_file(department_name='fx')
 
+    @staticmethod
+    def get_fx_range_nulls():
+        return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
+
+
     # This file uses the template method pattern to setup the USD wrapper for a given effect
     class USDEffectWrapper(ABC):
         def __init__(self, null_node: hou.Node):
             print('Initializing USDEffectWrapper')
             self.selection = null_node
             self.null_node = null_node
-            self.fx_start_null, self.fx_end_null = self.get_fx_range_nulls()
+            self.fx_start_null, self.fx_end_null = HoudiniFXUtils.get_fx_range_nulls()
             assert self.null_node is not None
             assert self.null_node.type().name() == "null"
 
@@ -63,9 +85,6 @@ class HoudiniFXUtils():
             self.effect_import_node.setName(self.effect_name, unique_name=True)
             assert self.effect_import_node is not None
             print('Finished initializing USDEffectWrapper')
-
-        def get_fx_range_nulls(self):
-            return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
 
         def get_materials_node(self):
             materials_node = None
@@ -207,6 +226,7 @@ class HoudiniNodeUtils():
         'skid_marks_material': 'accomp_skid_marks_material',
     }
     
+    @staticmethod
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
         """
         Inserts a new node between two existing nodes in Houdini.
@@ -435,9 +455,20 @@ class HoudiniNodeUtils():
     
     class FXSceneCreator(DepartmentSceneCreator, ABC):
         pass
+
     class MainFXSceneCreator(FXSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'fx', stage)
+
+        def post_add_department_specific_nodes(self):
+            sublayer_nodes = HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(self.shot)
+            begin_null, end_null = HoudiniFXUtils.get_fx_range_nulls()
+            last_node = begin_null
+            for sublayer_node in sublayer_nodes:
+                last_node = HoudiniNodeUtils.insert_node_between_two_nodes(last_node, end_null, sublayer_node)
+                self.my_created_nodes.append(sublayer_node)
+            
+            self.stage.layoutChildren()
 
     class WorkingFileFXSceneCreator(FXSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage'), fx_name: str=None):
@@ -451,6 +482,27 @@ class HoudiniNodeUtils():
                 'studentcar': None,
                 'vaughn': None
             }
+
+        def post_add_department_specific_nodes(self):
+            self.import_camera_geo()
+            self.import_animation_geo()
+            self.fx_geo_node = self.create_fx_geo_node()
+            # Color the fx geo node red
+            self.fx_geo_node.setColor(hou.Color((1, 0, 0)))
+            self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
+            self.fx_geo_node.setDisplayFlag(True)
+
+            self.import_layout()
+            HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            self.object_network.layoutChildren()
+            
+            # Put import nodes into a box
+            nodes_to_put_in_box = [node for node in self.object_network.children() if node.name().startswith('import_')]
+            box = self.object_network.createNetworkBox()
+            box.setComment("Imported Geometry")
+            for node in nodes_to_put_in_box:
+                box.addNode(node)
+
         
         def create_fx_geo_node(self):
             fx_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
@@ -522,26 +574,6 @@ class HoudiniNodeUtils():
             else:
                 layout_import_node.parm('primpattern').set('/scene/layout')
             layout_import_node.parm('timesample').set(0) # Make it so that the node is not time dependent
-
-        def post_add_department_specific_nodes(self):
-            self.import_camera_geo()
-            self.import_animation_geo()
-            self.fx_geo_node = self.create_fx_geo_node()
-            # Color the fx geo node red
-            self.fx_geo_node.setColor(hou.Color((1, 0, 0)))
-            self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
-            self.fx_geo_node.setDisplayFlag(True)
-
-            self.import_layout()
-            HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
-            self.object_network.layoutChildren()
-            
-            # Put import nodes into a box
-            nodes_to_put_in_box = [node for node in self.object_network.children() if node.name().startswith('import_')]
-            box = self.object_network.createNetworkBox()
-            box.setComment("Imported Geometry")
-            for node in nodes_to_put_in_box:
-                box.addNode(node)
 
 
 class HoudiniPathUtils():
@@ -678,7 +710,6 @@ class HoudiniUtils:
             shot, department = HoudiniUtils.prompt_user_for_shot_and_department(department_name)
         shot_opener = HoudiniSceneOpenerFactory(shot, department).get_shot_opener()
         shot_opener.open_shot()
-
 
 
     @staticmethod
