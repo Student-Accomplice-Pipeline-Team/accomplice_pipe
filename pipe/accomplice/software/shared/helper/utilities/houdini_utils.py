@@ -41,6 +41,10 @@ class HoudiniFXUtils():
         return os.path.join(HoudiniFXUtils.get_fx_working_directory(shot), fx_name + '.hipnc' if not fx_name.endswith('.hipnc') else fx_name)
     
     @staticmethod
+    def get_fx_name_from_working_file_path(file_path: str):
+        return os.path.basename(file_path).replace('.hipnc', '')
+    
+    @staticmethod
     def open_houdini_fx_file():
         HoudiniUtils.open_shot_file(department_name='fx')
 
@@ -106,6 +110,12 @@ class HoudiniNodeUtils():
                 return HoudiniNodeUtils.MainSceneCreator(self.shot, self.stage)
             elif self.department_name == 'lighting':
                 return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'fx':
+                fx_name = HoudiniFXUtils.get_fx_name_from_working_file_path(HoudiniUtils.get_my_path())
+                if self.shot.name in fx_name:
+                    return HoudiniNodeUtils.MainFXSceneCreator(self.shot, self.stage)
+                else:
+                    return HoudiniNodeUtils.WorkingFileFXSceneCreator(self.shot, self.stage, fx_name)
             else:
                 return HoudiniNodeUtils.DepartmentSceneCreator(self.shot, self.department_name, self.stage)
         
@@ -114,6 +124,7 @@ class HoudiniNodeUtils():
             self.shot = shot
             self.stage = stage
             self.my_created_nodes = []
+            self.load_department_layers_node = None
         
         @abstractmethod
         def add_nodes(self):
@@ -123,20 +134,20 @@ class HoudiniNodeUtils():
             self.add_nodes()
             self.stage.layoutChildren(items=self.my_created_nodes)
 
-        def create_load_shot_node(self, input_node: hou.Node=None):
+        def create_load_department_layers_node(self, input_node: hou.Node=None):
             if input_node is None:
-                load_shot_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_load_department_layers')
+                self.load_department_layers_node = HoudiniNodeUtils.create_node(self.stage, 'accomp_load_department_layers')
             else:
-                load_shot_node = input_node.createOutputNode('accomp_load_department_layers')
-            self.my_created_nodes.append(load_shot_node)
-            return load_shot_node
+                self.load_department_layers_node = input_node.createOutputNode('accomp_load_department_layers')
+            self.my_created_nodes.append(self.load_department_layers_node)
+            return self.load_department_layers_node
 
     class MainSceneCreator(NewSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node = hou.node('/stage')):
             super().__init__(shot, stage)
         
         def add_nodes(self):
-            load_shot_node = self.create_load_shot_node()
+            load_shot_node = self.create_load_department_layers_node()
             self.create_main_usd_rop_node(load_shot_node)
 
         def create_main_usd_rop_node(self, input_node: hou.Node):
@@ -157,7 +168,7 @@ class HoudiniNodeUtils():
         # Override
         def add_nodes(self):
             import_layout_node = self.create_import_layout_node()
-            load_shot_node = self.create_load_shot_node(import_layout_node)
+            load_shot_node = self.create_load_department_layers_node(import_layout_node)
             layer_break_node = self.add_layer_break_node(load_shot_node)
 
             begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
@@ -244,6 +255,101 @@ class HoudiniNodeUtils():
             tractor_node.parm('filepath1').set(self.shot.get_shot_usd_path())
             tractor_node.parm('createplayblasts').set(1)
             return tractor_node
+        
+    
+    class FXSceneCreator(DepartmentSceneCreator, ABC):
+        pass
+    class MainFXSceneCreator(FXSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'fx', stage)
+
+    class WorkingFileFXSceneCreator(FXSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage'), fx_name: str=None):
+            super().__init__(shot, 'fx', stage)
+            self.fx_name = fx_name
+            self.object_network = hou.node('/obj')
+            self.fx_geo_node = None
+            self.animated_geos = {
+                'ed': None,
+                'letty': None,
+                'studentcar': None,
+                'vaughn': None
+            }
+        
+        def create_fx_geo_node(self):
+            fx_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
+            fx_geo_node.setName(self.fx_name)
+            nodes_to_layout = []
+            for animated_character in self.animated_geos:
+                for char_geo in self.animated_geos[animated_character]:
+                    object_merge = fx_geo_node.createNode('object_merge')
+                    object_merge.setName('IMPORT_' + animated_character + '_' + char_geo.name())
+                    char_geo.parm('objpath1').set(self.animated_geos[animated_character][char_geo].path())
+                    nodes_to_layout.append(object_merge)
+            
+
+            output_null = fx_geo_node.createNode('null', 'OUT_' + self.fx_name)            
+            nodes_to_layout.append(output_null)
+            fx_geo_node.layoutChildren(items=nodes_to_layout, vertical_spacing = 0)
+            return output_null
+        
+        def import_animation_geo(self):
+            for animated_character in self.animated_geos:
+                self.animated_geos[animated_character] = self.import_character_geo(animated_character)
+
+        def import_character_geo(self, character_name):
+            """
+            Import character geometry into the scene.
+
+            Args:
+                character_name (str): The name of the character.
+
+            Returns:
+                dict: A dictionary containing the packed and unpacked nulls for the character.
+            """
+            character_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
+            character_geo_node.setName(character_name)
+            character_import_node = character_geo_node.createNode('lopimport')
+            character_import_node.setName('import_' + character_name)
+            character_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the character that's loaded here
+            character_import_node.parm('primpattern').set('/scene/anim/' + character_name + '/')
+            packed_null = character_import_node.createOutputNode('null', 'OUT_' + character_name)
+            unpack_node = character_import_node.createOutputNode('unpackusd', 'unpack_' + character_name)
+            unpack_node.parm('output').set(1) # Set output to 'Polygons'
+            unpacked_null = unpack_node.createOutputNode('null', 'OUT_' + character_name + '_unpacked')
+            character_geo_node.layoutChildren(items=[character_import_node, unpack_node, unpacked_null, packed_null])
+
+            return {
+                'packed': packed_null,
+                'unpacked': unpacked_null
+            }
+
+            
+        def import_camera_geo(self):
+            camera_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'lopimportcam')
+            camera_geo_node.setName('import_camera')
+            camera_geo_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the camera that's loaded here
+            camera_geo_node.parm('primpath').set('/scene/camera/camera_' + self.shot.get_name())
+            return camera_geo_node
+        
+        def import_layout(self):
+            self.exclude_trees = True
+            layout_geo_node = self.object_network.createNode('geo')
+            layout_geo_node.setName('layout')
+            layout_import_node = layout_geo_node.createNode('lopimport')
+            layout_import_node.setName('import_layout')
+            layout_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the layout that's loaded here
+            if self.exclude_trees:
+                layout_import_node.parm('primpattern').set('/scene/layout/* - /scene/layout/trees/')
+            else:
+                layout_import_node.parm('primpattern').set('/scene/layout')
+            layout_import_node.parm('timesample').set(0)
+
+        def post_add_department_specific_nodes(self):
+            self.import_camera_geo()
+            self.import_animation_geo()
+            self.fx_geo_node = self.create_fx_geo_node()
+            self.import_layout()
 
 
 class HoudiniPathUtils():
@@ -284,6 +390,14 @@ class HoudiniShotOpener:
         self.shot = shot
         self.department_name = department_name
     
+    def open_file_path(self, file_path):
+        # If the file already exists, go ahead and load it!
+        if os.path.isfile(file_path):
+            HoudiniUtils.open_file(file_path)
+        
+        else: # Otherwise create a new file and save it!
+            self.create_new_shot_file(file_path)
+    
     def create_new_shot_file(self, file_path):
         # Ensure directory exists
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -294,14 +408,6 @@ class HoudiniShotOpener:
         HoudiniUtils.configure_new_shot_file(self.shot, self.department_name)
         
         hou.hipFile.save(file_path)
-    
-    def open_file_path(self, file_path):
-        # If the file already exists, go ahead and load it!
-        if os.path.isfile(file_path):
-            HoudiniUtils.open_file(file_path)
-        
-        else: # Otherwise create a new file and save it!
-            self.create_new_shot_file(file_path)
     
     
     def open_shot(self):
@@ -358,7 +464,7 @@ class FXSceneOpener(HoudiniShotOpener):
 
 
 class HoudiniUtils:
-    def _get_my_path():
+    def get_my_path():
         return hou.hipFile.path()
     
     @staticmethod
@@ -386,13 +492,13 @@ class HoudiniUtils:
     @staticmethod
     def get_shot_name() -> str or None:
         """ Returns the shot name based on the current Houdini session's file path """
-        my_path = HoudiniUtils._get_my_path()
+        my_path = HoudiniUtils.get_my_path()
         return FilePathUtils.get_shot_name_from_file_path(my_path)
     
     @staticmethod
     def get_department() -> str or None:
         """ Returns the department from a file path """
-        return FilePathUtils.get_department_from_file_path(HoudiniUtils._get_my_path())
+        return FilePathUtils.get_department_from_file_path(HoudiniUtils.get_my_path())
     
     @staticmethod
     def get_shot_for_file(retrieve_from_shotgrid=False) -> Shot or None:
@@ -403,6 +509,12 @@ class HoudiniUtils:
 
     @staticmethod
     def check_for_unsaved_changes():
+        """
+        Checks if the current Houdini file has unsaved changes.
+
+        Returns:
+            int: The user's response to the warning message. 0 for "Continue" (or no unsaved changes), 1 for "Cancel".
+        """
         if hou.hipFile.hasUnsavedChanges():
             warning_response = hou.ui.displayMessage(
                 "The current file has not been saved. Continue anyway?",
@@ -411,6 +523,7 @@ class HoudiniUtils:
                 default_choice=1
             )
             return warning_response
+        return 0
 
     @staticmethod
     def prompt_user_for_shot_and_department(selected_department=None):
@@ -465,7 +578,7 @@ class HoudiniUtils:
 
 class HoudiniFileVersionManager(DCCVersionManager):
     def get_my_path(self):
-        file_path = HoudiniUtils._get_my_path()
+        file_path = HoudiniUtils.get_my_path()
         if 'untitled' in file_path.lower(): # By default, if you haven't saved anything yet, the file path will be 'untitled'
             return None # The DCCVersionManager will throw an error if you return None here
         return file_path
