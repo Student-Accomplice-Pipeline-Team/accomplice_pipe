@@ -11,7 +11,7 @@ from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 # server = pipe.server
 
 class HoudiniFXUtils():
-    supported_FX_names = ['sparks', 'smoke', 'money']
+    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks']
     
     @staticmethod
     def get_fx_usd_cache_directory_path(shot: Shot):
@@ -91,14 +91,24 @@ class HoudiniNodeUtils():
         assert shot is not None, "Shot must be defined."
         assert department_name is None or department_name in shot.available_departments, f"Department {department_name} is not available for shot {shot.name}."
         
-        if department_name == 'main' or department_name is None:
-            new_scene_creator = HoudiniNodeUtils.MainSceneCreator(shot)
-        elif department_name == 'lighting':
-            new_scene_creator = HoudiniNodeUtils.LightingSceneCreator(shot)
-        else:
-            new_scene_creator = HoudiniNodeUtils.DepartmentSceneCreator(shot, department_name)
+        new_scene_creator = HoudiniNodeUtils.SceneCreatorFactory(shot, department_name).get_scene_creator()
         new_scene_creator.create()
 
+    
+    class SceneCreatorFactory:
+        def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
+            self.shot = shot
+            self.department_name = department_name
+            self.stage = stage
+        
+        def get_scene_creator(self):
+            if self.department_name == 'main' or self.department_name is None:
+                return HoudiniNodeUtils.MainSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'lighting':
+                return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
+            else:
+                return HoudiniNodeUtils.DepartmentSceneCreator(self.shot, self.department_name, self.stage)
+        
     class NewSceneCreator(ABC):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             self.shot = shot
