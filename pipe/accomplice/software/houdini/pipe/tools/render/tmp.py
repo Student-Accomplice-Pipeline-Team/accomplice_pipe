@@ -152,7 +152,7 @@ class TractorSubmit:
                 mkdir = [
                     "/bin/bash",
                     "-c",
-                    "/usr/bin/mkdir "
+                    "/usr/bin/mkdir -p "
                     + output_dir
                 ]
 
