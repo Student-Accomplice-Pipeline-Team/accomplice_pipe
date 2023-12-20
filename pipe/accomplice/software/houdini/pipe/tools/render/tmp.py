@@ -334,7 +334,7 @@ class TractorSubmit:
 
 
 def get_source_type_index(node: hou.Node, source_num: int) -> int:
-    return node.parm('sourceoptions' + str(source_num) + str(source_num)).evalAsInt()
+    return node.parm('sourceoptions' + str(source_num) + '1').evalAsInt()
 
 
 def get_source_type(node: hou.Node, source_num: int) -> str:
