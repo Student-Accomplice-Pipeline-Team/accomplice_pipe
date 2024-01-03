@@ -74,13 +74,14 @@ class AnimationImporter():
         print("anim path: ", anim_path)
 
         anim_name = os.path.basename(anim_path).replace(EXTENSION, '') # Get just the name of the file, excluding extension
-        anim_name_components = anim_name.split('_')
+        #Couldn't find a use for this at the moment, making it hard to get the constructionsign into the scenes.
+        '''anim_name_components = anim_name.split('_')
         if len(anim_name_components) > 1:
             asset_name = anim_name_components[0]
             anim_description = anim_name_components[1]
-        else:
-            asset_name = anim_name_components[0]
-            anim_description = ''
+        else:'''
+        asset_name = anim_name
+        anim_description = ''
 
         print("anim name ", anim_name)
         print("asset name: ", asset_name)
@@ -88,6 +89,10 @@ class AnimationImporter():
         node.parm('./anim_name').set(anim_name)
         node.parm('./asset_name').set(asset_name)
         node.parm('./anim_descr').set(anim_description)
+        
+        # triggers a script in the character materials node
+        materials_node = node.node('Materials')
+        materials_node.hdaModule().set_character(materials_node)
 
         node.allowEditingOfContents()
         self.set_anim_type(node)

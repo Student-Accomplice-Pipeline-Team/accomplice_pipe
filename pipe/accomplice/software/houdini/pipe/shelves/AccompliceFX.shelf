@@ -12,6 +12,7 @@
     <memberTool name="configure_speedtree_leaves"/>
     <memberTool name="configure_speedtree_bark"/>
     <memberTool name="unlock_all_nodes"/>
+    <memberTool name="open_fx_file"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -457,5 +458,12 @@ unlock_all_chop_nodes(starting_node)
 unlock_all_sop_nodes(starting_node)
 
 print('All nodes unlocked')]]></script>
+  </tool>
+
+  <tool name="open_fx_file" label="Open FX File" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils
+
+HoudiniFXUtils.open_houdini_fx_file()
+]]></script>
   </tool>
 </shelfDocument>

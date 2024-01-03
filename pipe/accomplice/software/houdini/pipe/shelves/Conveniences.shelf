@@ -9,6 +9,7 @@
     <memberTool name="full_screen"/>
     <memberTool name="replace_substring_in_parms"/>
     <memberTool name="replace_substring_in_parm_expressions"/>
+    <memberTool name="copy_path_to_clipboard"/>
   </toolshelf>
 
   <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
@@ -103,5 +104,19 @@ def replace_substring(node, depth=0):
 
 for selected_node in selected_nodes:
     replace_substring(selected_node)]]></script>
+  </tool>
+
+  <tool name="copy_path_to_clipboard" label="Copy Path to File to Clipboard" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+import subprocess
+
+# Get the current file path
+file_path = hou.hipFile.path()
+
+print(file_path)
+
+# Copy to clipboard using xclip (make sure xclip is installed on your system)
+subprocess.run("echo '{}' | xclip -selection clipboard".format(file_path), shell=True)
+]]></script>
   </tool>
 </shelfDocument>

@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from pathlib import Path
+from pathlib import *
 from typing import Type, Union, Iterable, Optional
 from enum import Enum
 
@@ -123,7 +123,8 @@ class Asset(JsonSerializable):
             hierarchy[geovar] = {}
             matvars = self.get_mat_variants(geovar)
             for matvar in matvars:
-                material = MaterialVariant(matvar)
+                texture_sets = self.get_texture_sets(geovar, matvar)
+                material = MaterialVariant(matvar, texture_sets)
                 hierarchy[geovar][matvar] = material
             
         data.hierarchy = hierarchy
@@ -136,6 +137,7 @@ class Asset(JsonSerializable):
             
     def update_metadata(self):
         meta = self.get_metadata()
+        print('updating HAHAHAH')
         
         if not meta:
             print('no metadata found')
@@ -145,15 +147,17 @@ class Asset(JsonSerializable):
         geovars = self.get_geo_variants()
         
         for geovar in geovars:
-            if geovar not in meta.hierarchy:
-                print('adding')
+            if geovar not in meta.hierarchy.keys():
                 meta.hierarchy[geovar] = {}
-                matvars = self.get_mat_variants(geovar)
-                for matvar in matvars:
-                    material = MaterialVariant(matvar)
+            matvars = self.get_mat_variants(geovar)
+            for matvar in matvars:
+                if matvar not in meta.hierarchy[geovar].keys():
+                    texture_sets = self.get_texture_sets(geovar, matvar)
+                    material = MaterialVariant(matvar, texture_sets)
+                    meta.hierarchy[geovar][matvar]
                     meta.hierarchy[geovar][matvar] = material
     
-        print(meta.hierarchy)
+        #print(meta.hierarchy)
         
         metadata_path = self.get_metadata_path()
  
@@ -192,6 +196,17 @@ class Asset(JsonSerializable):
             for file in files:
                 mat_variants.append(str(file.name))
         return mat_variants
+    
+    def get_texture_sets(self, geo_variant, material_variant):
+        path = Path(self.get_textures_path(geo_variant, material_variant))
+        
+        files = path.glob(self.name + '_' + geo_variant + '_' + material_variant + '_*.1001.*')
+        materials = {}
+        for file in files:
+            texture_set = re.match('(?:[^_]*_){3}(.*)_', os.path.basename(file)).group(1)
+            materials[texture_set] = Material(texture_set, True)
+                
+        return materials
 
     def get_textures_path(self, geo_variant, material_variant):
         if os.name == "nt":

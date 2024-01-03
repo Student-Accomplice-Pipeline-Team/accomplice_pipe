@@ -201,10 +201,15 @@ class SubstanceImporterWindow(QtWidgets.QMainWindow):
         global meta
         global material_variant
 
-        self.importButton.setEnabled(True)
-        self.convertButton.setEnabled(True)
-
         material_variant = self.comboBox3.currentText()
+        
+        if material_variant != "":
+            self.importButton.setEnabled(True)
+            self.convertButton.setEnabled(True)
+        else:
+            self.importButton.setEnabled(False)
+            self.convertButton.setEnabled(False)
+
 
     def msgbtn(self, i):
         print(i.text())

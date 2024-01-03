@@ -316,6 +316,40 @@ global proc shelf_SA_Animation () {
         -manage 1
         -visible 1
         -preventOverride 0
+        -annotation "'''\nINSTRUCTIONS:\nExports Animation USDs for multiple shots... Duh..." 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Multi-Shot USD Exporter" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Multi-Shot USD Exporter" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "exportCache.png" 
+        -image1 "exportCache.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.exporter import MultiShotExporter\n\nmulti_shot_exporter = MultiShotExporter()\n\nmulti_shot_exporter.run()" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
         -annotation "'''\nINSTRUCTIONS:\nThis is the secret to creating hotkeys in maya through a python script for a custom python script\n\nSee the example at the bottom to see how to set it up...\n\nHotkey creation code adapted from: https://github.com/ewerybody/melDrop\nHotkey application code adapted from: https://andytech.art/fixing-mayas-most-destructive-keyboard-shortcut\n'''\nimport maya.cmds as cmds\n\ndef createRunTimeCommand(name, code, ann='', cat='User', lang='python'):\n    \"\"\"\n    runTimeCommands are all the entries listed in the Hotkey Editor.\n    They can be called directly but they can't be fired by a hotkey. For that\n    you need another nameCommand that the hotkey points to...\n    DANG: although it seems to work like any other func runTimeCommand does NOT\n    return the name of the created thing!!\n    \"\"\"\n    \n    edit = cmds.runTimeCommand(name, ex=True)\n    # default commands can't be overwritten\n    if edit and cmds.runTimeCommand(name, q=True, default=True):\n        return name\n\n    cmds.runTimeCommand(name, edit=edit, ann=ann, cat=cat, c=code, commandLanguage=lang)\n    return name\n\ndef setHotkey(name, config, *args):\n    print('setHotkey: name: %s' % name)\n    \n    if 'code' not in config:\n        raise Exception('I need some code to setup a hotkey!')\n        return\n    if 'key' not in config:\n        raise Exception('I need a KEY to setup a hotkey!')\n        return\n\n    nameCmd = config.get('nameCommand', name + '_NameCommand')\n    # if there is no special category set make it 'User'\n    cat = config.get('cat', 'User')\n    # if there is no doc text/annotation just give it the name for now\n    text = config.get('text', name)\n    \n    lang = config.get('lang', 'python')\n    \n    # create runtimeCommand, which is wisible in Hotkey Editor and contains actual code!\n    runTimeCmd = createRunTimeCommand(name, config['code'], text, cat, lang)\n    # create a nameCommand which is triggered by the hotkey\n    nameCmd = cmds.nameCommand(nameCmd, ann=text, c=runTimeCmd, sourceType=lang)\n    \n    # now the actual hotkey with the keys and modifiers\n    cmds.hotkey(k=config['key'], name=nameCmd,\n                alt=config.get('alt', False),\n                ctl=config.get('ctl', False))\n\npython_code = r'''def fixMayaPasteCommand():\n    \n    import maya.cmds as mc\n    import maya.mel as mel\n    curPanel = mc.getPanel(underPointer = True)\n    \n    if curPanel == '':\n        curPanel = mc.getPanel(withFocus=True)\n    \n    checkPanel = mc.getPanel(typeOf=curPanel)\n    \n    if checkPanel != 'scriptedPanel':\n        if checkPanel == None:\n            return\n        print ('Pasting is dangerous in the ' + checkPanel + '\\n')\n        result = mc.confirmDialog(\n            title = 'Disabled pasting in the ' + checkPanel,\n            message = 'Are you sure you want to paste? Bad things might happen!',\n            button = ['Yes','No'],\n            defaultButton = 'No',\n            cancelButton = 'No',\n            icon = 'warning'\n        )\n        if result == 'Yes':\n            mel.eval('cutCopyPaste \"paste\"')\n        else:\n            print('Decided not to paste...\\n')\n    else:\n        print ('Pasting in the ' + curPanel + '\\n')\n        mel.eval('cutCopyPaste \"paste\"')\n\nfixMayaPasteCommand()'''\n\n\nconfig = {\n\t\"lang\": \"python\",\n\t\"code\": python_code,\n\t\"key\": \"v\",\n\t\"ctl\": True\n}\nsetHotkey('fixMayaPasteCommand',config)\n\n" 
         -enableBackground 0
         -backgroundColor 0 0 0 
@@ -586,7 +620,7 @@ global proc shelf_SA_Animation () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "'''\nINSTRUCTIONS:\n1. Set the variables below to what you want them to be\n2. Run the script to color the timeline and set-up all the automatic pre-roll\n\nNOTE: Coloring timeline section requires TimelineMarker to be installed: https://github.com/robertjoosten/maya-timeline-marker\nNOTE: Uses StudioLibrary to apply the A-Pose\n'''\n\n\n\n\n#anim_dur        = 127 #temporarily overriden below by user input\n\npreHandle_start = 1001\n\n#in order:\naPose_dur       = 21\naToWindup_dur   = 24\nwindupPose_dur  = 11\nwindup_dur      = 15\npreHandle_dur   = 5\npostHandle_dur  = 5\n\n\n\n\n\n\nimport maya.cmds as cmds\n\nprompt_dialog = \"integerPromptDialog\"\nif cmds.window(prompt_dialog, exists=True):\n    cmds.deleteUI(prompt_dialog)\n\nans = cmds.promptDialog(\n    title=\"Accomplice Pre-Roll Auto-Setup\",\n    message=\"This Shot Anim Duration (in frames):\",\n    button=[\"OK\", \"Cancel\"],\n    defaultButton=\"OK\",\n    cancelButton=\"Cancel\",\n    dismissString=\"Cancel\"\n)\nif ans == 'Cancel':\n    mc.error('Canceled by user')\n\nanim_dur = cmds.promptDialog(query=True, button=True)\ntry:\n    anim_dur = int(anim_dur)\nexcept:\n    mc.error('Something other than a number was entered')\n\n'''\nif mc.playbackOptions(max=True,q=True) > 1000:\n    anim_dur = mc.playbackOptions(max=True,q=True) - 1000\nelse:\n    anim_dur = mc.playbackOptions(max=True,q=True)\n'''\n\naPose_start = preHandle_start-windup_dur-windupPose_dur-aToWindup_dur-aPose_dur\naToWindup_start = preHandle_start-windup_dur-windupPose_dur-aToWindup_dur\nwindupPose_start = preHandle_start-windup_dur-windupPose_dur\nwindup_start = preHandle_start-windup_dur\n# prehandle_start\nanim_start = preHandle_start+preHandle_dur\npostHandle_start = preHandle_start+preHandle_dur+anim_dur\n\n#Select all anim curves in scene\nimport maya.cmds as mc\nanim_curves = mc.ls(type=['animCurveTA', 'animCurveTL', 'animCurveTT', 'animCurveTU'])\n\nobjects_with_anim_list = []\nfor anim_curve in anim_curves:\n    object = mc.listConnections(anim_curve, destination=1, shapes=0)\n    if object is not None:\n        object = object[0]\n        if object not in objects_with_anim_list:\n            objects_with_anim_list.append(object)\n\nmc.select(objects_with_anim_list, replace=1)\nobjsWithKeyframes = mc.ls(sl=True)\nmc.select(objsWithKeyframes)\n\n#Set the timeline view to be from \"aPose_start\" to the last frame of \"postHandle_duration\"\ntimelineStart = mc.playbackOptions(min=True,q=True)\ntimelineEnd = mc.playbackOptions(max=True,q=True)\n\nmc.playbackOptions(min=aPose_start)\nmc.playbackOptions(animationStartTime=aPose_start)\n\nmc.playbackOptions(max=postHandle_start+postHandle_dur-1)\nmc.playbackOptions(animationEndTime=postHandle_start+postHandle_dur-1)\n\n#Color the timeline\nfrom timeline_marker.ui import TimelineMarker\ndef colorFrames(frames,color,comment):\n    if color == 'red':\n        colorVal = (225,0,0)\n    elif color == 'purple':\n        colorVal = (130,0,225)\n    elif color == 'dark blue':\n        colorVal = (0,0,225)\n    elif color == 'light blue':\n        colorVal = (0,225,225)\n    elif color == 'yellow':\n        colorVal = (225,225,0)\n    elif color == 'green':\n        colorVal = (0,50,0)\n    for frame in range(int(frames[0]),int(frames[1])+1):\n        TimelineMarker.add(frame,colorVal,comment)\n\nTimelineMarker.clear()\ncolorFrames([aPose_start,aToWindup_start-1],                     'red',   'A Pose')\ncolorFrames([aToWindup_start,windupPose_start-1],                'purple','A Pose -> Windup Pose')\ncolorFrames([windupPose_start,windup_start-1],                   'dark blue','Windup Pose')\ncolorFrames([windup_start,preHandle_start-1],                    'light blue',  'Windup')\ncolorFrames([preHandle_start,anim_start-1],                      'yellow','Pre-Handle')\ncolorFrames([anim_start,postHandle_start-1],                     'green', 'Anim')\ncolorFrames([postHandle_start,postHandle_start+postHandle_dur-1],'yellow','Post-Handle')\n\n#Set full scene keyframe on pre-handle start frame\nmc.currentTime(preHandle_start)\nmc.select(objsWithKeyframes)\nmc.setKeyframe()\n\n#Set full scene keyframe on windupPose start frame\nmc.currentTime(windupPose_start)\nmc.select(objsWithKeyframes)\nmc.setKeyframe()\n\n#Set full scene keyframe on windup start frame\nmc.currentTime(windup_start)\nmc.select(objsWithKeyframes)\nmc.setKeyframe()\n\n#Put Letty in A Pose and set full scene keyframe on A Pose start frame and Windup Pose start frame\nimport sys\nif '/groups/accomplice/pipeline/lib/studiolibrary' not in sys.path:\n    sys.path.insert(0, '/groups/accomplice/pipeline/lib/studiolibrary')\nimport studiolibrary\nstudiolibrary.setLibraries([{'name': 'Accomplice Poses', 'path': r'/groups/accomplice/anim/pose-library', 'default': True, 'theme': {'accentColor': 'rgb(3,252,211)',},},])\nimport mutils\n\nmc.currentTime(preHandle_start)\nmc.select(objsWithKeyframes)\nmc.setKeyframe()\n\ndef preRollPose(character,ns='',aPose=False,ik=True,objsWithKeyframes=objsWithKeyframes):\n    \n    if ns == '':\n        ns = character\n    if character == 'letty':\n        if aPose == True:\n            if ik == True:\n                path = r\"/groups/accomplice/anim/pose-library/PREROLL_POSES/Letty_APOSE_IK.pose/pose.json\"\n            elif ik == False:\n                path = r\"/groups/accomplice/anim/pose-library/PREROLL_POSES/Letty_APOSE_FK.pose/pose.json\"\n        else:\n            path = r\"/groups/accomplice/anim/pose-library/PREROLL_POSES/Letty_TPOSE.pose/pose.json\"\n    elif character == 'ed':\n        path = r\"/groups/accomplice/anim/pose-library/PREROLL_POSES/Ed_TPOSE.pose/pose.json\"\n    elif character == 'vaughn':\n        path = r\"/groups/accomplice/anim/pose-library/PREROLL_POSES/Vaughn_TPOSE.pose/pose.json\"\n    \n    pose = mutils.Pose.fromPath(path)\n    \n    mc.currentTime(aPose_start)\n    try:\n        pose.load(namespaces=[ns])\n    except:\n        print('Character: \"' + character + \"' not found in scene\")\n        return\n    try:\n        mc.matchTransform(ns+':root_CTRL','heroCar'+':worldForward_CTRL')\n    except:\n        mc.warning('heroCar not found in scene')\n    mc.select(objsWithKeyframes)\n    mc.setKeyframe()\n    \n    mc.currentTime(aToWindup_start)\n    pose.load(namespaces=[ns])\n    try:\n        mc.matchTransform(ns+':root_CTRL','heroCar'+':worldForward_CTRL')\n    except:\n        mc.warning('heroCar not found in scene')\n    mc.select(objsWithKeyframes)\n    mc.setKeyframe()\n\n\npreRollPose(character='letty')\nlettyIkFk = mc.getAttr('letty:SWITCH_ARM_CTRL_R.Arm_IK')\npreRollPose(character='letty',aPose=True,ik=lettyIkFk)\n\n#preRollPose(character='ed',ns='ed1')\npreRollPose(character='ed')\npreRollPose(character='vaughn')\n" 
+        -command "from pipe.animation import pre_roll\n\npre_roll.setup_pre_roll()"
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
@@ -659,6 +693,19 @@ global proc shelf_SA_Animation () {
         -commandRepeatable 1
         -flat 1
     ;
+    separator
+        -enable 1
+        -width 34
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
     shelfButton
         -enableCommandRepeat 1
         -flexibleWidthType 3
@@ -688,10 +735,159 @@ global proc shelf_SA_Animation () {
         -style "iconOnly" 
         -marginWidth 0
         -marginHeight 1
-        -command "import os\nimport maya.cmds as cmds\nimport pipe\nfrom PySide2 import QtWidgets, QtGui, QtCore\n\nclass ShotFileDialog(QtWidgets.QDialog):\n    \"\"\" A PyQt class for holding the list of shot files \"\"\"\n    def __init__(self, shot_names, parent=None):\n        super(ShotFileDialog, self).__init__(parent)\n        self.setWindowTitle(\"Open Shot File\")\n        \n        layout = QtWidgets.QVBoxLayout()\n        \n        self.shot_list = QtWidgets.QListWidget()\n        layout.addWidget(self.shot_list)\n        \n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n        \n        cancel_button = QtWidgets.QPushButton(\"Cancel\")\n        cancel_button.clicked.connect(self.reject)\n        layout.addWidget(cancel_button)\n        \n        for shot_name in shot_names:\n            item = QtWidgets.QListWidgetItem(shot_name)\n            self.shot_list.addItem(item)\n        \n        self.setLayout(layout)\n\nclass InfoDialog(QtWidgets.QDialog):\n    def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):\n        super(InfoDialog, self).__init__(parent)\n        self.setWindowTitle(dialog_title)\n        \n        layout = QtWidgets.QVBoxLayout()\n\n        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message\n        layout.addWidget(message_label)  # Add the label to the layout\n\n        ok_button = QtWidgets.QPushButton(\"OK\")\n        ok_button.clicked.connect(self.accept)\n        layout.addWidget(ok_button)\n\n        if include_cancel_button:\n            cancel_button = QtWidgets.QPushButton(\"Cancel\")\n            cancel_button.clicked.connect(self.reject)\n            layout.addWidget(cancel_button)\n\n        self.setLayout(layout)\n\n\ndef open_file(file_path):\n    \"\"\" Opens a new Maya file \"\"\"\n    cmds.file(file_path, open=True, force=True)\n\ndef create_new_file(file_path:str, shot):\n    \"\"\" Creates a new Maya file \"\"\"\n    directory = os.path.dirname(file_path)\n    if not os.path.isdir(directory):\n        os.makedirs(directory)\n    cmds.file(new=True, force=True)\n    cmds.file(rename=file_path)\n    set_frame_range(shot)\n    cmds.file(save=True)\n    \ndef set_frame_range(shot, global_start_frame=1001, handle_frames=5):\n    handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)\n    cmds.playbackOptions(animationStartTime=handle_start, animationEndTime=handle_end)\n    cmds.playbackOptions(minTime=shot_start, maxTime=shot_end)\n\ndef open_shot_file():\n    unsaved_changes = cmds.file(query=True, modified=True)\n    if unsaved_changes:\n        response = cmds.confirmDialog(\n            title=\"Unsaved Changes\",\n            message=\"The current file has unsaved changes. Continue anyway?\",\n            button=[\"Continue\", \"Cancel\"],\n            defaultButton=\"Cancel\",\n            cancelButton=\"Cancel\",\n            dismissString=\"Cancel\"\n        )\n        if response == \"Cancel\":\n            return\n    \n    shot_names = sorted(pipe.server.get_shot_list())\n    \n    shot_dialog = ShotFileDialog(shot_names)\n    result = shot_dialog.exec_()\n    \n    if result == QtWidgets.QDialog.Accepted:\n        selected_item = shot_dialog.shot_list.currentItem()\n        if selected_item:\n            shot_name = selected_item.text()\n            shot = pipe.server.get_shot(shot_name, retrieve_from_shotgrid=True)\n            \n            file_path = shot.get_maya_shotfile_path()\n            \n            if os.path.isfile(file_path): # If the file exists\n                # Open the file\n                open_file(file_path)\n            else: # Otherwise, open a new tile and save it\n                dialog = InfoDialog(\"Create New File\", \"Shot \" + shot_name + \" does not yet exist. Would you like to create it?\", include_cancel_button=True)\n                response = dialog.exec_()\n                if response == QtWidgets.QDialog.Accepted:\n                    create_new_file(file_path, shot)\n                else:\n                    dialog = InfoDialog(\"Shot not created.\", \"The shot was not created.\")\n                    response = dialog.exec_()\n                    \n\nopen_shot_file()" 
+        -command "from pipe.animation.maya_file_manager import OpenNewFileManager\nOpenNewFileManager.open_shot_file()"
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Save New Version" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Save New Version" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Save New Version" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.maya_file_manager import MayaFileVersionManager\nMayaFileVersionManager().save_new_version()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Show Current Version" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Shot Currnet Version" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Show Current Version" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.maya_file_manager import MayaFileVersionManager\nMayaFileVersionManager().show_current_version()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Switch Version" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Switch Version" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Switch Version" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.maya_file_manager import MayaFileVersionManager\nMayaFileVersionManager().switch_version()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "Edit Version Note" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Edit Version Note" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -imageOverlayLabel "Edit Version Note" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "from pipe.animation.maya_file_manager import MayaFileVersionManager\nMayaFileVersionManager().edit_version_note()"
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    separator
+        -enable 1
+        -width 34
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
     ;
     shelfButton
         -enableCommandRepeat 1
