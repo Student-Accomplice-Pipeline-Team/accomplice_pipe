@@ -165,6 +165,61 @@ class TractorSubmit:
             
             render_task = author.Task()
             render_task.title = "render"
+            
+            if self.node.parm("denoise").evalAsInt():
+                asymmetry = self.node.parm("denoise_asymmetry").evalAsFloat()
+                denoise_task = author.Task()
+                denoise_task.title = "denoise"
+
+                for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1):
+                    if frame % self.frame_ranges[file_num][2] != 0:
+                        continue
+                    denoise_frame_task = author.Task()
+                    denoise_frame_task.title = f"Denoise Frame {str(frame)}"
+
+                    exr_path = ""
+                    if self.output_path_overrides[file_num] != None:
+                        exr_path = self.output_path_overrides[file_num][
+                            frame - self.frame_ranges[file_num][0]
+                        ]
+                    else:
+                        exr_path = output_path_attr.Get(frame)
+
+                    denoise_command_argv = [
+                        "/bin/bash",
+                        "-c",
+                        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
+                        + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
+                        + f"--asymmetry {str(asymmetry)} "
+                        + "--crossframe "
+                        + f"--frame-include {frame - self.frame_ranges[file_num][0]} "
+                        + re.sub(r'\.\d{4}\.', '.*.', exr_path)
+                    ]
+
+                    denoise_command = author.Command()
+                    denoise_command.argv = denoise_command_argv
+                    denoise_command.envkey = [ENV_KEY]                    
+                    denoise_frame_task.addCommand(denoise_command)
+
+                    varinst = author.Instance(title="Frame $framenum")
+                    # prereqs = author.Iterate()
+                    # prereqs.varname = "framenum"
+                    # prereqs.frm = max(self.frame_ranges[file_num][0], frame - 3)
+                    # prereqs.to = min(frame + 3, self.frame_ranges[file_num][1])
+                    # prereqs.by = 1
+                    # prereqs.addToTemplate(varinst)
+
+                    # prereq_task = author.Task(title=f"Denoise Frame {str(frame)} prereqs")
+                    # prereq_task.addChild(prereqs)
+
+                    # denoise_frame_task.addChild(prereqs)
+
+                    for p in range(max(self.frame_ranges[file_num][0], frame - 3), min(frame + 3, self.frame_ranges[file_num][1]) + 1):
+                        denoise_frame_task.addChild(author.Instance(title=f"Frame {p}"))
+
+                    denoise_task.addChild(denoise_frame_task)
+                
+                render_task.addChild(denoise_task)
 
             # For loop creating a sub-task for each frame to be rendered in the USD
             for frame in range(
@@ -223,7 +278,12 @@ class TractorSubmit:
                         exr_path = output_path_attr.Get(frame)
 
                     exr_path_split = os.path.split(exr_path)
+                    
+                    png_dir = exr_path_split[0] + os.path.sep + "png"
 
+                    if not os.path.exists(png_dir):
+                        os.makedirs(png_dir, mode=775)
+                    
                     png_path = (
                         png_dir
                         + os.path.sep
@@ -288,6 +348,8 @@ class TractorSubmit:
 
             # Add task to job
             self.job.addChild(task)
+
+            # print(self.job.asTcl())
 
     # Calls all functions in this class required to gather parameter info, create, and spool the Tractor Job
     def spoolJob(self):
