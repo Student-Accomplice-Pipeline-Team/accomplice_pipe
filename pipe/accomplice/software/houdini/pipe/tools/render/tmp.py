@@ -139,30 +139,6 @@ class TractorSubmit:
                 "/Render/Products/renderproduct"
             ).GetAttribute("productName")
 
-<<<<<<< HEAD
-            exr_path = ""
-            if self.output_path_overrides[file_num] != None:
-                exr_path = self.output_path_overrides[file_num][
-                    self.frame_ranges[file_num][0]
-                ]
-            else:
-                exr_path = output_path_attr.Get(self.frame_ranges[file_num][0])
-
-            exr_dir, _ = os.path.split(exr_path)
-            png_dir = exr_dir + os.path.sep + "png"
-
-            setup_task = author.Task()
-            setup_task.title = "setup"
-            setup_command = author.Command(True)
-            setup_command.argv = [
-                "mkdir",
-                "-p",
-                png_dir if self.node.parm("createplayblasts").evalAsInt() else exr_dir,
-            ]
-            setup_task.addCommand(setup_command)
-            task.addChild(setup_task)
-
-=======
 
             if self.output_path_overrides[file_num] is not None:
                 output_dir = os.path.dirname(self.output_path_overrides[file_num][0])
@@ -187,7 +163,6 @@ class TractorSubmit:
             
                 task.addChild(directory_task)
             
->>>>>>> 9b246f19268912000f6f68fa426a9409fdf5b2aa
             render_task = author.Task()
             render_task.title = "render"
 
