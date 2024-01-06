@@ -31,6 +31,7 @@ class MayaProxy(HTTPSoftwareProxy):
         'MAYAUSD_EXPORT_MAP1_AS_PRIMARY_UV_SET': 1,
         'MAYAUSD_IMPORT_PRIMARY_UV_SET_AS_MAP1': 1,
         'OCIO': os.path.join(program_dir, 'pixar', 'RenderManProServer-25.2', 'lib', 'ocio', 'ACES-1.2', 'config.ocio'),
+        'QT_FONT_DPI': os.getenv('MAYA_FONT_DPI')
     }
 
     def __init__(
