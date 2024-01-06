@@ -226,6 +226,18 @@ class HoudiniNodeUtils():
         'smoke_material': 'accomp_smoke_material',
         'skid_marks_material': 'accomp_skid_marks_material',
     }
+
+    @staticmethod
+    def find_first_node_of_type(parent, node_type):
+
+        # Iterate through all nodes in the stage context
+        for node in parent.allSubChildren():
+            # Check if the node is of the specified type
+            if node.type().name() == node_type:
+                return node
+
+        # Return None if no node of the specified type is found
+        return None
     
     @staticmethod
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
