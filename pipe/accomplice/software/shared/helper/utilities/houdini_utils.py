@@ -92,7 +92,11 @@ class HoudiniFXUtils():
             materials_node = None
             # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
             if self.effect_name in HoudiniFXUtils.supported_FX_names:
-                materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), self.effect_name + "_material")
+                try:
+                    materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), self.effect_name + "_material")
+                except:
+                    # Inform user that the material could not be created
+                    hou.ui.displayMessage("Unable to create material for " + self.effect_name + ". Please create a material manually.")
             else:
                 # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
                 # If nothing else, create a default materials subnetwork with a hint to create materials
@@ -225,7 +229,7 @@ class HoudiniNodeUtils():
         'money_material': 'accomp_money_material',
         'sparks_material': 'accomp_sparks_material',
         'smoke_material': 'accomp_smoke_material',
-        'skid_marks_material': 'accomp_skid_marks_material',
+        # 'skid_marks_material': 'accomp_skid_marks_material',
     }
 
     @staticmethod
