@@ -40,8 +40,6 @@ class HoudiniFXUtils():
     def get_fx_working_directory(shot: Shot):
         FX_WORKING_FOLDER_NAME = "working_files"
         fx_directory = shot.get_shotfile_folder('fx')
-        if not os.path.isdir(fx_directory):
-            os.mkdir(fx_directory)
         fx_working_folder = os.path.join(fx_directory, FX_WORKING_FOLDER_NAME)
         os.makedirs(fx_working_folder, exist_ok=True)
         return fx_working_folder
