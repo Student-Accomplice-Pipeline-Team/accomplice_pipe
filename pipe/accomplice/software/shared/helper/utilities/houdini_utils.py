@@ -570,7 +570,7 @@ class HoudiniNodeUtils():
             
         def import_camera_geo(self):
             camera_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'lopimportcam')
-            camera_geo_node.setName('import_camera')
+            camera_geo_node.setName('import_camera', unique_name=True)
             camera_geo_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the camera that's loaded here
             camera_geo_node.parm('primpath').set('/scene/camera/camera_' + self.shot.get_name())
             return camera_geo_node
@@ -578,7 +578,7 @@ class HoudiniNodeUtils():
         def import_layout(self):
             self.exclude_trees = True
             layout_geo_node = self.object_network.createNode('geo')
-            layout_geo_node.setName('import_layout')
+            layout_geo_node.setName('import_layout', unique_name=True)
             layout_import_node = layout_geo_node.createNode('lopimport')
             layout_import_node.setName('import_layout')
             layout_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the layout that's loaded here
