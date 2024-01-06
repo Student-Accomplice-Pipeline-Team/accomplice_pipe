@@ -42,13 +42,16 @@ class HoudiniFXUtils():
         fx_directory = shot.get_shotfile_folder('fx')
         if not os.path.isdir(fx_directory):
             os.mkdir(fx_directory)
-        return os.path.join(fx_directory, FX_WORKING_FOLDER_NAME)
+        fx_working_folder = os.path.join(fx_directory, FX_WORKING_FOLDER_NAME)
+        os.makedirs(fx_working_folder, exist_ok=True)
+        return fx_working_folder
     
     @staticmethod
     def get_names_of_fx_files_in_working_directory(shot: Shot):
         # Find all the files in the working directory that end with '.hipnc' and return the names of the files without the extension
         EXTENSION = '.hipnc'
         fx_working_directory = HoudiniFXUtils.get_fx_working_directory(shot)
+        assert os.path.exists(fx_working_directory)
         fx_files = [f for f in os.listdir(fx_working_directory) if os.path.isfile(os.path.join(fx_working_directory, f)) and f.endswith(EXTENSION)]
         fx_file_names = [f.replace(EXTENSION, '') for f in fx_files]
         return fx_file_names
