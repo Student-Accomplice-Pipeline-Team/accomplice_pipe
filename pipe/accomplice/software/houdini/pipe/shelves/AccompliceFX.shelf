@@ -52,17 +52,17 @@ for usd_file in usd_files:
         continue
     print(usd_file)
     usd_file_path = os.path.join(usd_cache_folder, usd_file)
-    reference_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "reference")
-    reference_node.parm("filepath1").set(usd_file_path)
-    reference_node.parm("primpath1").set("/fx/`@sourcename`")
+    sublayer_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "sublayer")
+    print('This is the value of filepath1: ', sublayer_node.parm("filepath1").eval())
+    sublayer_node.parm("filepath1").set(usd_file_path)
     fx_base_name = usd_file.split(".")[0]
-    reference_node.setName(fx_base_name, unique_name=True)
-    refernece_nodes.append(reference_node)
+    sublayer_node.setName(fx_base_name, unique_name=True)
+    refernece_nodes.append(sublayer_node)
 
 # Merge all reference nodes together:
 merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
-for reference_node in refernece_nodes:
-    merge_node.setNextInput(reference_node)
+for sublayer_node in refernece_nodes:
+    merge_node.setNextInput(sublayer_node)
 
 # Set the display flag on the merge node:
 merge_node.setDisplayFlag(True)
@@ -74,7 +74,7 @@ nodes_to_layout = [merge_node] + refernece_nodes
 usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
 usd_rop_node.setInput(0, merge_node)
 usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
-full_fx_usd_path = HoudiniUtils.get_shot_for_file().get_shot_usd('fx')
+full_fx_usd_path = HoudiniUtils.get_shot_for_file().get_shot_usd_path('fx')
 relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
 # Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
 usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)

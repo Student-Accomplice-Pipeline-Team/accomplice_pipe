@@ -8,6 +8,7 @@
   <shelfSet name="accomplice_1" label="Accomplice Geometry">
     <memberToolshelf name="accomp_files"/>
     <memberToolshelf name="accomplice_fx"/>
+    <memberToolshelf name="conveniences"/>
     <memberToolshelf name="version_management"/>
     <memberToolshelf name="test_geometry"/>
     <memberToolshelf name="RenderManRIS"/>
@@ -19,7 +20,6 @@
     <memberToolshelf name="create"/>
     <memberToolshelf name="model"/>
     <memberToolshelf name="labs_toolset"/>
-    <memberToolshelf name="conveniences"/>
     <memberToolshelf name="deform"/>
     <memberToolshelf name="crowds"/>
   </shelfSet>
