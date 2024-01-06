@@ -149,10 +149,8 @@ import subprocess
 # Get the current file path
 file_path = hou.hipFile.path()
 
-print(file_path)
-
 # Copy to clipboard using xclip (make sure xclip is installed on your system)
-subprocess.run("echo '{}' | xclip -selection clipboard".format(file_path), shell=True)
+subprocess.run("echo -n '{}' | xclip -selection clipboard".format(file_path), shell=True)
 ]]></script>
   </tool>
 </shelfDocument>
