@@ -33,6 +33,7 @@ class HoudiniFXUtils():
         for cached_fx_path in cached_fx_paths:
             sublayer_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sublayer')
             sublayer_node.parm('filepath1').set(cached_fx_path)
+            sublayer_node.setName(os.path.basename(cached_fx_path).replace('.usd', ''), unique_name=True)
             sublayer_nodes.append(sublayer_node)
         return sublayer_nodes
     
@@ -455,7 +456,7 @@ class HoudiniNodeUtils():
         
         def create_sublayer_node_to_import_entire_scene(self):
             sublayer = HoudiniNodeUtils.create_node(self.stage, 'sublayer')
-            sublayer.setName(self.shot.name + '_preview')
+            sublayer.setName(self.shot.name + '_preview', unique_name=True)
             sublayer.parm('filepath1').set(self.shot.get_shot_usd_path())
             return sublayer
         
@@ -519,14 +520,14 @@ class HoudiniNodeUtils():
         
         def create_fx_geo_node(self):
             fx_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
-            fx_geo_node.setName(self.fx_name)
+            fx_geo_node.setName(self.fx_name, unique_name=True)
             nodes_to_layout = []
             for animated_character in self.animated_geos:
                 for char_geo in self.animated_geos[animated_character]:
                     if char_geo == 'packed': # Skip the packed null
                         continue
                     object_merge = fx_geo_node.createNode('object_merge')
-                    object_merge.setName(animated_character + '_' + char_geo)
+                    object_merge.setName(animated_character + '_' + char_geo, unique_name=True)
                     object_merge.parm('objpath1').set(self.animated_geos[animated_character][char_geo].path())
                     nodes_to_layout.append(object_merge)
             
@@ -551,7 +552,7 @@ class HoudiniNodeUtils():
                 dict: A dictionary containing the packed and unpacked nulls for the character.
             """
             character_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
-            character_geo_node.setName('import_' + character_name)
+            character_geo_node.setName('import_' + character_name, unique_name=True)
             character_import_node = character_geo_node.createNode('lopimport')
             character_import_node.setName('import_' + character_name, unique_name=True)
             character_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the character that's loaded here
@@ -580,7 +581,7 @@ class HoudiniNodeUtils():
             layout_geo_node = self.object_network.createNode('geo')
             layout_geo_node.setName('import_layout', unique_name=True)
             layout_import_node = layout_geo_node.createNode('lopimport')
-            layout_import_node.setName('import_layout')
+            layout_import_node.setName('import_layout', unique_name=True)
             layout_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the layout that's loaded here
             if self.exclude_trees:
                 layout_import_node.parm('primpattern').set('/scene/layout/* - /scene/layout/trees/')
