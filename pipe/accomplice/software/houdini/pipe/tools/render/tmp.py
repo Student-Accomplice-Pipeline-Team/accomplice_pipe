@@ -175,7 +175,7 @@ class TractorSubmit:
                     if frame % self.frame_ranges[file_num][2] != 0:
                         continue
                     denoise_frame_task = author.Task()
-                    denoise_frame_task.title = f"Denoise Frame {str(frame)}"
+                    denoise_frame_task.title = f"Denoise Frame {str(frame)} f{file_num}"
 
                     exr_path = ""
                     if self.output_path_overrides[file_num] != None:
@@ -201,21 +201,8 @@ class TractorSubmit:
                     denoise_command.envkey = [ENV_KEY]                    
                     denoise_frame_task.addCommand(denoise_command)
 
-                    varinst = author.Instance(title="Frame $framenum")
-                    # prereqs = author.Iterate()
-                    # prereqs.varname = "framenum"
-                    # prereqs.frm = max(self.frame_ranges[file_num][0], frame - 3)
-                    # prereqs.to = min(frame + 3, self.frame_ranges[file_num][1])
-                    # prereqs.by = 1
-                    # prereqs.addToTemplate(varinst)
-
-                    # prereq_task = author.Task(title=f"Denoise Frame {str(frame)} prereqs")
-                    # prereq_task.addChild(prereqs)
-
-                    # denoise_frame_task.addChild(prereqs)
-
                     for p in range(max(self.frame_ranges[file_num][0], frame - 3), min(frame + 3, self.frame_ranges[file_num][1]) + 1):
-                        denoise_frame_task.addChild(author.Instance(title=f"Frame {p}"))
+                        denoise_frame_task.addChild(author.Instance(title=f"Frame {p} f{file_num}"))
 
                     denoise_task.addChild(denoise_frame_task)
                 
@@ -228,7 +215,7 @@ class TractorSubmit:
                 if frame % self.frame_ranges[file_num][2] != 0:
                     continue
                 subTask = author.Task()
-                subTask.title = "Frame " + str(frame)
+                subTask.title = f"Frame {str(frame)} f{str(file_num)}"
                 # Build render command from USD info
                 # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
                 renderCommand = [
