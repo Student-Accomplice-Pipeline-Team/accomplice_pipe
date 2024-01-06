@@ -13,7 +13,6 @@
     <memberTool name="configure_speedtree_bark"/>
     <memberTool name="unlock_all_nodes"/>
     <memberTool name="open_fx_file"/>
-    <memberTool name="import_geo_camera"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -467,39 +466,4 @@ print('All nodes unlocked')]]></script>
 HoudiniFXUtils.open_houdini_fx_file()
 ]]></script>
   </tool>
-
-  <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[
-import hou
-from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
-
-load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
-
-working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
-working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
-working_file_fx_scene_creator.import_camera_geo()]]></script>
-  </tool>
-  <tool name="import_geo_animation" label="Import Animation to /obj" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[
-import hou
-from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
-
-load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
-
-working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
-working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
-working_file_fx_scene_creator.import_animation_geo()]]></script>
-  </tool>
-    <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[
-import hou
-from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
-
-load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
-
-working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
-working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
-working_file_fx_scene_creator.import_layout()]]></script>
-  </tool>
-
 </shelfDocument>

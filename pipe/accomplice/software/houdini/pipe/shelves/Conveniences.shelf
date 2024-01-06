@@ -6,12 +6,48 @@
  a single file. -->
 
   <toolshelf name="conveniences" label="Conveniences">
+    <memberTool name="import_geo_camera"/>
+    <memberTool name="import_geo_animation"/>
+    <memberTool name="import_geo_layout"/>
     <memberTool name="full_screen"/>
     <memberTool name="replace_substring_in_parms"/>
     <memberTool name="replace_substring_in_parm_expressions"/>
     <memberTool name="copy_path_to_clipboard"/>
   </toolshelf>
 
+  <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node # Yes, I realize that setting a private member of this class is messed up and if I had more time, this functionality would be abstracted into another class (also I apologize for the code duplication.)
+working_file_fx_scene_creator.import_camera_geo()]]></script>
+  </tool>
+  <tool name="import_geo_animation" label="Import Animation to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
+working_file_fx_scene_creator.import_animation_geo()]]></script>
+  </tool>
+    <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
+working_file_fx_scene_creator.import_layout()]]></script>
+  </tool>
   <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[mw = hou.qt.mainWindow()
 if mw.isFullScreen():
