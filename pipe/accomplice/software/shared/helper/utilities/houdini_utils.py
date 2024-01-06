@@ -553,7 +553,7 @@ class HoudiniNodeUtils():
             character_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'geo')
             character_geo_node.setName('import_' + character_name)
             character_import_node = character_geo_node.createNode('lopimport')
-            character_import_node.setName('import_' + character_name)
+            character_import_node.setName('import_' + character_name, unique_name=True)
             character_import_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the character that's loaded here
             character_import_node.parm('primpattern').set('/scene/anim/' + character_name + '/')
             packed_null = character_import_node.createOutputNode('null', 'OUT_' + character_name)
