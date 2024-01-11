@@ -8,6 +8,7 @@ from typing import Sequence, Optional
 from enum import Enum
 import pipe
 from pxr import Usd
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 
 # Tractor requires all neccesiary envionment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
@@ -81,6 +82,18 @@ class TractorSubmit:
                 usd_node = update_usd_node(self.node, source_num)
                 filepaths = [usd_node.parm('lopoutput').eval()]
                 usd_node.parm('execute').pressButton()
+
+                # Create a lopimportcam node in /obj
+                sop_cam_node = hou.node('/obj').createNode('lopimportcam')
+                sop_cam_node.parm('loppath').set(self.node.path())
+                sop_cam_node.parm('primpath').set(get_render_camera_path(self.node))
+
+                # Prepare for and render the camera alembic
+                alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
+                alembic_node.parm('execute').pressButton()
+
+                # Destroy the lopimportcam node
+                sop_cam_node.destroy()
 
             for filepath in filepaths:
                 # Add the file to the filepaths
@@ -436,6 +449,13 @@ def get_usd_node(node: hou.Node):
     usd_node_type = hou.nodeType(hou.lopNodeTypeCategory(), 'usd_rop')
     return [child for child in node.children() if child.type() == usd_node_type][0]
 
+def get_alembic_node(node: hou.Node):
+    alembic_node_type = hou.nodeType(hou.ropNodeTypeCategory(), 'alembic')
+    return [child for child in node.children() if child.type() == alembic_node_type][0]
+
+def get_ropnet(node: hou.Node):
+    ropnet_node_type = hou.nodeType(hou.lopNodeTypeCategory(), 'ropnet')
+    return [child for child in node.children() if child.type() == ropnet_node_type][0]
 
 def update_usd_node(node: hou.Node, source_num: int) -> hou.Node:
     # Get the relevant options for the source
@@ -467,6 +487,22 @@ def update_usd_node(node: hou.Node, source_num: int) -> hou.Node:
 
     return usd_node
 
+def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -> hou.Node:
+    f1, f2, f3 = get_frame_range(node, str(source_num))
+
+    # Find the alembic node
+    alembic_node = get_alembic_node(get_ropnet(node))
+
+    # Set the options on the alembic node
+    alembic_node.parm('root').set('/obj')
+    alembic_node.parm('objects').set(camera_sop_path)
+    alembic_node.parm('f1').deleteAllKeyframes()
+    alembic_node.parm('f2').deleteAllKeyframes()
+    alembic_node.parm('f1').set(f1)
+    alembic_node.parm('f2').set(f2)
+    alembic_node.parm('f3').set(f3)
+    
+    return alembic_node
 
 def execute_usd(node: hou.Node, parm: hou.Parm):
    # Get the number of the source to render a USD for
@@ -657,3 +693,9 @@ def switch_source_type(
     #     return
 
     # unset_issues(node, parm.name())
+
+def get_render_camera_path(node: hou.Node) -> str:
+    # Determine the render camera
+    ls = hou.LopSelectionRule()
+    ls.setPathPattern('%rendercamera')
+    return ls.expandedPaths(node.inputs()[0])[0].pathString
