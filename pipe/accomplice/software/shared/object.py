@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from pathlib import Path
+from pathlib import *
 from typing import Type, Union, Iterable, Optional
 from enum import Enum
 
@@ -121,7 +121,12 @@ class Asset(JsonSerializable):
             
         for geovar in geovars:
             hierarchy[geovar] = {}
-        
+            matvars = self.get_mat_variants(geovar)
+            for matvar in matvars:
+                texture_sets = self.get_texture_sets(geovar, matvar)
+                material = MaterialVariant(matvar, texture_sets)
+                hierarchy[geovar][matvar] = material
+            
         data.hierarchy = hierarchy
 
         if not os.path.exists(path):
@@ -129,6 +134,36 @@ class Asset(JsonSerializable):
     
         with open(meta_path, 'w') as outfile:
             outfile.write(data.to_json())
+            
+    def update_metadata(self):
+        meta = self.get_metadata()
+        print('updating HAHAHAH')
+        
+        if not meta:
+            print('no metadata found')
+            self.create_metadata()
+            meta = self.get_metadata()
+            
+        geovars = self.get_geo_variants()
+        
+        for geovar in geovars:
+            if geovar not in meta.hierarchy.keys():
+                meta.hierarchy[geovar] = {}
+            matvars = self.get_mat_variants(geovar)
+            for matvar in matvars:
+                if matvar not in meta.hierarchy[geovar].keys():
+                    texture_sets = self.get_texture_sets(geovar, matvar)
+                    material = MaterialVariant(matvar, texture_sets)
+                    meta.hierarchy[geovar][matvar]
+                    meta.hierarchy[geovar][matvar] = material
+    
+        #print(meta.hierarchy)
+        
+        metadata_path = self.get_metadata_path()
+ 
+        with open(metadata_path, 'w') as outfile:
+            toFile = meta.to_json()
+            outfile.write(toFile)
 
     def get_geo_variants(self):
         if str(os.name) == "nt":
@@ -148,19 +183,30 @@ class Asset(JsonSerializable):
         return geo_variants
 
     def get_mat_variants(self, geo_variant):
-        if os.name == "nt":
-            path = Path(self.get_geo_path().replace('/groups/', 'G:\\'))
-        else:
-            path = Path(self.get_geo_path())
-        path = path / 'textures'
+
+        path = Path(self.get_geo_path().replace('geo', 'textures'))
+        
+        path = path / geo_variant
+        print(path)
         mat_variants = []
 
         if path.exists():
-            files = path.glob('*_DiffuseColor*1001.png.tex')
+            files = path.glob('*/')
 
             for file in files:
-                mat_variants.append(re.search('(.*_).*(_DiffuseColor_.*1001.*\.tex)', str(file)).group())
+                mat_variants.append(str(file.name))
         return mat_variants
+    
+    def get_texture_sets(self, geo_variant, material_variant):
+        path = Path(self.get_textures_path(geo_variant, material_variant))
+        
+        files = path.glob(self.name + '_' + geo_variant + '_' + material_variant + '_*.1001.*')
+        materials = {}
+        for file in files:
+            texture_set = re.match('(?:[^_]*_){3}(.*)_', os.path.basename(file)).group(1)
+            materials[texture_set] = Material(texture_set, True)
+                
+        return materials
 
     def get_textures_path(self, geo_variant, material_variant):
         if os.name == "nt":
@@ -305,30 +351,65 @@ class MaterialVariant(JsonSerializable):
         return obj
 
 class Shot(JsonSerializable):
-    name = None
-    path = None
+    available_departments = ['main', 'anim', 'camera', 'fx', 'cfx', 'layout', 'lighting']
     checked_out = False
 
-    def __init__(self, name: str, path: Optional[str] = None) -> None:
+    def __init__(self, name: str, cut_in: Optional[int] = None, cut_out: Optional[int] = None) -> None:
         self.name = name
-        self.path = path
+        self.path = self._get_path_from_name(name)
+        self.cut_in = cut_in
+        self.cut_out = cut_out
+        
+    def _get_path_from_name(self, name):
+        name_components = name.split('_')
+        # TODO: obviously, this isn't super modular to have the path hardcoded like this, but the benefits seem to outweigh the costs in my mind
+        # Ideally, there would be a single file that holds all of the base folders.
+        return f'/groups/accomplice/pipeline/production/sequences/{name_components[0]}/shots/{name_components[1]}'
     
-    def get_shotfile_folder(self, type: Optional[str] = None) -> str:
-        if type not in [None, 'main', 'anim', 'camera', 'fx', 'layout', 'lighting']:
-            raise ValueError('type must be one of "main", "anim", "camera", "fx", "layout", "lighting"')
-        if type == 'main' or type == None:
+    def get_total_frames_in_shot(self):
+        return self.cut_out - self.cut_in + 1
+    
+    def get_shotfile_folder(self, department: Optional[str] = None) -> str:
+        if department == 'main' or department == None:
             return self.path 
+        elif department not in self.available_departments:
+            raise ValueError('type must be one of ' + ', '.join(self.available_departments))
         else:
-            return os.path.join(self.path, type)
+            return os.path.join(self.path, department)
+    
+    def get_shot_frames(self, global_start_frame=1001, handle_frames=5):
+            """
+            Returns the start and end frames for a shot, along with extra frames for handles.
+
+            Args:
+                global_start_frame (int): The global start frame for the shot.
+                handle_frames (int): The number of extra frames to include for handles.
+
+            Returns:
+                Tuple[int, int, int, int]: the handle start frame, shot start frame, shot end frame, and handle end frame.
+            """
+            # handle_start = global_start_frame
+            # shot_start = global_start_frame + handle_frames
+            # shot_end = shot_start + self.get_total_frames_in_shot() - 1
+            # handle_end = shot_end + handle_frames
+            # return handle_start, shot_start, shot_end, handle_end
+            shot_start = global_start_frame + self.cut_in # self.cut_in is 0 based, so we don't need to subtract 1 from global_start_frame
+            handle_start = shot_start - handle_frames
+            
+            shot_end = global_start_frame + self.cut_out
+            handle_end = shot_end + handle_frames
+
+            return handle_start, shot_start, shot_end, handle_end
+
 
     
-    def get_shotfile(self, type: Optional[str] = None) -> str:
-        shot_folder = self.get_shotfile_folder(type)
+    def get_shotfile(self, department: Optional[str] = None) -> str:
+        shot_folder = self.get_shotfile_folder(department)
 
-        if type == 'main' or type == None:
+        if department == 'main' or department == None:
             return os.path.join(shot_folder, self.name + '.hipnc')
         else:
-            return os.path.join(shot_folder, f'{self.name}_{type}.hipnc')
+            return os.path.join(shot_folder, f'{self.name}_{department}.hipnc')
         
     def get_camera(self, cam_type):
         if cam_type not in ['FLO', 'RLO']:
@@ -345,32 +426,21 @@ class Shot(JsonSerializable):
         else:
             return str(files[0])
     
+    def get_shot_usd_path(self, department: Optional[str] = None) -> str:
+        """ Returns the path to the usd file that contains each subdepartment's usd file."""
+        return self.get_shotfile(department).replace('.hipnc', '.usd')
+    
     def get_maya_shotfile_path(self):
         houdini_file_path = self.get_shotfile('anim')
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
     
-    def get_fx_directory_path(self):
-        houdini_fx_file_path = self.get_shotfile('fx')
-        houdini_fx_folder_path = os.path.dirname(houdini_fx_file_path)
-        return houdini_fx_folder_path
-
-    def get_shot_fx_usd_path(self):
-        """Returns the path to the usd file that contains all the FX for this shot."""
-        return os.path.join(self.get_fx_directory_path(), f'{self.name}_fx.usd')
-    
-    def get_fx_usd_cache_directory_path(self):
-        """Returns the path to the usd cache folder (where individual FX are cached) for this shot."""
-        USD_CACHE_FOLDER_NAME = "usd_cache"
-        houdini_fx_folder_path = self.get_fx_directory_path()
-        return os.path.join(houdini_fx_folder_path, 'usd_cache')
-    
     def get_layout_path(self):
         return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
 
     def get_playblast_path(self, destination):
-        sequence = self.name.split('_')[0]
-        return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, self.name + '.mov')
+        sequence, shot = self.name.split('_')
+        return os.path.join('/groups/accomplice/edit/shots/', destination, sequence, shot, self.name + '.mov')
     
     def get_name(self):
         return self.name

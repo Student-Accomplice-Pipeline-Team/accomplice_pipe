@@ -5,8 +5,13 @@ import hou
 import os, functools
 import glob
 from pipe.shared.object import Asset
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 import pipe
+
+from pipe.shared.helper.utilities.optimization_utils import DataCache
+
+data_cache = DataCache()
+
 
 # Constants
 ANIM_SUBDIRECTORY = 'anim'
@@ -21,13 +26,15 @@ class AnimationImporter():
         print("shot: ", self.shot.name)
 
     def get_shot(self):
-        shot_name = HoudiniPathUtils.get_shot_name()
-        shot = pipe.server.get_shot(shot_name)
-        print('This is the shot that was created: ', shot.name)
+        shot_name = HoudiniUtils.get_shot_name()
+        # shot = pipe.server.get_shot(shot_name)
+        shot = data_cache.retrieve_from_cache(shot_name, pipe.server.get_shot, shot_name)
         return shot
 
     def get_character_options_list(self):
-        self.shot = pipe.server.get_shot(HoudiniPathUtils.get_shot_name())
+        # self.shot = pipe.server.get_shot(HoudiniUtils.get_shot_name())
+        if self.shot is None:
+            self.shot = self.get_shot()
         print('This is the shot name!', self.shot.name)
 
         # Check if the current directory has an anim folder
@@ -67,13 +74,14 @@ class AnimationImporter():
         print("anim path: ", anim_path)
 
         anim_name = os.path.basename(anim_path).replace(EXTENSION, '') # Get just the name of the file, excluding extension
-        anim_name_components = anim_name.split('_')
+        #Couldn't find a use for this at the moment, making it hard to get the constructionsign into the scenes.
+        '''anim_name_components = anim_name.split('_')
         if len(anim_name_components) > 1:
             asset_name = anim_name_components[0]
             anim_description = anim_name_components[1]
-        else:
-            asset_name = anim_name_components[0]
-            anim_description = ''
+        else:'''
+        asset_name = anim_name
+        anim_description = ''
 
         print("anim name ", anim_name)
         print("asset name: ", asset_name)
@@ -81,31 +89,13 @@ class AnimationImporter():
         node.parm('./anim_name').set(anim_name)
         node.parm('./asset_name').set(asset_name)
         node.parm('./anim_descr').set(anim_description)
+        
+        # triggers a script in the character materials node
+        materials_node = node.node('Materials')
+        materials_node.hdaModule().set_character(materials_node)
 
         node.allowEditingOfContents()
         self.set_anim_type(node)
-        self.character_material_update(node)
-
-    def get_path_to_materials(self, node):
-        asset_name = self.get_asset_name(node)
-        asset_dir = None # TODO: get asset dir from server!
-        if asset_dir is None:
-            return None
-        return os.path.join(asset_dir, "materials")
-
-    def character_material_update(self, node):
-        mat_sublayer = node.node('materials')
-        path_to_materials = self.get_path_to_materials(node)
-        if path_to_materials is None:
-            hou.ui.displayMessage("Could not find asset's material folder. Alembic naming may not match. Please manually pull in the material folder to reference in the materials node within.")
-        else:
-            material_file = os.path.join(path_to_materials, self.get_asset_name(node) + "_shader.usda")
-            mat_sublayer.parm('filepath1').set(material_file)
-
-        mat = node.node('assign_material')
-        mat.parm('nummaterials').set(1)
-        mat.parm('primpattern1').set('/anim/`chs("../asset_name")`/geo')
-        mat.parm('matspecpath1').set('/anim/`chs("../asset_name")`/materials/`chs("../asset_name")`_shader')
 
     def set_anim_type(self, node):
         anim_type = node.parm('anim_type')

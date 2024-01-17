@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <toolshelf name="conveniences" label="Conveniences">
+    <memberTool name="import_geo_camera"/>
+    <memberTool name="import_geo_animation"/>
+    <memberTool name="import_geo_layout"/>
+    <memberTool name="full_screen"/>
+    <memberTool name="replace_substring_in_parms"/>
+    <memberTool name="replace_substring_in_parm_expressions"/>
+    <memberTool name="copy_path_to_clipboard"/>
+  </toolshelf>
+
+  <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node # Yes, I realize that setting a private member of this class is messed up and if I had more time, this functionality would be abstracted into another class (also I apologize for the code duplication.)
+working_file_fx_scene_creator.import_camera_geo()]]></script>
+  </tool>
+  <tool name="import_geo_animation" label="Import Animation to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
+working_file_fx_scene_creator.import_animation_geo()]]></script>
+  </tool>
+    <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+
+load_department_layers_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'accomp_load_department_layers')
+
+working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(HoudiniUtils.get_shot_for_file())
+working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
+working_file_fx_scene_creator.import_layout()]]></script>
+  </tool>
+  <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[mw = hou.qt.mainWindow()
+if mw.isFullScreen():
+    mw.showMaximized()
+else:
+    mw.showFullScreen()]]></script>
+  </tool>
+
+  <tool name="replace_substring_in_parms" label="Replace Substring" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+# Get currently selected nodes
+selected_nodes = hou.selectedNodes()
+
+# Prompt the user to enter the old and new strings using the Houdini dialog
+print('Replacing substrings for descendants of ', selected_nodes)
+button_index, values = hou.ui.readMultiInput("Enter the old and new strings:", ("Old String", "New String"), buttons=("OK", "Cancel"))
+old_substring = values[0]
+new_substring = values[1]
+
+# If the user cancels the dialog, exit the script
+if not old_substring or not new_substring:
+    hou.ui.displayMessage("Operation cancelled.")
+    raise hou.OperationFailed
+
+# Define a function to recursively traverse and print parameter values
+def replace_substring(node, depth=0):
+    # Print the name of the current node with appropriate indentation
+    # Loop through parameters of the current node
+    for param in node.parms():
+        # Print the parameter name and its value
+        print(param.eval())
+        try:
+            if old_substring in param.rawValue():
+                print("  " * depth + node.name())
+                print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
+                old_string = param.rawValue()
+                new_string = old_string.replace(old_substring, new_substring)
+                param.set(new_string)
+        except Exception as e:
+            print(e)
+
+    # Recursively loop through child nodes
+    for child in node.children():
+        replace_substring(child, depth + 1)
+
+for selected_node in selected_nodes:
+    print('Replacing substrings for descendants of ' + selected_node.name())
+    replace_substring(selected_node)]]></script>
+  </tool>
+
+  <tool name="replace_substring_in_parm_expressions" label="Replace Substring in Expression" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+
+# Get currently selected nodes
+selected_nodes = hou.selectedNodes()
+
+# Prompt the user to enter the old and new strings using the Houdini dialog
+button_index, values = hou.ui.readMultiInput("Enter the old and new strings:", ("Old String", "New String"), buttons=("OK", "Cancel"))
+old_substring = values[0]
+new_substring = values[1]
+
+# If the user cancels the dialog, exit the script
+if not old_substring or not new_substring:
+    hou.ui.displayMessage("Operation cancelled.")
+    raise hou.OperationFailed
+
+# Define a function to recursively traverse and print parameter values
+def replace_substring(node, depth=0):
+    # Print the name of the current node with appropriate indentation
+    # Loop through parameters of the current node
+    print(node.name())
+    for param in node.parms():
+        # Print the parameter name and its value
+        try:
+            print(param.expression())
+            if old_substring in param.expression():
+                print("  " * depth + node.name())
+                print("  " * (depth + 1) + f"{param.name()}: {param.eval()}")
+                old_string = param.expression()
+                new_string = old_string.replace(old_substring, new_substring)
+                print(new_string)
+                param.setExpression(new_string)
+        except Exception as e:
+            print(e)
+
+    # Recursively loop through child nodes
+    for child in node.children():
+        replace_substring(child, depth + 1)
+
+for selected_node in selected_nodes:
+    replace_substring(selected_node)]]></script>
+  </tool>
+
+  <tool name="copy_path_to_clipboard" label="Copy Path to File to Clipboard" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+import subprocess
+
+# Get the current file path
+file_path = hou.hipFile.path()
+
+# Copy to clipboard using xclip (make sure xclip is installed on your system)
+subprocess.run("echo -n '{}' | xclip -selection clipboard".format(file_path), shell=True)
+]]></script>
+  </tool>
+</shelfDocument>

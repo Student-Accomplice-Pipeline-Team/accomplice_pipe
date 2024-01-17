@@ -208,14 +208,13 @@ class EditShader():
         #Load Renderman Maps
         channels = {'DiffuseColor' : '', 'SpecularFaceColor' : '', 'SpecularRoughness' : '', 'Normal' : '', 'Presence' : '', 'Displacement' : ''}
         tex_folder_path = Path(self.texturesPath + '/')
-        #print(tex_folder_path)
-
-        files = tex_folder_path.glob('*_' + material.name + '_*.1001.tex')
+        files = tex_folder_path.glob('*_' + material.name + '_*.1001.*')
+        #print(list(files))
         #print(next(files))
 
         for file in files:
             path = str(file).replace('1001', '<UDIM>')
-            print(path)
+            #print(os.path.basename(path))
             if 'DiffuseColor' in path:
                 channels['DiffuseColor'] = path
             if 'SpecularFaceColor' in path:
@@ -228,9 +227,10 @@ class EditShader():
                 channels['Presence'] = path
             if 'Displacement' in path:
                 channels['Displacement'] = path
+        print('CHANNELS')
 
         for channel in channels:
-
+            print(os.path.basename(str(channels[channel])))
             if channel != 'Normal':
                 nodes[channel].parm('filename').set(channels[channel])
             else:
@@ -309,7 +309,7 @@ class EditShader():
     #translates specified parameters to stage layer
     def create_parm_group(self, material, group):
 
-        folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Simple)
+        folder = hou.FolderParmTemplate(material.name + '_folder', material.name, folder_type=hou.folderType.Collapsible)
 
         if material.isPxr:
             #print('is pxr')
@@ -394,7 +394,7 @@ class EditShader():
                                                             naming_scheme=hou.parmNamingScheme.RGBA)
                             out_parm.setMinValue(0)
                             out_parm.setMaxValue(2)
-                            hasSubSurfCol = hasFuzzCol
+                            hasFuzzCol = True
                             parm.setExpression('ch(\"../../' + new_name + 'r\")')
                             folder.addParmTemplate(out_parm)
                             

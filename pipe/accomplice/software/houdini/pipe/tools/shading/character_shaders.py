@@ -39,8 +39,10 @@ class Character_Shaders(edit.EditShader):
             node.parm('toggle').set(1)
             print(self.character.path)
             
-            ref = node.node('reference1')
-            ref.parm('primpath').set('/' + self.character.name + '/materials')
+            self.ref = node.node('referenced_materials')
+            #self.ref.parm('primpath').set('/scene/anim/' + self.character.name + '/materials')
+            
+            self.load_USD()
             
         else:
             node.parm('toggle').set(0)
@@ -60,6 +62,8 @@ class Character_Shaders(edit.EditShader):
                 parm.set(3)
             elif self.character.name == 'bgcharacter':
                 parm.set(4)
+            elif self.character.name == 'constructionsign_rig':
+                parm.set(5)
                 
     def export_USD(self, node):
         save_node = node.node('saveUSD')
@@ -73,12 +77,9 @@ class Character_Shaders(edit.EditShader):
         
         vs.update_symlink(save_path, version_path)
         
-    def load_USD(self, node):
-        stage = node.parent()
+    def load_USD(self):
         
-        sublayer = stage.createNode('reference', node_name=self.character.name + '_materials')
-        sublayer.parm('filepath1').set(self.character.get_material_path())
-        node.setInput(1, sublayer)
+        self.ref.parm('filepath1').set(self.character.get_material_path())
         
     def create_materials(self):
         

@@ -8,5 +8,8 @@
   <toolshelf name="accomp_files" label="Accomplice Files">
     <memberTool name="open_asset_file"/>
     <memberTool name="open_shot_file"/>
+    <memberTool name="open_character"/>
+    <memberTool name="create_shot_work_nodes"/>
+    <memberTool name="set_frame_range_from_shotgrid"/>
   </toolshelf>
 </shelfDocument>

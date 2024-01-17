@@ -1,7 +1,9 @@
 import os
 import pipe
-from maya import cmds
+from maya import cmds, mel
+import mayaUsd
 
+# TODO: Fix crash when delete created stage node
 
 def import_layout():
     window_tag = "import_layout"
@@ -26,28 +28,32 @@ def import_layout():
         if selection and selection[0]:
             shot_name = selection[0]
             shot = pipe.server.get_shot(shot_name)
+            # Get the path to the selected shot's layout
             layout_path = shot.get_layout_path()
             layout_filename = os.path.basename(layout_path).split('.')[0]
+            new_layer_name = layout_filename + "_rlo"
 
-            shapeNode = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=layout_filename + "Shape")
-            cmds.connectAttr('time1.outTime', shapeNode + '.time')
-            cmds.setAttr(shapeNode + '.filePath', layout_path, type='string')
-            cmds.select(shapeNode, replace=True)
-        
+            # Create a new stage to sublayer the layout into
+            shape_node = cmds.createNode('mayaUsdProxyShape', skipSelect=True, name=new_layer_name + "Shape")
+            usd_proxy_node = cmds.ls(shape_node, long=True)[0]
+            cmds.connectAttr('time1.outTime', shape_node + '.time')
+
+            # Get the root layer
+            usd_stage = mayaUsd.ufe.getStage(usd_proxy_node)
+            root_layer = usd_stage.GetRootLayer()
+
+            # Sublayer the layout into the new stage
+            mel.eval(f'mayaUsdLayerEditor -edit -insertSubPath 0 "{layout_path}" "{root_layer.identifier}";')
+
+            # Open the layer editor window
+            cmds.select(shape_node, replace=True)
+            cmds.mayaUsdLayerEditorWindow(reload=True)
+
+            # Scale up layout
+            cmds.scale(100, 100, 100)
+
         cmds.deleteUI(window_tag, window=True)
     
     import_button = cmds.button(label="Import Layout", command=_import)
 
     cmds.showWindow(window)
-
-    # cmds.window()
-    # cmds.paneLayout()
-    # scroll_list = cmds.textScrollList( numberOfPopupMenus=1, append=shot_names)
-    # cmds.showWindow()
-
-    # cmds.confirmDialog(
-    #     title="Not Implemented",
-    #     message=f"This button has not yet been implemented. Script location: {__file__}",
-    #     button=["OK"],
-    #     defaultButton="OK"
-    # )

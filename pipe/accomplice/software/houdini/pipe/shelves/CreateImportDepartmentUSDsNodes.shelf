@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="create_shot_work_nodes" label="Create Shot Work Nodes" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
+import pipe
+import hou
+
+# Get the shot information
+shot = HoudiniUtils.get_shot_for_file()
+
+# If the shot is None, prompt the user to continue or cancel
+print(shot.get_name())
+if shot is None:
+    user_choice = hou.ui.displayMessage(
+        "Could not find shot for current file. Please open a file from a shot. Otherwise, you can continue by selecting a shot. Note that you will have to do this twice.",
+        buttons=("Okay", "Cancel"),
+        title="Continue or Cancel"
+    )
+    # If the user selects "Cancel", exit the script
+    if user_choice == 1:  # 'Cancel' button has index 1
+        exit()
+
+    # If the user selects "Okay", prompt for shot and department
+    shot, department = HoudiniUtils.prompt_user_for_shot_and_department()
+else:
+    # Get the department if the shot is found
+    department = HoudiniUtils.get_department()
+
+# Ensure shot and department are not None
+assert shot is not None and department is not None, "Shot and department must be defined."
+
+# Configure the new scene
+print(shot.get_name(), department)
+HoudiniNodeUtils.configure_new_scene(shot, department)
+]]></script>
+  </tool>
+</shelfDocument>

@@ -6,6 +6,7 @@ from . import env
 from .proxy import get_proxy
 from .object import Asset
 from . import versions
+from . import permissions
 log = logging.getLogger(__name__)
 
 
