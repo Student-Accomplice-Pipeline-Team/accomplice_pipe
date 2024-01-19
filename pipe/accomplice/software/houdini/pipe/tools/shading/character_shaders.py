@@ -42,7 +42,7 @@ class Character_Shaders(edit.EditShader):
             self.ref = node.node('referenced_materials')
             #self.ref.parm('primpath').set('/scene/anim/' + self.character.name + '/materials')
             
-            self.load_USD()
+            #self.load_USD()
             
         else:
             node.parm('toggle').set(0)

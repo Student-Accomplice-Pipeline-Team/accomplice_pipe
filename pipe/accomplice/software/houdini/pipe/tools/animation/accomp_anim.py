@@ -3,6 +3,7 @@
 # Imports
 import hou
 import os, functools
+import re
 import glob
 from pipe.shared.object import Asset
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
@@ -80,7 +81,7 @@ class AnimationImporter():
             asset_name = anim_name_components[0]
             anim_description = anim_name_components[1]
         else:'''
-        asset_name = anim_name
+        asset_name = re.sub(r'[0-9]+', '', anim_name)
         anim_description = ''
 
         print("anim name ", anim_name)
@@ -91,8 +92,11 @@ class AnimationImporter():
         node.parm('./anim_descr').set(anim_description)
         
         # triggers a script in the character materials node
+        # I don't think this is needed anymore now that the character name is set by parameter reference.
         materials_node = node.node('Materials')
-        materials_node.hdaModule().set_character(materials_node)
+        #if materials_node != None and materials_node != '':
+            #materials_node.parm('character').set(asset_name)
+            #materials_node.hdaModule().set_character(materials_node)
 
         node.allowEditingOfContents()
         self.set_anim_type(node)

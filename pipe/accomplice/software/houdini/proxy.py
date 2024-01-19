@@ -19,7 +19,7 @@ class HoudiniProxy(HTTPSoftwareProxy):
         'HOUDINI_OTLSCAN_PATH': str(houdini_pipe_dir.joinpath('hda', ";")) + "; ".join(fx_hda_locations) + "; " + "; ".join(cfx_hda_locations) + ';&', # digital asset library path, finish with ampersand so that the default paths to the Houdini libraries are also scanned
         'HOUDINI_NO_ENV_FILE_OVERRIDES': 1,                             # Prevent user envs from overriding existing values
         'HOUDINI_COREDUMP': 1,                                          # Dump the core on crash to help debugging
-        'HOUDINI_PACKAGE_DIR': str(houdini_pipe_dir.joinpath('package')),      # Startup script
+        'HOUDINI_PACKAGE_DIR': str(houdini_pipe_dir.joinpath('package')) + ':/groups/accomplice/shading/hGeoPatterns',      # Startup script and hGeoPatterns
         'HOUDINI_BACKUP_DIR': './.backup',                              # Backup directory
         'HOUDINI_MAX_BACKUP_FILES': 20,                                 # Max backup files
         'OCIO': '/opt/pixar/RenderManProServer-25.2/lib/ocio/ACES-1.2/config.ocio',
