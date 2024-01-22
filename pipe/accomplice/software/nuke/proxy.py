@@ -8,7 +8,7 @@ class NukeProxy(HTTPSoftwareProxy):
     nuke_pipe_dir = Path(__file__).resolve().parent
 
     nuke_env_vars = {
-        'NUKE_PATH': str(nuke_pipe_dir) + ':' + str(nuke_pipe_dir.joinpath('plugins')),
+        'NUKE_PATH': str(nuke_pipe_dir.joinpath('plugins')),
     }
 
     def __init__(
@@ -17,9 +17,9 @@ class NukeProxy(HTTPSoftwareProxy):
         command: str = ('/bin/sh'),
         args: Optional[Sequence[str]] = [
             '-c',
-            "QT_SCALE_FACTOR=$NUKE_SCALE_FACTOR /opt/Nuke14.0v5/Nuke14.0 -b --nukex"
+            "QT_SCALE_FACTOR=$NUKE_SCALE_FACTOR /opt/Nuke14.0v5/Nuke14.0 --nukex"
         ],
-        env_vars: Mapping[str, Optional[Union[str, int]]] = None,
+        env_vars: Mapping[str, Optional[Union[str, int]]] = nuke_env_vars,
     ) -> None:
         r"""Initialize NukeProxy objects.
 
