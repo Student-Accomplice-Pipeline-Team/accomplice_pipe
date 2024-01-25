@@ -592,15 +592,20 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     resolution_x_parm = node.parm('noderesolution' + str(source_num) + 'x')
     resolution_y_parm = node.parm('noderesolution' + str(source_num) + 'y')
     output_path_parm = node.parm('nodeoutputpath' + str(source_num))
+    denoise = bool(node.parm('denoise').evalAsInt())
 
     # Find the render settings node
     render_settings_node = get_render_settings_node(node)
 
-    # Set the options on the alembic node
+    # Set the options on the render settings node
     render_settings_node.parm('camera').set(camera)
     render_settings_node.parm('resolutionx').setFromParm(resolution_x_parm)
     render_settings_node.parm('resolutiony').setFromParm(resolution_y_parm)
     render_settings_node.parm('picture').setFromParm(output_path_parm)
+
+    
+    render_settings_node.parm('enableDenoise').set(denoise)
+    render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
     
     return render_settings_node
 
