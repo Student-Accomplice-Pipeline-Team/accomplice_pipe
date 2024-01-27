@@ -11,7 +11,7 @@ from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 
 
 class HoudiniFXUtils():
-    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks']
+    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel']
     FX_PREFIX = "/scene/fx"
     
     @staticmethod
@@ -193,13 +193,13 @@ class HoudiniFXUtils():
         
         def get_import_node(self) -> hou.Node: # Override abstract method
             sop_import_lop = self.create_sop_import_lop()
+            HoudiniNodeUtils.insert_node_between_two_nodes(self.fx_start_null, self.fx_end_null, sop_import_lop)
             self.configure_sop_import_lop(sop_import_lop)
             return sop_import_lop
 
         def create_sop_import_lop(self):
             """Creates SOP Import node from the first node in selection."""
             lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sopimport')
-            lop_node = HoudiniNodeUtils.insert_node_between_two_nodes(self.fx_start_null, self.fx_end_null, lop_node)
             return lop_node
 
         def configure_sop_import_lop(self, lop_node: hou.Node):
@@ -217,6 +217,17 @@ class HoudiniFXUtils():
             # Set save path
             lop_node.parm('enable_savepath').set(True)
             lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + self.effect_name + ".usd")
+    
+    class LeavesAndGravelUSDGeometryCacheEffectWrapper(USDGeometryCacheEffectWrapper):
+        def __init__(self, null_node: hou.Node):
+            super().__init__(null_node)
+        
+        def create_sop_import_lop(self) -> hou.Node:
+            lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'accomp_import_leaves_and_gravel')
+            return lop_node
+
+        def configure_sop_import_lop(self, lop_node: hou.Node):
+            return # It's already configured so do nothing :)
 
 class HoudiniNodeUtils():
     def __init__(self):
@@ -230,6 +241,7 @@ class HoudiniNodeUtils():
         'money_material': 'accomp_money_material',
         'sparks_material': 'accomp_sparks_material',
         'smoke_material': 'accomp_smoke_material',
+        'leaves_and_gravel_material': 'accomp_leaves_and_gravel_material',
         # 'skid_marks_material': 'accomp_skid_marks_material',
     }
 
@@ -606,7 +618,10 @@ class HoudiniNodeUtils():
             self.fx_geo_node.setDisplayFlag(True)
 
             self.import_layout()
-            HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            if self.fx_name == 'leaves_and_gravel':
+                HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            else:
+                HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
             
             # Put import nodes into a box
