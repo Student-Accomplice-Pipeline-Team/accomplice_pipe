@@ -98,7 +98,6 @@ class HoudiniFXUtils():
     def get_fx_range_nulls():
         return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
 
-
     # This file uses the template method pattern to setup the USD wrapper for a given effect
     class USDEffectWrapper(ABC):
         def __init__(self, null_node: hou.Node):
@@ -282,6 +281,36 @@ class HoudiniNodeUtils():
 
         # Return None if no node of the specified type is found
         return None
+    
+    @staticmethod
+    def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node after an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert after the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs(0), node_to_insert)
+        return node_to_insert
+    
+    @staticmethod
+    def insert_node_before(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node before an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert before the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node.input(0), existing_node, node_to_insert)
+        return node_to_insert
     
     @staticmethod
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
@@ -844,6 +873,12 @@ class FXSceneOpener(HoudiniShotOpener):
 class HoudiniUtils:
     def get_my_path():
         return hou.hipFile.path()
+    
+    @staticmethod
+    def perform_operation_on_houdini_files(file_paths: list, operation: callable, *args, **kwargs):
+        for file_path in file_paths:
+            HoudiniUtils.open_file(file_path)
+            operation(*args, **kwargs)
     
     @staticmethod
     def open_file(file_path):
