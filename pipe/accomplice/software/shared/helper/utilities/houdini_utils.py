@@ -5,6 +5,7 @@ from pathlib import Path
 import pipe
 from ...object import Shot
 from .file_path_utils import FilePathUtils
+from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
@@ -13,6 +14,31 @@ from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel']
     FX_PREFIX = "/scene/fx"
+    
+    @staticmethod
+    def get_fx_usds_missing_sublayers(sequences_to_exclude=[]):
+        fx_usds_missing_sublayers = []
+        all_shots = [Shot(shot) for shot in pipe.server.get_shot_list()]
+        for shot in all_shots:
+            if shot.name[0] in sequences_to_exclude:
+                continue
+            fx_usd = shot.get_shot_usd_path('fx')
+            print(f"Checking {fx_usd}")
+            cached_fxs = [os.path.basename(path) for path in HoudiniFXUtils.get_paths_to_cached_fx(shot)]
+            missing_fx_in_layer = []
+            for cached_fx in cached_fxs:
+                print(f"Checking if {cached_fx} is in {fx_usd}")
+                if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{cached_fx.replace('.usd', '')}"):
+                    print(f"{cached_fx} is not in {fx_usd}")
+                    missing_fx_in_layer.append(cached_fx)
+            if len(missing_fx_in_layer) > 0:
+                fx_usds_missing_sublayers.append(
+                    {
+                        'usd': fx_usd,
+                        'missing_fx': missing_fx_in_layer
+                    }
+                )
+        return fx_usds_missing_sublayers
     
     @staticmethod
     def get_fx_usd_cache_directory_path(shot: Shot):
