@@ -5,6 +5,7 @@ from pathlib import Path
 import pipe
 from ...object import Shot
 from .file_path_utils import FilePathUtils
+from .ui_utils import ListWithCheckboxFilter
 from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
@@ -16,11 +17,64 @@ class HoudiniFXUtils():
     FX_PREFIX = "/scene/fx"
     
     @staticmethod
-    def get_fx_usds_missing_sublayers(sequences_to_exclude=[]):
+    def user_interface_for_resolving_missing_sublayers():
+        sequences = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']  # default sequences
+        sequence_selector = ListWithCheckboxFilter("Select Sequences", sequences)
+        if sequence_selector.exec_():
+            selected_sequences = sequence_selector.get_selected_items()
+
+            # Step 2: Find missing sublayers for the selected sequences
+            missing_sublayers = HoudiniFXUtils.get_fx_usds_missing_sublayers(selected_sequences)
+
+            # Convert missing sublayers to a list of shot names
+            missing_shots = [layer['shot'] + ' (missing: ' + ', '.join(layer['missing_fx']) + ')' for layer in missing_sublayers]
+
+            # Step 3: Get shot choices from the user
+            shot_selector = ListWithCheckboxFilter("Select Shots", missing_shots, items_checked_by_default=True)
+            if shot_selector.exec_():
+                selected_shots = shot_selector.get_selected_items()
+                selected_shots = [selected_shot.split(' ')[0] for selected_shot in selected_shots]
+
+                # Step 4: Resolve missing sublayers for the selected shots
+                for shot_name in selected_shots:
+                    shot = Shot(shot_name)  # Implement this function based on your data structure
+                    HoudiniFXUtils.resolve_missing_sublayers(shot)
+    
+    @staticmethod
+    def resolve_missing_sublayers(shot: Shot):
+        def callback(shot: Shot):
+            HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(shot)
+            # Find the USD rop and hit render
+            usd_rop_candidates = HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'usd_rop')
+            selected_usd_rop = None
+            for usd_rop in usd_rop_candidates:
+                if usd_rop.parm('lopoutput').eval() == shot.get_shot_usd_path('fx'):
+                    selected_usd_rop = usd_rop
+                    break
+            if selected_usd_rop is not None:
+                selected_usd_rop.parm('execute').pressButton()
+
+        print(f"Adding missing sublayers to shot {shot.name}")
+        main_fx_file = shot.get_shotfile('fx')
+        if not os.path.exists(main_fx_file):
+            hou.hipFile.save()
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(main_fx_file)
+            HoudiniUtils.configure_new_shot_file(shot, 'fx')
+            hou.hipFile.save()
+        HoudiniUtils.perform_operation_on_houdini_file(
+            main_fx_file,
+            True,
+            callback,
+            shot
+        )
+    
+    @staticmethod
+    def get_fx_usds_missing_sublayers(sequences_to_include=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']) -> list:
         fx_usds_missing_sublayers = []
         all_shots = [Shot(shot) for shot in pipe.server.get_shot_list()]
         for shot in all_shots:
-            if shot.name[0] in sequences_to_exclude:
+            if not shot.name[0] in sequences_to_include:
                 continue
             fx_usd = shot.get_shot_usd_path('fx')
             print(f"Checking {fx_usd}")
@@ -28,14 +82,21 @@ class HoudiniFXUtils():
             missing_fx_in_layer = []
             for cached_fx in cached_fxs:
                 print(f"Checking if {cached_fx} is in {fx_usd}")
-                if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{cached_fx.replace('.usd', '')}"):
-                    print(f"{cached_fx} is not in {fx_usd}")
-                    missing_fx_in_layer.append(cached_fx)
+                cached_fx_name = cached_fx.replace('.usd', '')
+                if cached_fx_name == 'leaves_and_gravel':
+                    if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{'leaves'}"):
+                        print(f"{cached_fx} is not in {fx_usd}")
+                        missing_fx_in_layer.append(cached_fx)
+                else:
+                    if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{cached_fx_name}"):
+                        print(f"{cached_fx} is not in {fx_usd}")
+                        missing_fx_in_layer.append(cached_fx)
             if len(missing_fx_in_layer) > 0:
                 fx_usds_missing_sublayers.append(
                     {
                         'usd': fx_usd,
-                        'missing_fx': missing_fx_in_layer
+                        'missing_fx': missing_fx_in_layer,
+                        'shot': shot.name
                     }
                 )
         return fx_usds_missing_sublayers
@@ -885,10 +946,20 @@ class HoudiniUtils:
         return hou.hipFile.path()
     
     @staticmethod
-    def perform_operation_on_houdini_files(file_paths: list, operation: callable, *args, **kwargs):
+    def perform_operation_on_houdini_file(filepath: str, save_after_operation: bool, operation: callable, *args, **kwargs):
+        try:
+            HoudiniUtils.open_file(filepath)
+        except AssertionError as e:
+            print(e)
+            return None
+        operation(*args, **kwargs)
+        if save_after_operation:
+            hou.hipFile.save()
+    
+    @staticmethod
+    def perform_operation_on_houdini_files(file_paths: list, save_after_operation: bool, operation: callable, *args, **kwargs):
         for file_path in file_paths:
-            HoudiniUtils.open_file(file_path)
-            operation(*args, **kwargs)
+            HoudiniUtils.perform_operation_on_houdini_file(file_path, save_after_operation, operation, *args, **kwargs)
     
     @staticmethod
     def open_file(file_path):
@@ -994,6 +1065,8 @@ class HoudiniUtils:
 
     @staticmethod
     def set_frame_range_from_shot(shot: Shot, global_start_frame=1001, handle_frames=5):
+        if shot.cut_in is None or shot.cut_out is None:
+            shot = pipe.server.get_shot(shot.name, retrieve_from_shotgrid=True)
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
         hou.playbar.setFrameRange(handle_start, handle_end)
         hou.playbar.setPlaybackRange(shot_start, shot_end)
