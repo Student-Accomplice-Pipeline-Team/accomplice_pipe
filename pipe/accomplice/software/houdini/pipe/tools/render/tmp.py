@@ -8,6 +8,7 @@ from typing import Sequence, Optional
 from enum import Enum
 import pipe
 from pxr import Usd
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 
 # Tractor requires all neccesiary envionment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
@@ -65,12 +66,13 @@ class TractorSubmit:
     # Gets the directory paths and render output overrides when
     # USDs are inputted manually with the "From Disk" Render method
     def input_usd_info(self):
-        num_sources: hou.Parm = self.node.parm("sources").evalAsInt()
+        num_sources = self.node.parm("sources").evalAsInt()
 
         # For loop for getting variables from dynamically changing parameters
         for source_num in range(1, num_sources + 1):
             source_type = get_source_type(self.node, source_num)
 
+            filepaths = []
             if source_type == 'file':
                 # Get filepaths for the pattern
                 filepaths = validate_files(
@@ -78,9 +80,27 @@ class TractorSubmit:
                 )
             elif source_type == 'node':
                 # Prepare for and render the USD
-                usd_node = update_usd_node(self.node, source_num)
-                filepaths = [usd_node.parm('lopoutput').eval()]
-                usd_node.parm('execute').pressButton()
+                usd_node = get_usd_node(self.node)
+
+                update_source_nodes(self.node, source_num)
+
+                num_layers: hou.Parm = self.node.parm('nodelayers' + str(source_num)).evalAsInt()
+                for layer_num in range(1, num_layers + 1):
+                    update_layer_nodes(self.node, source_num, layer_num)
+                    filepaths.append(usd_node.parm('lopoutput').eval())
+                    usd_node.parm('execute').pressButton()
+
+                # Create a lopimportcam node in /obj
+                sop_cam_node = hou.node('/obj').createNode('lopimportcam')
+                sop_cam_node.parm('loppath').set(self.node.path())
+                sop_cam_node.parm('primpath').setFromParm(self.node.parm('nodecamera' + str(source_num)))
+
+                # Prepare for and render the camera alembic
+                alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
+                alembic_node.parm('execute').pressButton()
+
+                # Destroy the lopimportcam node
+                sop_cam_node.destroy()
 
             for filepath in filepaths:
                 # Add the file to the filepaths
@@ -90,19 +110,20 @@ class TractorSubmit:
                 frame_range = get_frame_range(self.node, source_num)
                 self.frame_ranges.append(frame_range)
 
-                # Get the output path overrides for the file
+                # Get the output path overrides for file sources
                 output_path_override = None
-                if int(self.node.parm(source_type + 'useoutputoverride' + str(source_num)).eval()) == 1:
-                    output_path_override = []
-                    hou.hscript(
-                        f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
-                    )
-                    for frame in range(frame_range[0], frame_range[1] + 1):
-                        output_path_override.append(
-                            self.node.parm(
-                                source_type + "outputoverride" + str(source_num)
-                            ).evalAtFrame(frame)
+                if source_type == 'file':
+                    if int(self.node.parm(source_type + 'useoutputoverride' + str(source_num)).eval()) == 1:
+                        output_path_override = []
+                        hou.hscript(
+                            f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
                         )
+                        for frame in range(frame_range[0], frame_range[1] + 1):
+                            output_path_override.append(
+                                self.node.parm(
+                                    source_type + "outputoverride" + str(source_num)
+                                ).evalAtFrame(frame)
+                            )
 
                 self.output_path_overrides.append(output_path_override)
 
@@ -431,25 +452,212 @@ def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
 
     return frame_range
 
+def get_fetch_node(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'fetch')
 
-def get_usd_node(node: hou.Node):
-    usd_node_type = hou.nodeType(hou.lopNodeTypeCategory(), 'usd_rop')
-    return [child for child in node.children() if child.type() == usd_node_type][0]
+def get_prune_node(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'prune')
 
+def get_camera_node(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'camera')
 
-def update_usd_node(node: hou.Node, source_num: int) -> hou.Node:
-    # Get the relevant options for the source
-    use_usd_override = node.parm('useusdoverride' + str(source_num)).evalAsInt()
-    if use_usd_override:
-        usd_path = node.parm('usdoverride' + str(source_num)).evalAsString()
+def get_motion_blur_node(node: hou.Node) -> hou.Node:
+    return get_render_geo_settings_node(node, 'motionblur_rendergeometrysettings1')
+
+def get_matte_node(node: hou.Node) -> hou.Node:
+    return get_render_geo_settings_node(node, 'matte_rendergeometrysettings1')
+
+def get_phantom_node(node: hou.Node) -> hou.Node:
+    return get_render_geo_settings_node(node, 'phantom_rendergeometrysettings1')
+
+def get_render_geo_settings_node(node: hou.Node, name: str) -> hou.Node:
+    return get_child_lop_node(node, 'rendergeometrysettings', name)
+
+def get_render_settings_node(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'hdprmanrenderproperties')
+
+def get_usd_node(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'usd_rop')
+
+def get_alembic_node(node: hou.Node) -> hou.Node:
+    alembic_node_type = hou.nodeType(hou.ropNodeTypeCategory(), 'alembic')
+    return get_child_node(node, child_type=alembic_node_type)
+
+def get_ropnet(node: hou.Node) -> hou.Node:
+    return get_child_lop_node(node, 'ropnet')
+
+def get_child_lop_node(node: hou.Node, child_type_name: str, child_name: str = None) -> hou.Node:
+    child_type = hou.nodeType(hou.lopNodeTypeCategory(), child_type_name)
+    return get_child_node(node, child_name, child_type)
+
+def get_child_node(node: hou.Node, child_name: str = None, child_type: hou.NodeType = None) -> hou.Node:
+    matched_children = [
+        child for child in node.children() if
+            (child_name == None or child.name() == child_name) and
+            (child_type == None or child.type() == child_type)
+    ]
+
+    if len(matched_children) == 1:
+        return matched_children[0]
     else:
-        usd_path = hou.text.expandString(
-            '$HIP/render/usd/$HIPNAME-') + str(source_num) + '.usd'
+        raise Exception(f'Found more than one match for child node')
 
+
+def update_source_nodes(node: hou.Node, source_num: int):
+    for update_source_node in [
+        update_fetch_node,
+        update_render_settings_node,
+    ]:
+        update_source_node(node, source_num)
+
+def update_layer_nodes(node: hou.Node, source_num: int, layer_num: int):
+    for update_layer_node in [
+        update_motion_blur_node,
+        update_prune_node, update_matte_node,
+        update_phantom_node,
+        update_camera_edit_node,
+        update_usd_node,
+    ]:
+        update_layer_node(node, source_num, layer_num)
+
+
+def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
+    # Get the relevant options for the source
+    input_index = node.parm('nodeindex' + str(source_num)).evalAsInt()
+
+    # Find the fetch node
+    fetch_node = get_fetch_node(node)
+
+    # Set the options on the fetch node
+    fetch_node.parm('loppath').setExpression(f"hou.node('../').inputs()[{input_index}].path()", hou.exprLanguage.Python)
+
+    return fetch_node
+
+
+def update_motion_blur_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Get the relevant options for the layer
+    motion_blur = node.parm(f'layermotionblur{str(source_num)}_{str(layer_num)}')
+
+    # Find the motion blur node
+    motion_blur_node = get_motion_blur_node(node)
+
+    # Set the options on the motion blur node
+    motion_blur_node.parm('xn__primvarsriobjectmblur_cbbcg').setFromParm(motion_blur)
+
+    return motion_blur_node
+
+
+def update_prune_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Get the relevant options for the layer
+    exclude_parm = node.parm(f'layerexclude{str(source_num)}_{str(layer_num)}')
+
+    # Find the prune node
+    prune_node = get_prune_node(node)
+
+    # Set the options on the prune node
+    prune_node.parm('primpattern1').setFromParm(exclude_parm)
+
+    return prune_node
+
+
+def update_matte_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Get the relevant options for the layer
+    matte_parm = node.parm(f'layermatte{str(source_num)}_{str(layer_num)}')
+
+    # Find the matte node
+    matte_node = get_matte_node(node)
+
+    # Set the options on the matte node
+    matte_node.parm('primpattern').setFromParm(matte_parm)
+    
+    return matte_node
+
+
+def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Get the relevant options for the layer
+    phantom_parm = node.parm(f'layerphantom{str(source_num)}_{str(layer_num)}')
+
+    # Find the phantom node
+    phantom_node = get_phantom_node(node)
+
+    # Set the options on the phantom node
+    phantom_node.parm('primpattern').setFromParm(phantom_parm)
+
+    return phantom_node
+
+
+def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
+    # Get the relevant options for the source
+    camera = node.parm('nodecamera' + str(source_num)).evalAsString()
+    resolution_x_parm = node.parm('noderesolution' + str(source_num) + 'x')
+    resolution_y_parm = node.parm('noderesolution' + str(source_num) + 'y')
+    output_path_parm = node.parm('nodeoutputpath' + str(source_num))
+    denoise = bool(node.parm('denoise').evalAsInt())
+
+    # Find the render settings node
+    render_settings_node = get_render_settings_node(node)
+
+    # Set the options on the render settings node
+    render_settings_node.parm('camera').set(camera)
+    render_settings_node.parm('resolutionx').setFromParm(resolution_x_parm)
+    render_settings_node.parm('resolutiony').setFromParm(resolution_y_parm)
+    render_settings_node.parm('picture').setFromParm(output_path_parm)
+
+    
+    render_settings_node.parm('enableDenoise').set(denoise)
+    render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
+    
+    return render_settings_node
+
+
+def update_camera_edit_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Get the relevant options for the layer
+    camera_parm = node.parm('nodecamera' + str(source_num))
+    do_dof = int(node.parm(f'layerdof{str(source_num)}_{str(layer_num)}').evalAsInt())
+    
+    dof_control_setting = 'set' if do_dof != 0 else 'none'
+
+    # Find the camera edit node
+    camera_edit_node = get_camera_node(node)
+
+    # Set the options on the camera edit node
+    camera_edit_node.parm('primpattern').setFromParm(camera_parm)
+    camera_edit_node.parm('fStop_control').set(dof_control_setting)
+
+    return camera_edit_node
+
+
+def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -> hou.Node:
+    # Get the relevant options for the source
     f1, f2, f3 = get_frame_range(node, str(source_num))
-    strip_layer_breaks = node.parm('striplayerbreaks' + str(source_num)).evalAsInt()
-    error_saving_implicit_paths = node.parm(
-        'errorsavingimplicitpaths' + str(source_num)).evalAsInt()
+
+    # Find the alembic node
+    alembic_node = get_alembic_node(get_ropnet(node))
+
+    # Set the options on the alembic node
+    alembic_node.parm('root').set('/obj')
+    alembic_node.parm('objects').set(camera_sop_path)
+    alembic_node.parm('f1').deleteAllKeyframes()
+    alembic_node.parm('f2').deleteAllKeyframes()
+    alembic_node.parm('f1').set(f1)
+    alembic_node.parm('f2').set(f2)
+    alembic_node.parm('f3').set(f3)
+    
+    return alembic_node
+
+def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
+    # Set the $LAYER variable to the layer name
+    layer_name = node.parm(f'layername{str(source_num)}_{str(layer_num)}').eval()
+    hou.hscript(
+        f"set -g LAYER={layer_name}"
+    )
+
+    # Get the relevant options for the source
+    usd_path = node.parm(f'usdpath{str(source_num)}_{str(layer_num)}').eval()
+    f1, f2, f3 = get_frame_range(node, str(source_num))
+    strip_layer_breaks_parm = node.parm(f'striplayerbreaks{str(source_num)}_{str(layer_num)}')
+    error_saving_implicit_paths_parm = node.parm(
+        f'errorsavingimplicitpaths{str(source_num)}_{str(layer_num)}')
 
     # Find the USD node
     usd_node = get_usd_node(node)
@@ -462,18 +670,17 @@ def update_usd_node(node: hou.Node, source_num: int) -> hou.Node:
     usd_node.parm('f2').set(f2)
     usd_node.parm('f3').set(f3)
     usd_node.parm('lopoutput').set(usd_path)
-    usd_node.parm('striplayerbreaks').set(strip_layer_breaks)
-    usd_node.parm('errorsavingimplicitpaths').set(error_saving_implicit_paths)
+    usd_node.parm('striplayerbreaks').setFromParm(strip_layer_breaks_parm)
+    usd_node.parm('errorsavingimplicitpaths').setFromParm(error_saving_implicit_paths_parm)
 
     return usd_node
 
-
 def execute_usd(node: hou.Node, parm: hou.Parm):
    # Get the number of the source to render a USD for
-    source_num = parm.name().removeprefix('usdexecute')
+    source_num, layer_num = parm.name().removeprefix('usdexecute').split('_')
 
     # Prepare for and render the USD
-    usd_node = update_usd_node(node, source_num)
+    usd_node = update_usd_node(node, source_num, layer_num)
     usd_node.parm('execute').pressButton()
 
 
@@ -488,7 +695,7 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
         return
 
     # Get the number of the source to render a USD for
-    source_num = parm.name().removeprefix('usdexecutebackground')
+    source_num, layer_num = parm.name().removeprefix('usdexecutebackground').split('_')
 
     # Prepare for and render the USD
     usd_node = update_usd_node(node, source_num)
@@ -541,15 +748,16 @@ def validate_files(node: hou.Node, parm: hou.Parm) -> Sequence[str]:
 
 
 def unset_issues(node: hou.Node, parm_name: str):
-    error_dict_parm: hou.Parm = node.parm('errordict')
-    errors: dict = error_dict_parm.eval()
-    errors.pop(parm_name, None)
-    error_dict_parm.set(errors)
+    pass
+    # error_dict_parm: hou.Parm = node.parm('errordict')
+    # errors: dict = error_dict_parm.eval()
+    # errors.pop(parm_name, None)
+    # error_dict_parm.set(errors)
 
-    warning_dict_parm = node.parm('warningdict')
-    warnings: dict = warning_dict_parm.eval()
-    warnings.pop(parm_name, None)
-    warning_dict_parm.set(warnings)
+    # warning_dict_parm = node.parm('warningdict')
+    # warnings: dict = warning_dict_parm.eval()
+    # warnings.pop(parm_name, None)
+    # warning_dict_parm.set(warnings)
 
 
 def set_error(node: hou.Node, parm_name: str, desc: str):
@@ -612,8 +820,6 @@ def switch_source_type(
         'trange',
         'frame',
         'framerange',
-        'useoutputoverride',
-        'outputoverride',
     ]
 
     # Make the collapsed source display the current sourcetype, if not a file
@@ -629,8 +835,14 @@ def switch_source_type(
         filepathholder_parm.setFromParm(filepath_parm)
 
         # Set filepath# to the label of the current source type's tab
+        source_label = source_type_labels[int(script_value)]
+
+        if curr_type == 'node':
+            # If the source is node input, add the index to the label
+            source_label += ' ' + node.parm('nodeindex' + script_multiparm_index).evalAsString()
+        
         filepath_parm.deleteAllKeyframes()
-        filepath_parm.set(source_type_labels[int(script_value)])
+        filepath_parm.set(source_label)
 
     for parmtuple_base in PARMTUPLE_BASE_NAMES:
         prev_option_parmtuple: hou.ParmTuple = node.parmTuple(
@@ -657,3 +869,9 @@ def switch_source_type(
     #     return
 
     # unset_issues(node, parm.name())
+
+def get_render_camera_path(node: hou.Node) -> str:
+    # Determine the render camera
+    ls = hou.LopSelectionRule()
+    ls.setPathPattern('%rendercamera')
+    return ls.expandedPaths(node.inputs()[0])[0].pathString

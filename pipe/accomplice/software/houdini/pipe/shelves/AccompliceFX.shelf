@@ -39,294 +39,33 @@ for selected_node in selected:
   <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import os
 import hou
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils, HoudiniUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils, HoudiniUtils
 
-usd_cache_folder = HoudiniPathUtils.get_fx_usd_cache_folder_path()
-
-# Loop through all usd files in this folder and create a reference node for each
-usd_files = list(os.listdir(usd_cache_folder))
-refernece_nodes = []
-for usd_file in usd_files:
-    if not (usd_file.endswith(".usd") or usd_file.endswith(".usda") or usd_file.endswith(".usdc")):
-        print(usd_file, "does not end with .usd, .usda, or .usdc")
-        continue
-    print(usd_file)
-    usd_file_path = os.path.join(usd_cache_folder, usd_file)
-    sublayer_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "sublayer")
-    print('This is the value of filepath1: ', sublayer_node.parm("filepath1").eval())
-    sublayer_node.parm("filepath1").set(usd_file_path)
-    fx_base_name = usd_file.split(".")[0]
-    sublayer_node.setName(fx_base_name, unique_name=True)
-    refernece_nodes.append(sublayer_node)
-
-# Merge all reference nodes together:
-merge_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "merge")
-for sublayer_node in refernece_nodes:
-    merge_node.setNextInput(sublayer_node)
-
-# Set the display flag on the merge node:
-merge_node.setDisplayFlag(True)
-
-nodes_to_layout = [merge_node] + refernece_nodes
-
-
-# Add a usd rop node to the end of the chain
-usd_rop_node = HoudiniNodeUtils.create_node(hou.node("/stage"), "usd_rop")
-usd_rop_node.setInput(0, merge_node)
-usd_rop_node.parm("trange").set(1) # Set the time range to include the entire frame range
-full_fx_usd_path = HoudiniUtils.get_shot_for_file().get_shot_usd_path('fx')
-relative_fx_usd_path = full_fx_usd_path.replace(os.path.dirname(hou.hipFile.path()), "$HIP")
-# Yeah, obviously I know I could have just hardcoded $HIP/... but I wanted to make sure that the call to the server was wworking. It's also nice to have the shotname in the name of the usd
-usd_rop_node.parm("lopoutput").set(relative_fx_usd_path)
-usd_rop_node.setName("OUT_usd", unique_name=True)
-
-nodes_to_layout.append(usd_rop_node)
-hou.node('/stage').layoutChildren(nodes_to_layout)
-
-# Check if the usd file already exists on disk. If so, prompt user to overwrite it or not
-if os.path.exists(full_fx_usd_path):
-    print("The usd file already exists on disk. Do you want to overwrite it?")
-    overwrite = hou.ui.displayMessage("The usd file already exists on disk. Do you want to overwrite it?", buttons=("Yes", "No"))
-    if overwrite == 0: # The user clicked "Yes"
-        usd_rop_node.parm("execute").pressButton()
-        hou.ui.setStatusMessage("The new FX have been exported to overwrite the old FX usd " + full_fx_usd_path, severity=hou.severityType.Message)
-else:
-    print("The usd file does not exist on disk. Creating it now.")
-    usd_rop_node.parm("execute").pressButton()
-    hou.ui.setStatusMessage("The FX have been exported to " + full_fx_usd_path, severity=hou.severityType.Message)
-]]></script>
+HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(HoudiniUtils.get_shot_for_file())]]></script>
   </tool>
 
   <tool name="create_lop_nodes" label="Create Lop Nodes" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 from pipe.shared.proxy import proxy
-from pipe.shared.helper.utilities.houdini_utils import HoudiniPathUtils, HoudiniNodeUtils
+from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils
 from abc import ABC, abstractmethod
 
 # Set constants
-server = proxy.get_proxy()
-FX_PREFIX = "/fx"
-
-# This file uses the template method pattern to setup the USD wrapper for a given effect
-class USDEffectWrapper(ABC):
-    def __init__(self, selection: list):
-        print('Initializing USDEffectWrapper')
-        self.selection = selection
-        self.null_node = self.get_null_node()
-        assert self.null_node is not None
-        assert self.null_node.type().name() == "null"
-
-        self.effect_name = self.get_effect_name(self.null_node.name())
-        self.effect_import_node = self.get_import_node()
-        self.effect_import_node.setName(self.effect_name, unique_name=True)
-        assert self.effect_import_node is not None
-        print('Finished initializing USDEffectWrapper')
-
-    def get_materials_node(self):
-        materials_node = None
-        # TODO: If you try to make a material but are unable to add it, you should display a message to the user and then create a default material subnet
-        if self.effect_name == "sparks":
-            materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'sparks_material')
-        elif self.effect_name == "smoke":
-            materials_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'smoke_material')
-        else:
-            # TODO: This needs to be adjusted to properly put the materials into a subnetwork, but this is just boilerplate for now ;)
-            # If nothing else, create a default materials subnetwork with a hint to create materials
-            materials_node = self.effect_import_node.parent().createNode('subnet')
-            subnetwork_nodes = []
-
-            # Inside the subnetwork node, create a material library node
-            material_library_node = HoudiniNodeUtils.create_node(materials_node, 'materiallibrary')
-            material_library_node.setName(self.effect_name + "_material_library", unique_name=True)
-            material_library_node.parm('matpathprefix').set(FX_PREFIX + "/" + self.effect_name + "/materials/")
-
-            # Set input of the material library node to be the input of the subnetwork
-            
-            subnetwork_nodes.append(material_library_node)
-
-
-            # Create a pxrsurface node inside the material library node
-            pxrsurface_node = material_library_node.createNode('pxrsurface::3.0')
-
-            # Create an assign material node and connect it
-            assign_material_node = materials_node.createNode('assignmaterial')
-            assign_material_node.setInput(0, material_library_node)
-            # TODO: Set the material path and the geometry path
-            subnetwork_nodes.append(assign_material_node)
-
-            output_node = materials_node.node('output0')
-            output_node.setInput(0, assign_material_node)
-            subnetwork_nodes.append(output_node)
-
-            materials_node.layoutChildren(subnetwork_nodes)
-
-        return materials_node
-    
-    def add_auxiliary_nodes(self):
-        auxiliary_nodes = [self.effect_import_node]
-
-        # Add a subnetwork indicating a place to add materials
-        materials_node = self.get_materials_node()
-        materials_node.setName(self.effect_name + "_materials", unique_name=True)
-        materials_node.setInput(0, self.effect_import_node)
-        auxiliary_nodes.append(materials_node)
-        
-        # Connect a USD ROP to the LOP node
-        usd_rop_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'usd_rop')
-        usd_rop_node.setInput(0, materials_node)
-        usd_rop_node.setName("OUT_" + self.effect_name, unique_name=True)
-        
-        # Set the range to include the entire timeline
-        usd_rop_node.parm('trange').set(1)
-
-        # Set the lop node output file to the save path of the lop node
-        usd_path = HoudiniPathUtils.get_fx_usd_cache_file_path(self.effect_name)
-        usd_rop_node.parm('lopoutput').set(usd_path)
-        auxiliary_nodes.append(usd_rop_node)
-
-        # Create a reference node that references the usd file
-        reference_node = HoudiniNodeUtils.create_node(usd_rop_node.parent(), 'reference')
-        reference_node.setName(self.effect_name + "_reference", unique_name=True)
-        reference_node.parm('filepath1').set(usd_path)
-        reference_node.parm('primpath1').set(FX_PREFIX)
-        reference_node.setDisplayFlag(True)
-        auxiliary_nodes.append(reference_node)
-        
-        # Layout only the associated nodes
-        self.effect_import_node.parent().layoutChildren(auxiliary_nodes)
-
-        # Create a network box and add the nodes to it
-        box = self.effect_import_node.parent().createNetworkBox()
-        box.setComment("Configure " + self.effect_name)
-        for node in auxiliary_nodes:
-            box.addNode(node)
-
-    def get_effect_name(self, original_node_name: str):
-        return original_node_name.replace("OUT_", "")
-    
-    @abstractmethod
-    def get_null_node(self) -> hou.Node:
-        pass
-    
-    @abstractmethod
-    def get_import_node(self) -> hou.Node:
-        pass
-
-    def wrap(self):
-        print('Wrapping effect: ' + self.effect_name)
-        print('Null node: ' + self.null_node.name())
-        assert self.effect_import_node is not None
-        assert self.effect_name is not None
-        self.add_auxiliary_nodes()
-        
-
-class NonVDBEffectWrapper(USDEffectWrapper):
-    def __init__(self, selection: list):
-        super().__init__(selection)
-    
-    def get_null_node(self) -> hou.Node: # Override abstract method
-        assert len(self.selection) == 1
-        return self.selection[0]
-
-    def get_import_node(self) -> hou.Node: # Override abstract method
-        sop_import_lop = self.create_sop_import_lop()
-        self.configure_sop_import_lop(sop_import_lop)
-        return sop_import_lop
-
-    def create_sop_import_lop(self):
-        """Creates SOP Import node from the first node in selection."""
-        lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sopimport')
-        return lop_node
-
-    def configure_sop_import_lop(self, lop_node: hou.Node):
-        # Set the name of the node
-        lop_node_name = self.effect_name
-        lop_node.setName(lop_node_name, unique_name=True)
-        
-        # Set the SOP path
-        path = lop_node.relativePathTo(self.null_node)
-        lop_node.parm('soppath').set(path)
-
-        # Set the Import Path Prefix:
-        lop_node.parm('pathprefix').set(FX_PREFIX + "/$OS")
-
-        # Set save path
-        lop_node.parm('enable_savepath').set(True)
-        lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + self.effect_name + ".usd")
-
-class VDBEffectWrapper(USDEffectWrapper):
-    def __init__(self, selection: list):
-        print('Finished initializing VDBEffectWrapper')
-        assert len(selection) == 2
-        super().__init__(selection)
-    
-    def get_filecache_node(self) -> hou.Node:
-        print('Entering get_filecache_node')
-        assert len(self.selection) == 2
-        filecache_node = None
-        for i in range(len(self.selection)):
-            print(self.selection[i].type().name(), HoudiniNodeUtils.get_node_definition_name('filecache'))
-            if self.selection[i].type().name() == HoudiniNodeUtils.get_node_definition_name('filecache'):
-                filecache_node = self.selection[i]
-                print('Found filecache node')
-                break
-        assert filecache_node is not None
-        if filecache_node.parm('filetype').eval() != 1: # If not VDB, inform user
-            hou.ui.displayMessage(
-                'The selected filecache node is not a VDB. Please filecache node that saves to VDB.',
-                severity=hou.severityType.Message
-            )
-            raise Exception('The selected filecache node is not a VDB. Please filecache node that saves to VDB.')
-            
-        print('Exiting get_filecache_node')
-        return filecache_node
-    
-    def get_null_node_index_into_selection(self):
-        print('Entering get_null_node_index_into_selection')
-        assert len(self.selection) == 2
-        null_node_index = None
-        for i in range(len(self.selection)):
-            if self.selection[i].type().name() == "null":
-                null_node_index = i
-                break
-        assert null_node_index is not None
-        print('Exiting get_null_node_index_into_selection')
-        return null_node_index
-    
-    def get_null_node(self) -> hou.Node: # Override abstract method
-        print('Entering get_null_node')
-        return self.selection[self.get_null_node_index_into_selection()]
-    
-    def get_import_node(self) -> hou.Node:
-        print('Entering get_import_node')
-        volume_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'volume')
-        volume_node.parm('sample_behavior').set('multi') # Set to Sample Frame Range
-        path = volume_node.relativePathTo(self.get_filecache_node())
-        volume_node.parm('filepath1').set('`chs("' + path + '/sopoutput' + '")`')
-        volume_node.parm('parentprimtype').set('UsdGeomScope')
-        volume_node.parm('primpath').set(FX_PREFIX + "/" + self.effect_name)
-        return volume_node
-
 
 selection = hou.selectedNodes()
-print(len(selection))
-if len(selection) < 1 or len(selection) > 2:
+if len(selection) != 1:
     hou.ui.displayMessage(
-        'Please select one null with the naming convention: "OUT_" + <name of effect>. If wrapping a VDB, select both the null and the filecache node that created the VDB.',
+        'Please select one null with the naming convention: "OUT_" + <name of effect>.',
         severity=hou.severityType.Message
     )
-elif len(selection) == 1:
-    usd_wrapper = NonVDBEffectWrapper(selection)
-    usd_wrapper.wrap()
-    hou.ui.setStatusMessage(
-        'Lop nodes created successfully! Navigate to /stage to see the results.',
-        severity=hou.severityType.Message
-    )
-else: # Note: this case is set up and it in theory should work, but I was having trouble getting the VDB to show up in the viewport with the Volume node (set to Sample Frame Range, which allows for optimizations... See: https://www.sidefx.com/forum/topic/87646/?page=1#post-399469)
-    assert len(selection) == 2
-    print('VDB selected')
-    usd_wrapper = VDBEffectWrapper(selection)
-    usd_wrapper.wrap()]]></script>
+    raise Exception('Select only one node')
+
+usd_wrapper = HoudiniFXUtils.USDGeometryCacheEffectWrapper(selection[0])
+usd_wrapper.wrap()
+hou.ui.setStatusMessage(
+    'Lop nodes created successfully! Navigate to /stage to see the results.',
+    severity=hou.severityType.Message
+)]]></script>
   </tool>
 
   <tool name="configure_speedtree_bark" label="SpeedTree Bark" icon="PLASMA_App">

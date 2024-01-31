@@ -22,6 +22,7 @@
     <memberToolshelf name="labs_toolset"/>
     <memberToolshelf name="deform"/>
     <memberToolshelf name="crowds"/>
+    <memberToolshelf name="lighting"/>
   </shelfSet>
 
   <shelfSet name="accomplice_2" label="Accomplice Main">
@@ -33,5 +34,6 @@
     <memberToolshelf name="polygon"/>
     <memberToolshelf name="crowds"/>
     <memberToolshelf name="vellum"/>
+    <memberToolshelf name="lights_and_cameras"/>
   </shelfSet>
 </shelfDocument>
