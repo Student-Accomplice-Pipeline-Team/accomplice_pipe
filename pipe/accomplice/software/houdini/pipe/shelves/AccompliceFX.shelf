@@ -8,7 +8,7 @@
   <toolshelf name="accomplice_fx" label="Accomplice FX">
     <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
-    <memberTool name="compile_fx_usd"/>
+    <memberTool name="add_missing_sublayers_to_main_fx_file"/>
     <memberTool name="configure_speedtree_leaves"/>
     <memberTool name="configure_speedtree_bark"/>
     <memberTool name="unlock_all_nodes"/>
@@ -36,12 +36,14 @@ for selected_node in selected:
 ]]></script>
   </tool>
 
-  <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[import os
+  <tool name="add_missing_sublayers_to_main_fx_file" label="Add Missing Sublayers to Main FX File" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
 import hou
 from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils, HoudiniUtils
 
-HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(HoudiniUtils.get_shot_for_file())]]></script>
+shot = HoudiniUtils.get_shot_for_file()
+HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(shot)
+]]></script>
   </tool>
 
   <tool name="create_lop_nodes" label="Create Lop Nodes" icon="PLASMA_App">

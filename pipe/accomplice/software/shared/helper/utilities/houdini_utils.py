@@ -54,15 +54,30 @@ class HoudiniFXUtils():
         return [os.path.join(fx_usd_cache_directory_path, f) for f in os.listdir(fx_usd_cache_directory_path) if os.path.isfile(os.path.join(fx_usd_cache_directory_path, f)) and f.endswith('.usd')]
     
     @staticmethod
-    def create_sublayer_nodes_for_cached_fx(shot: Shot):
+    def create_sublayer_nodes_for_cached_fx(shot: Shot, create_only_missing_sublayers=True):
         cached_fx_paths = HoudiniFXUtils.get_paths_to_cached_fx(shot)
         sublayer_nodes = []
         for cached_fx_path in cached_fx_paths:
+            cached_fx_name = os.path.basename(cached_fx_path).replace('.usd', '')
+            potential_fx_names = [node.name() for node in HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'sublayer')]
+            if create_only_missing_sublayers and cached_fx_name in potential_fx_names:
+                continue
             sublayer_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sublayer')
             sublayer_node.parm('filepath1').set(cached_fx_path)
-            sublayer_node.setName(os.path.basename(cached_fx_path).replace('.usd', ''), unique_name=True)
+            sublayer_node.setName(cached_fx_name, unique_name=True)
             sublayer_nodes.append(sublayer_node)
         return sublayer_nodes
+    
+    @staticmethod
+    def insert_missing_cached_fx_into_main_fx_file(shot: Shot) -> list:
+        created_nodes = []
+        sublayer_nodes = HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(shot)
+        begin_null, end_null = HoudiniFXUtils.get_fx_range_nulls()
+        for sublayer_node in sublayer_nodes:
+            HoudiniNodeUtils.insert_node_before(end_null, sublayer_node)
+            created_nodes.append(sublayer_node)
+        hou.node('/stage').layoutChildren()
+        return created_nodes
     
     @staticmethod
     def get_fx_working_directory(shot: Shot):
@@ -97,7 +112,6 @@ class HoudiniFXUtils():
     @staticmethod
     def get_fx_range_nulls():
         return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
-
 
     # This file uses the template method pattern to setup the USD wrapper for a given effect
     class USDEffectWrapper(ABC):
@@ -282,6 +296,36 @@ class HoudiniNodeUtils():
 
         # Return None if no node of the specified type is found
         return None
+    
+    @staticmethod
+    def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node after an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert after the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs(0), node_to_insert)
+        return node_to_insert
+    
+    @staticmethod
+    def insert_node_before(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node before an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert before the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node.input(0), existing_node, node_to_insert)
+        return node_to_insert
     
     @staticmethod
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
@@ -612,12 +656,7 @@ class HoudiniNodeUtils():
             super().__init__(shot, 'fx', stage)
 
         def post_add_department_specific_nodes(self):
-            sublayer_nodes = HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(self.shot)
-            begin_null, end_null = HoudiniFXUtils.get_fx_range_nulls()
-            last_node = begin_null
-            for sublayer_node in sublayer_nodes:
-                last_node = HoudiniNodeUtils.insert_node_between_two_nodes(last_node, end_null, sublayer_node)
-                self.my_created_nodes.append(sublayer_node)
+            self.my_created_nodes.extend(HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(self.shot))
             
             self.stage.layoutChildren()
 
@@ -844,6 +883,12 @@ class FXSceneOpener(HoudiniShotOpener):
 class HoudiniUtils:
     def get_my_path():
         return hou.hipFile.path()
+    
+    @staticmethod
+    def perform_operation_on_houdini_files(file_paths: list, operation: callable, *args, **kwargs):
+        for file_path in file_paths:
+            HoudiniUtils.open_file(file_path)
+            operation(*args, **kwargs)
     
     @staticmethod
     def open_file(file_path):
