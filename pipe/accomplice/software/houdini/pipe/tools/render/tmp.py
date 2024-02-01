@@ -61,6 +61,7 @@ class TractorSubmit:
         self.frame_ranges = []
         # Array of render override paths
         self.output_path_overrides = []
+        self.do_cryptomattes = []
         self.blades = None
 
     # Gets the directory paths and render output overrides when
@@ -112,6 +113,7 @@ class TractorSubmit:
 
                 # Get the output path overrides for file sources
                 output_path_override = None
+                do_cryptomatte = 0
                 if source_type == 'file':
                     if int(self.node.parm(source_type + 'useoutputoverride' + str(source_num)).eval()) == 1:
                         output_path_override = []
@@ -124,7 +126,10 @@ class TractorSubmit:
                                     source_type + "outputoverride" + str(source_num)
                                 ).evalAtFrame(frame)
                             )
-
+                elif source_type == 'node':
+                    do_cryptomatte = int(self.node.parm(source_type + 'cryptomatteenable' + str(source_num)).eval())
+                
+                self.do_cryptomattes.append(do_cryptomatte)
                 self.output_path_overrides.append(output_path_override)
 
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
@@ -166,23 +171,12 @@ class TractorSubmit:
             else:
                 output_dir = os.path.dirname(output_path_attr.Get(0))
             
-            if not os.path.exists(output_dir):
-                directory_task = author.Task()
-                directory_task.title = "directory"
-
-                mkdir = [
-                    "/bin/bash",
-                    "-c",
-                    "/usr/bin/mkdir -p "
-                    + output_dir
-                ]
-
-                directory_command = author.Command()
-                directory_command.argv = mkdir
-                directory_command.envkey = [ENV_KEY]
-                directory_task.addCommand(directory_command)
             
-                task.addChild(directory_task)
+            if not os.path.exists(output_dir):
+                task.addChild(create_directory_task(output_dir))
+            
+            if self.do_cryptomattes[file_num] == 1:
+                task.addChild(create_directory_task(os.path.join(output_dir, 'cryptomattes')))
             
             render_task = author.Task()
             render_task.title = "render"
@@ -391,6 +385,24 @@ class TractorSubmit:
 #             )
 
 
+def create_directory_task(directory: str) -> author.Task:
+    directory_task = author.Task()
+    directory_task.title = "directory"
+
+    mkdir = [
+        "/bin/bash",
+        "-c",
+        "/usr/bin/mkdir -p "
+        + directory
+    ]
+
+    directory_command = author.Command()
+    directory_command.argv = mkdir
+    directory_command.envkey = [ENV_KEY]
+    directory_task.addCommand(directory_command)
+    return directory_task
+    
+
 def get_source_type_index(node: hou.Node, source_num: int) -> int:
     return node.parm('sourceoptions' + str(source_num) + '1').evalAsInt()
 
@@ -589,9 +601,20 @@ def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.
 def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     # Get the relevant options for the source
     camera = node.parm('nodecamera' + str(source_num)).evalAsString()
-    resolution_x_parm = node.parm('noderesolution' + str(source_num) + 'x')
-    resolution_y_parm = node.parm('noderesolution' + str(source_num) + 'y')
+
+    resolution_ctl: str = node.parm('noderesolutionctl' + str(source_num)).evalAsString()
+    if resolution_ctl == 'custom':
+        resolution_x = int(node.parm('noderesolution' + str(source_num) + 'x').evalAsInt())
+        resolution_y = int(node.parm('noderesolution' + str(source_num) + 'y').evalAsInt())
+    else:
+        resolution_x, resolution_y = resolution_ctl.split('x')
+    
     output_path_parm = node.parm('nodeoutputpath' + str(source_num))
+
+    sample_filter = 'PxrCryptomatte' if node.parm('nodecryptomatteenable' + str(source_num)).evalAsInt() == 1 else 'None'
+    cryptomatte_layer_parm = node.parm('nodecryptomatteproperty' + str(source_num))
+    cryptomatte_attr_parm = node.parm('nodecryptomatteattribute' + str(source_num))
+
     denoise = bool(node.parm('denoise').evalAsInt())
 
     # Find the render settings node
@@ -599,9 +622,13 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
 
     # Set the options on the render settings node
     render_settings_node.parm('camera').set(camera)
-    render_settings_node.parm('resolutionx').setFromParm(resolution_x_parm)
-    render_settings_node.parm('resolutiony').setFromParm(resolution_y_parm)
+    render_settings_node.parm('resolutionx').set(resolution_x)
+    render_settings_node.parm('resolutiony').set(resolution_y)
     render_settings_node.parm('picture').setFromParm(output_path_parm)
+
+    render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
+    render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
+    render_settings_node.parm('xn__risamplefilter0PxrCryptomatteattribute_u2bno').setFromParm(cryptomatte_attr_parm)
 
     
     render_settings_node.parm('enableDenoise').set(denoise)
@@ -817,7 +844,6 @@ def switch_source_type(
     prev_type = SOURCE_TYPES[type_parm.evalAsInt()]
 
     PARMTUPLE_BASE_NAMES = [
-        'trange',
         'frame',
         'framerange',
     ]
@@ -875,3 +901,12 @@ def get_render_camera_path(node: hou.Node) -> str:
     ls = hou.LopSelectionRule()
     ls.setPathPattern('%rendercamera')
     return ls.expandedPaths(node.inputs()[0])[0].pathString
+
+def update_layer_parms(node: hou.Node, parm: hou.Parm, script_value: str, script_multiparm_index):
+    pass
+
+def get_layer_list():
+    return [
+        'layout', 'layout',
+        'anim', 'anim',
+        ]
