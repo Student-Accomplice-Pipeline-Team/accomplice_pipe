@@ -347,16 +347,49 @@ class HoudiniNodeUtils():
     }
 
     @staticmethod
-    def find_first_node_of_type(parent, node_type):
-        # Iterate through all nodes in the stage context
-        for node in parent.allSubChildren():
-            # Check if the node is of the specified type
-            node_type_base = node.type().name().split('::')[0]
-            if node_type_base == node_type:
-                return node
+    def find_first_node_with_parm_value(parent, node_type, parm_name, parm_value):
+        """
+        Find the first node of a specific type under a given parent node that has a parameter with a specific value.
 
-        # Return None if no node of the specified type is found
+        Args:
+            parent (hou.Node): The parent node under which to search for the matching node.
+            node_type (str): The type of node to search for.
+            parm_name (str): The name of the parameter to check for the specific value.
+            parm_value (Any): The value to compare the parameter against.
+
+        Returns:
+            hou.Node or None: The first node found that matches the criteria, or None if no matching node is found.
+        """
+        matching_node_types = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        for matching_node in matching_node_types:
+            if matching_node.parm(parm_name).eval() == parm_value:
+                return matching_node
         return None
+    
+    @staticmethod
+    def find_nodes_of_type(parent_node, node_type):
+        """
+        Searches for all child nodes of a specific type under a given parent node in Houdini.
+
+        Args:
+        - parent_path (str): The path of the parent node where the search will begin.
+        - node_type (str): The type of nodes to search for.
+
+        Returns:
+        - list of hou.Node: A list of nodes of the specified type.
+        """
+
+        # Find all child nodes of the specified type
+        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().split('::')[0] == node_type]
+
+        return nodes_of_type
+
+    @staticmethod
+    def find_first_node_of_type(parent, node_type):
+        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        if len(matching_nodes) == 0:
+            return None
+        return matching_nodes[0]
     
     @staticmethod
     def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
@@ -439,22 +472,6 @@ class HoudiniNodeUtils():
         new_scene_creator = HoudiniNodeUtils.SceneCreatorFactory(shot, department_name).get_scene_creator()
         new_scene_creator.create()
 
-    def find_nodes_of_type(parent_node, node_type):
-        """
-        Searches for all child nodes of a specific type under a given parent node in Houdini.
-
-        Args:
-        - parent_path (str): The path of the parent node where the search will begin.
-        - node_type (str): The type of nodes to search for.
-
-        Returns:
-        - list of hou.Node: A list of nodes of the specified type.
-        """
-
-        # Find all child nodes of the specified type
-        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
-
-        return nodes_of_type
 
     class SceneCreatorFactory:
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
@@ -955,6 +972,8 @@ class HoudiniUtils:
         operation(*args, **kwargs)
         if save_after_operation:
             hou.hipFile.save()
+        # else:
+        #     hou.hipFile.clear(suppress_save_prompt=True)
     
     @staticmethod
     def perform_operation_on_houdini_files(file_paths: list, save_after_operation: bool, operation: callable, *args, **kwargs):
