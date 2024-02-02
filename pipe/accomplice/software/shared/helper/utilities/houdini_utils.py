@@ -403,7 +403,7 @@ class HoudiniNodeUtils():
         Returns:
             hou.Node: The newly created node.
         """
-        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs(0), node_to_insert)
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs()[0], node_to_insert)
         return node_to_insert
     
     @staticmethod
@@ -484,6 +484,8 @@ class HoudiniNodeUtils():
                 return HoudiniNodeUtils.MainSceneCreator(self.shot, self.stage)
             elif self.department_name == 'lighting':
                 return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'anim':
+                return HoudiniNodeUtils.AnimSceneCreator(self.shot, self.stage)
             elif self.department_name == 'fx':
                 fx_name = HoudiniFXUtils.get_fx_name_from_working_file_path(HoudiniUtils.get_my_path())
                 if self.shot.name in fx_name:
@@ -545,18 +547,16 @@ class HoudiniNodeUtils():
             load_shot_node = self.create_load_department_layers_node(import_layout_node)
             layer_break_node = self.add_layer_break_node(load_shot_node)
 
-            begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
-            self.my_created_nodes.append(begin_null)
+            self.begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
+            self.my_created_nodes.append(self.begin_null)
 
-            last_department_node = self.add_department_specific_nodes(begin_null)
+            last_department_node = self.add_department_specific_nodes(self.begin_null)
 
-            end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
-            self.my_created_nodes.append(end_null)
-            end_null.setDisplayFlag(True)
+            self.end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
+            self.my_created_nodes.append(self.end_null)
+            self.end_null.setDisplayFlag(True)
 
-            self.restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
-            self.restructure_scene_graph_node.bypass(1)
-            self.create_department_usd_rop_node(self.restructure_scene_graph_node)
+            self.create_department_usd_rop_node(self.end_null)
             self.post_add_department_specific_nodes()
             self.post_set_selection()
             self.post_set_view()
@@ -581,17 +581,6 @@ class HoudiniNodeUtils():
             layer_break_node.setComment("Keep this node here unless you have a specific reason to delete it.")
             self.my_created_nodes.append(layer_break_node)
             return layer_break_node
-        
-        def add_restructure_scene_graph_node(self, input_node: hou.Node):
-            restructure_scene_graph_node = input_node.createOutputNode('restructurescenegraph')
-            restructure_scene_graph_node.parm('flatteninput').set(0)
-            restructure_scene_graph_node.setComment("This node can help you put your work into the proper location in the scene graph. Simply adjust the 'primitives' parameter to include the prims you want to move. If you don't do this, your scene will probably still work. If you do this and it breaks, you can probably ignore this node. Reach out to a pipeline technician if you have any questions.")
-
-            # Set the primpattern to include everything that's not a decendant of /scene
-            restructure_scene_graph_node.parm('primpattern').set('')
-            restructure_scene_graph_node.parm('primnewparent').set('/scene/' + self.department_name)
-            self.my_created_nodes.append(restructure_scene_graph_node)
-            return restructure_scene_graph_node
         
         def add_department_specific_nodes(self, begin_null: hou.Node) -> hou.Node:
             return begin_null
@@ -687,12 +676,21 @@ class HoudiniNodeUtils():
             
             return camera_edit_node
     
+    class AnimSceneCreator(DepartmentSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'anim', stage)
+        def post_add_department_specific_nodes(self):
+            add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
+            add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
+            HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
+            self.my_created_nodes.append(add_motion_vectors_node)
+    
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'lighting', stage)
         
         def post_add_department_specific_nodes(self):
-            motion_blur_node = self.restructure_scene_graph_node.createOutputNode('accomp_motion_blur')
+            motion_blur_node = self.end_null.createOutputNode('accomp_motion_blur')
             self.my_created_nodes.append(motion_blur_node)
             render_settings_node = motion_blur_node.createOutputNode('hdprmanrenderproperties') # TODO: When you know where these are going to be rendered out, you can automate setting this.
             self.my_created_nodes.append(render_settings_node)
