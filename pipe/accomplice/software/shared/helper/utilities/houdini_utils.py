@@ -347,16 +347,49 @@ class HoudiniNodeUtils():
     }
 
     @staticmethod
-    def find_first_node_of_type(parent, node_type):
-        # Iterate through all nodes in the stage context
-        for node in parent.allSubChildren():
-            # Check if the node is of the specified type
-            node_type_base = node.type().name().split('::')[0]
-            if node_type_base == node_type:
-                return node
+    def find_first_node_with_parm_value(parent, node_type, parm_name, parm_value):
+        """
+        Find the first node of a specific type under a given parent node that has a parameter with a specific value.
 
-        # Return None if no node of the specified type is found
+        Args:
+            parent (hou.Node): The parent node under which to search for the matching node.
+            node_type (str): The type of node to search for.
+            parm_name (str): The name of the parameter to check for the specific value.
+            parm_value (Any): The value to compare the parameter against.
+
+        Returns:
+            hou.Node or None: The first node found that matches the criteria, or None if no matching node is found.
+        """
+        matching_node_types = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        for matching_node in matching_node_types:
+            if matching_node.parm(parm_name).eval() == parm_value:
+                return matching_node
         return None
+    
+    @staticmethod
+    def find_nodes_of_type(parent_node, node_type):
+        """
+        Searches for all child nodes of a specific type under a given parent node in Houdini.
+
+        Args:
+        - parent_path (str): The path of the parent node where the search will begin.
+        - node_type (str): The type of nodes to search for.
+
+        Returns:
+        - list of hou.Node: A list of nodes of the specified type.
+        """
+
+        # Find all child nodes of the specified type
+        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().split('::')[0] == node_type]
+
+        return nodes_of_type
+
+    @staticmethod
+    def find_first_node_of_type(parent, node_type):
+        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        if len(matching_nodes) == 0:
+            return None
+        return matching_nodes[0]
     
     @staticmethod
     def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
@@ -370,7 +403,7 @@ class HoudiniNodeUtils():
         Returns:
             hou.Node: The newly created node.
         """
-        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs(0), node_to_insert)
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs()[0], node_to_insert)
         return node_to_insert
     
     @staticmethod
@@ -439,22 +472,6 @@ class HoudiniNodeUtils():
         new_scene_creator = HoudiniNodeUtils.SceneCreatorFactory(shot, department_name).get_scene_creator()
         new_scene_creator.create()
 
-    def find_nodes_of_type(parent_node, node_type):
-        """
-        Searches for all child nodes of a specific type under a given parent node in Houdini.
-
-        Args:
-        - parent_path (str): The path of the parent node where the search will begin.
-        - node_type (str): The type of nodes to search for.
-
-        Returns:
-        - list of hou.Node: A list of nodes of the specified type.
-        """
-
-        # Find all child nodes of the specified type
-        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
-
-        return nodes_of_type
 
     class SceneCreatorFactory:
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
@@ -467,6 +484,8 @@ class HoudiniNodeUtils():
                 return HoudiniNodeUtils.MainSceneCreator(self.shot, self.stage)
             elif self.department_name == 'lighting':
                 return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'anim':
+                return HoudiniNodeUtils.AnimSceneCreator(self.shot, self.stage)
             elif self.department_name == 'fx':
                 fx_name = HoudiniFXUtils.get_fx_name_from_working_file_path(HoudiniUtils.get_my_path())
                 if self.shot.name in fx_name:
@@ -528,18 +547,16 @@ class HoudiniNodeUtils():
             load_shot_node = self.create_load_department_layers_node(import_layout_node)
             layer_break_node = self.add_layer_break_node(load_shot_node)
 
-            begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
-            self.my_created_nodes.append(begin_null)
+            self.begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
+            self.my_created_nodes.append(self.begin_null)
 
-            last_department_node = self.add_department_specific_nodes(begin_null)
+            last_department_node = self.add_department_specific_nodes(self.begin_null)
 
-            end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
-            self.my_created_nodes.append(end_null)
-            end_null.setDisplayFlag(True)
+            self.end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
+            self.my_created_nodes.append(self.end_null)
+            self.end_null.setDisplayFlag(True)
 
-            self.restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
-            self.restructure_scene_graph_node.bypass(1)
-            self.create_department_usd_rop_node(self.restructure_scene_graph_node)
+            self.create_department_usd_rop_node(self.end_null)
             self.post_add_department_specific_nodes()
             self.post_set_selection()
             self.post_set_view()
@@ -564,17 +581,6 @@ class HoudiniNodeUtils():
             layer_break_node.setComment("Keep this node here unless you have a specific reason to delete it.")
             self.my_created_nodes.append(layer_break_node)
             return layer_break_node
-        
-        def add_restructure_scene_graph_node(self, input_node: hou.Node):
-            restructure_scene_graph_node = input_node.createOutputNode('restructurescenegraph')
-            restructure_scene_graph_node.parm('flatteninput').set(0)
-            restructure_scene_graph_node.setComment("This node can help you put your work into the proper location in the scene graph. Simply adjust the 'primitives' parameter to include the prims you want to move. If you don't do this, your scene will probably still work. If you do this and it breaks, you can probably ignore this node. Reach out to a pipeline technician if you have any questions.")
-
-            # Set the primpattern to include everything that's not a decendant of /scene
-            restructure_scene_graph_node.parm('primpattern').set('')
-            restructure_scene_graph_node.parm('primnewparent').set('/scene/' + self.department_name)
-            self.my_created_nodes.append(restructure_scene_graph_node)
-            return restructure_scene_graph_node
         
         def add_department_specific_nodes(self, begin_null: hou.Node) -> hou.Node:
             return begin_null
@@ -670,12 +676,21 @@ class HoudiniNodeUtils():
             
             return camera_edit_node
     
+    class AnimSceneCreator(DepartmentSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'anim', stage)
+        def post_add_department_specific_nodes(self):
+            add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
+            add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
+            HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
+            self.my_created_nodes.append(add_motion_vectors_node)
+    
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'lighting', stage)
         
         def post_add_department_specific_nodes(self):
-            motion_blur_node = self.restructure_scene_graph_node.createOutputNode('accomp_motion_blur')
+            motion_blur_node = self.end_null.createOutputNode('accomp_motion_blur')
             self.my_created_nodes.append(motion_blur_node)
             render_settings_node = motion_blur_node.createOutputNode('hdprmanrenderproperties') # TODO: When you know where these are going to be rendered out, you can automate setting this.
             self.my_created_nodes.append(render_settings_node)
@@ -955,6 +970,8 @@ class HoudiniUtils:
         operation(*args, **kwargs)
         if save_after_operation:
             hou.hipFile.save()
+        # else:
+        #     hou.hipFile.clear(suppress_save_prompt=True)
     
     @staticmethod
     def perform_operation_on_houdini_files(file_paths: list, save_after_operation: bool, operation: callable, *args, **kwargs):
