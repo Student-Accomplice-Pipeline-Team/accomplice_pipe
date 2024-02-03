@@ -306,7 +306,7 @@ class TractorSubmit:
                         + "/opt/hfs19.5/bin/hoiiotool "
                         + exr_path
                         + " "
-                        + "--ch R,G,B,A "
+                        + "--ch Ci.r,Ci.g,Ci.b,a "
                         + "--colorconvert linear 'Output - Rec.709' "
                         + "-o "
                         + png_path,
