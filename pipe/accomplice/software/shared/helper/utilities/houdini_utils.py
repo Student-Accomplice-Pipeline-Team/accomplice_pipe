@@ -5,14 +5,101 @@ from pathlib import Path
 import pipe
 from ...object import Shot
 from .file_path_utils import FilePathUtils
+from .ui_utils import ListWithCheckboxFilter
+from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 
 
 class HoudiniFXUtils():
-    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks']
+    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel']
     FX_PREFIX = "/scene/fx"
+    
+    @staticmethod
+    def user_interface_for_resolving_missing_sublayers():
+        sequences = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']  # default sequences
+        sequence_selector = ListWithCheckboxFilter("Select Sequences", sequences)
+        if sequence_selector.exec_():
+            selected_sequences = sequence_selector.get_selected_items()
+
+            # Step 2: Find missing sublayers for the selected sequences
+            missing_sublayers = HoudiniFXUtils.get_fx_usds_missing_sublayers(selected_sequences)
+
+            # Convert missing sublayers to a list of shot names
+            missing_shots = [layer['shot'] + ' (missing: ' + ', '.join(layer['missing_fx']) + ')' for layer in missing_sublayers]
+
+            # Step 3: Get shot choices from the user
+            shot_selector = ListWithCheckboxFilter("Select Shots", missing_shots, items_checked_by_default=True)
+            if shot_selector.exec_():
+                selected_shots = shot_selector.get_selected_items()
+                selected_shots = [selected_shot.split(' ')[0] for selected_shot in selected_shots]
+
+                # Step 4: Resolve missing sublayers for the selected shots
+                for shot_name in selected_shots:
+                    shot = Shot(shot_name)  # Implement this function based on your data structure
+                    HoudiniFXUtils.resolve_missing_sublayers(shot)
+    
+    @staticmethod
+    def resolve_missing_sublayers(shot: Shot):
+        def callback(shot: Shot):
+            HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(shot)
+            # Find the USD rop and hit render
+            usd_rop_candidates = HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'usd_rop')
+            selected_usd_rop = None
+            for usd_rop in usd_rop_candidates:
+                if usd_rop.parm('lopoutput').eval() == shot.get_shot_usd_path('fx'):
+                    selected_usd_rop = usd_rop
+                    break
+            if selected_usd_rop is not None:
+                selected_usd_rop.parm('execute').pressButton()
+
+        print(f"Adding missing sublayers to shot {shot.name}")
+        main_fx_file = shot.get_shotfile('fx')
+        if not os.path.exists(main_fx_file):
+            hou.hipFile.save()
+            hou.hipFile.clear(suppress_save_prompt=True)
+            hou.hipFile.save(main_fx_file)
+            HoudiniUtils.configure_new_shot_file(shot, 'fx')
+            hou.hipFile.save()
+        HoudiniUtils.perform_operation_on_houdini_file(
+            main_fx_file,
+            True,
+            callback,
+            shot
+        )
+    
+    @staticmethod
+    def get_fx_usds_missing_sublayers(sequences_to_include=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']) -> list:
+        fx_usds_missing_sublayers = []
+        all_shots = [Shot(shot) for shot in pipe.server.get_shot_list()]
+        for shot in all_shots:
+            if not shot.name[0] in sequences_to_include:
+                continue
+            fx_usd = shot.get_shot_usd_path('fx')
+            print(f"Checking {fx_usd}")
+            cached_fxs = [os.path.basename(path) for path in HoudiniFXUtils.get_paths_to_cached_fx(shot)]
+            missing_fx_in_layer = []
+            for cached_fx in cached_fxs:
+                print(f"Checking if {cached_fx} is in {fx_usd}")
+                cached_fx_name = cached_fx.replace('.usd', '')
+                if cached_fx_name == 'leaves_and_gravel':
+                    if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{'leaves'}"):
+                        print(f"{cached_fx} is not in {fx_usd}")
+                        missing_fx_in_layer.append(cached_fx)
+                else:
+                    if not UsdUtils.is_primitive_in_usd(fx_usd, f"{HoudiniFXUtils.FX_PREFIX}/{cached_fx_name}"):
+                        print(f"{cached_fx} is not in {fx_usd}")
+                        missing_fx_in_layer.append(cached_fx)
+            if len(missing_fx_in_layer) > 0:
+                fx_usds_missing_sublayers.append(
+                    {
+                        'usd': fx_usd,
+                        'missing_fx': missing_fx_in_layer,
+                        'shot': shot.name
+                    }
+                )
+        return fx_usds_missing_sublayers
     
     @staticmethod
     def get_fx_usd_cache_directory_path(shot: Shot):
@@ -28,15 +115,30 @@ class HoudiniFXUtils():
         return [os.path.join(fx_usd_cache_directory_path, f) for f in os.listdir(fx_usd_cache_directory_path) if os.path.isfile(os.path.join(fx_usd_cache_directory_path, f)) and f.endswith('.usd')]
     
     @staticmethod
-    def create_sublayer_nodes_for_cached_fx(shot: Shot):
+    def create_sublayer_nodes_for_cached_fx(shot: Shot, create_only_missing_sublayers=True):
         cached_fx_paths = HoudiniFXUtils.get_paths_to_cached_fx(shot)
         sublayer_nodes = []
         for cached_fx_path in cached_fx_paths:
+            cached_fx_name = os.path.basename(cached_fx_path).replace('.usd', '')
+            potential_fx_names = [node.name() for node in HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'sublayer')]
+            if create_only_missing_sublayers and cached_fx_name in potential_fx_names:
+                continue
             sublayer_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sublayer')
             sublayer_node.parm('filepath1').set(cached_fx_path)
-            sublayer_node.setName(os.path.basename(cached_fx_path).replace('.usd', ''), unique_name=True)
+            sublayer_node.setName(cached_fx_name, unique_name=True)
             sublayer_nodes.append(sublayer_node)
         return sublayer_nodes
+    
+    @staticmethod
+    def insert_missing_cached_fx_into_main_fx_file(shot: Shot) -> list:
+        created_nodes = []
+        sublayer_nodes = HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(shot)
+        begin_null, end_null = HoudiniFXUtils.get_fx_range_nulls()
+        for sublayer_node in sublayer_nodes:
+            HoudiniNodeUtils.insert_node_before(end_null, sublayer_node)
+            created_nodes.append(sublayer_node)
+        hou.node('/stage').layoutChildren()
+        return created_nodes
     
     @staticmethod
     def get_fx_working_directory(shot: Shot):
@@ -71,7 +173,6 @@ class HoudiniFXUtils():
     @staticmethod
     def get_fx_range_nulls():
         return hou.node('/stage').node('BEGIN_fx'), hou.node('/stage').node('END_fx')
-
 
     # This file uses the template method pattern to setup the USD wrapper for a given effect
     class USDEffectWrapper(ABC):
@@ -193,13 +294,13 @@ class HoudiniFXUtils():
         
         def get_import_node(self) -> hou.Node: # Override abstract method
             sop_import_lop = self.create_sop_import_lop()
+            HoudiniNodeUtils.insert_node_between_two_nodes(self.fx_start_null, self.fx_end_null, sop_import_lop)
             self.configure_sop_import_lop(sop_import_lop)
             return sop_import_lop
 
         def create_sop_import_lop(self):
             """Creates SOP Import node from the first node in selection."""
             lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'sopimport')
-            lop_node = HoudiniNodeUtils.insert_node_between_two_nodes(self.fx_start_null, self.fx_end_null, lop_node)
             return lop_node
 
         def configure_sop_import_lop(self, lop_node: hou.Node):
@@ -217,6 +318,17 @@ class HoudiniFXUtils():
             # Set save path
             lop_node.parm('enable_savepath').set(True)
             lop_node.parm('savepath').set("$HIP/geo/usd_imports/" + self.effect_name + ".usd")
+    
+    class LeavesAndGravelUSDGeometryCacheEffectWrapper(USDGeometryCacheEffectWrapper):
+        def __init__(self, null_node: hou.Node):
+            super().__init__(null_node)
+        
+        def create_sop_import_lop(self) -> hou.Node:
+            lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'accomp_import_leaves_and_gravel')
+            return lop_node
+
+        def configure_sop_import_lop(self, lop_node: hou.Node):
+            return # It's already configured so do nothing :)
 
 class HoudiniNodeUtils():
     def __init__(self):
@@ -230,20 +342,84 @@ class HoudiniNodeUtils():
         'money_material': 'accomp_money_material',
         'sparks_material': 'accomp_sparks_material',
         'smoke_material': 'accomp_smoke_material',
+        'leaves_and_gravel_material': 'accomp_leaves_and_gravel_material',
         # 'skid_marks_material': 'accomp_skid_marks_material',
     }
 
     @staticmethod
-    def find_first_node_of_type(parent, node_type):
-        # Iterate through all nodes in the stage context
-        for node in parent.allSubChildren():
-            # Check if the node is of the specified type
-            node_type_base = node.type().name().split('::')[0]
-            if node_type_base == node_type:
-                return node
+    def find_first_node_with_parm_value(parent, node_type, parm_name, parm_value):
+        """
+        Find the first node of a specific type under a given parent node that has a parameter with a specific value.
 
-        # Return None if no node of the specified type is found
+        Args:
+            parent (hou.Node): The parent node under which to search for the matching node.
+            node_type (str): The type of node to search for.
+            parm_name (str): The name of the parameter to check for the specific value.
+            parm_value (Any): The value to compare the parameter against.
+
+        Returns:
+            hou.Node or None: The first node found that matches the criteria, or None if no matching node is found.
+        """
+        matching_node_types = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        for matching_node in matching_node_types:
+            if matching_node.parm(parm_name).eval() == parm_value:
+                return matching_node
         return None
+    
+    @staticmethod
+    def find_nodes_of_type(parent_node, node_type):
+        """
+        Searches for all child nodes of a specific type under a given parent node in Houdini.
+
+        Args:
+        - parent_path (str): The path of the parent node where the search will begin.
+        - node_type (str): The type of nodes to search for.
+
+        Returns:
+        - list of hou.Node: A list of nodes of the specified type.
+        """
+
+        # Find all child nodes of the specified type
+        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().split('::')[0] == node_type]
+
+        return nodes_of_type
+
+    @staticmethod
+    def find_first_node_of_type(parent, node_type):
+        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+        if len(matching_nodes) == 0:
+            return None
+        return matching_nodes[0]
+    
+    @staticmethod
+    def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node after an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert after the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node, existing_node.outputs()[0], node_to_insert)
+        return node_to_insert
+    
+    @staticmethod
+    def insert_node_before(existing_node: hou.Node, node_to_insert: hou.Node):
+        """
+        Inserts a new node before an existing node in Houdini.
+
+        Args:
+            existing_node (hou.Node): The existing node.
+            node_to_insert (hou.Node): The node to insert before the existing node.
+
+        Returns:
+            hou.Node: The newly created node.
+        """
+        HoudiniNodeUtils.insert_node_between_two_nodes(existing_node.input(0), existing_node, node_to_insert)
+        return node_to_insert
     
     @staticmethod
     def insert_node_between_two_nodes(first_node: hou.Node, last_node: hou.Node, node_to_insert: hou.Node):
@@ -296,22 +472,6 @@ class HoudiniNodeUtils():
         new_scene_creator = HoudiniNodeUtils.SceneCreatorFactory(shot, department_name).get_scene_creator()
         new_scene_creator.create()
 
-    def find_nodes_of_type(parent_node, node_type):
-        """
-        Searches for all child nodes of a specific type under a given parent node in Houdini.
-
-        Args:
-        - parent_path (str): The path of the parent node where the search will begin.
-        - node_type (str): The type of nodes to search for.
-
-        Returns:
-        - list of hou.Node: A list of nodes of the specified type.
-        """
-
-        # Find all child nodes of the specified type
-        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
-
-        return nodes_of_type
 
     class SceneCreatorFactory:
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
@@ -324,6 +484,8 @@ class HoudiniNodeUtils():
                 return HoudiniNodeUtils.MainSceneCreator(self.shot, self.stage)
             elif self.department_name == 'lighting':
                 return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'anim':
+                return HoudiniNodeUtils.AnimSceneCreator(self.shot, self.stage)
             elif self.department_name == 'fx':
                 fx_name = HoudiniFXUtils.get_fx_name_from_working_file_path(HoudiniUtils.get_my_path())
                 if self.shot.name in fx_name:
@@ -385,18 +547,16 @@ class HoudiniNodeUtils():
             load_shot_node = self.create_load_department_layers_node(import_layout_node)
             layer_break_node = self.add_layer_break_node(load_shot_node)
 
-            begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
-            self.my_created_nodes.append(begin_null)
+            self.begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
+            self.my_created_nodes.append(self.begin_null)
 
-            last_department_node = self.add_department_specific_nodes(begin_null)
+            last_department_node = self.add_department_specific_nodes(self.begin_null)
 
-            end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
-            self.my_created_nodes.append(end_null)
-            end_null.setDisplayFlag(True)
+            self.end_null = last_department_node.createOutputNode('null', 'END_' + self.department_name)
+            self.my_created_nodes.append(self.end_null)
+            self.end_null.setDisplayFlag(True)
 
-            self.restructure_scene_graph_node = self.add_restructure_scene_graph_node(end_null)
-            self.restructure_scene_graph_node.bypass(1)
-            self.create_department_usd_rop_node(self.restructure_scene_graph_node)
+            self.create_department_usd_rop_node(self.end_null)
             self.post_add_department_specific_nodes()
             self.post_set_selection()
             self.post_set_view()
@@ -421,17 +581,6 @@ class HoudiniNodeUtils():
             layer_break_node.setComment("Keep this node here unless you have a specific reason to delete it.")
             self.my_created_nodes.append(layer_break_node)
             return layer_break_node
-        
-        def add_restructure_scene_graph_node(self, input_node: hou.Node):
-            restructure_scene_graph_node = input_node.createOutputNode('restructurescenegraph')
-            restructure_scene_graph_node.parm('flatteninput').set(0)
-            restructure_scene_graph_node.setComment("This node can help you put your work into the proper location in the scene graph. Simply adjust the 'primitives' parameter to include the prims you want to move. If you don't do this, your scene will probably still work. If you do this and it breaks, you can probably ignore this node. Reach out to a pipeline technician if you have any questions.")
-
-            # Set the primpattern to include everything that's not a decendant of /scene
-            restructure_scene_graph_node.parm('primpattern').set('')
-            restructure_scene_graph_node.parm('primnewparent').set('/scene/' + self.department_name)
-            self.my_created_nodes.append(restructure_scene_graph_node)
-            return restructure_scene_graph_node
         
         def add_department_specific_nodes(self, begin_null: hou.Node) -> hou.Node:
             return begin_null
@@ -527,12 +676,21 @@ class HoudiniNodeUtils():
             
             return camera_edit_node
     
+    class AnimSceneCreator(DepartmentSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'anim', stage)
+        def post_add_department_specific_nodes(self):
+            add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
+            add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
+            HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
+            self.my_created_nodes.append(add_motion_vectors_node)
+    
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'lighting', stage)
         
         def post_add_department_specific_nodes(self):
-            motion_blur_node = self.restructure_scene_graph_node.createOutputNode('accomp_motion_blur')
+            motion_blur_node = self.end_null.createOutputNode('accomp_motion_blur')
             self.my_created_nodes.append(motion_blur_node)
             render_settings_node = motion_blur_node.createOutputNode('hdprmanrenderproperties') # TODO: When you know where these are going to be rendered out, you can automate setting this.
             self.my_created_nodes.append(render_settings_node)
@@ -574,12 +732,7 @@ class HoudiniNodeUtils():
             super().__init__(shot, 'fx', stage)
 
         def post_add_department_specific_nodes(self):
-            sublayer_nodes = HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(self.shot)
-            begin_null, end_null = HoudiniFXUtils.get_fx_range_nulls()
-            last_node = begin_null
-            for sublayer_node in sublayer_nodes:
-                last_node = HoudiniNodeUtils.insert_node_between_two_nodes(last_node, end_null, sublayer_node)
-                self.my_created_nodes.append(sublayer_node)
+            self.my_created_nodes.extend(HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(self.shot))
             
             self.stage.layoutChildren()
 
@@ -606,7 +759,10 @@ class HoudiniNodeUtils():
             self.fx_geo_node.setDisplayFlag(True)
 
             self.import_layout()
-            HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            if self.fx_name == 'leaves_and_gravel':
+                HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            else:
+                HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
             
             # Put import nodes into a box
@@ -805,6 +961,24 @@ class HoudiniUtils:
         return hou.hipFile.path()
     
     @staticmethod
+    def perform_operation_on_houdini_file(filepath: str, save_after_operation: bool, operation: callable, *args, **kwargs):
+        try:
+            HoudiniUtils.open_file(filepath)
+        except AssertionError as e:
+            print(e)
+            return None
+        operation(*args, **kwargs)
+        if save_after_operation:
+            hou.hipFile.save()
+        # else:
+        #     hou.hipFile.clear(suppress_save_prompt=True)
+    
+    @staticmethod
+    def perform_operation_on_houdini_files(file_paths: list, save_after_operation: bool, operation: callable, *args, **kwargs):
+        for file_path in file_paths:
+            HoudiniUtils.perform_operation_on_houdini_file(file_path, save_after_operation, operation, *args, **kwargs)
+    
+    @staticmethod
     def open_file(file_path):
         assert os.path.exists(file_path), "File does not exist: " + file_path
         hou.hipFile.load(file_path, suppress_save_prompt=True)
@@ -908,6 +1082,8 @@ class HoudiniUtils:
 
     @staticmethod
     def set_frame_range_from_shot(shot: Shot, global_start_frame=1001, handle_frames=5):
+        if shot.cut_in is None or shot.cut_out is None:
+            shot = pipe.server.get_shot(shot.name, retrieve_from_shotgrid=True)
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
         hou.playbar.setFrameRange(handle_start, handle_end)
         hou.playbar.setPlaybackRange(shot_start, shot_end)
