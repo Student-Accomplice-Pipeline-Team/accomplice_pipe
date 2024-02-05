@@ -748,6 +748,15 @@ class HoudiniNodeUtils():
                 'studentcar': None,
                 'vaughn': None
             }
+        
+
+        def create_cache_node(self):
+            cache_node = self.stage.createNode('cache::2.0')
+            cache_node.parm('behavior').set('currentframe')
+            cache_node.parm('sample_subframeenable').set(1)
+            cache_node.parm('sample_count').set(4)
+            return cache_node
+
 
         def post_add_department_specific_nodes(self):
             self.import_camera_geo()
@@ -757,10 +766,16 @@ class HoudiniNodeUtils():
             self.fx_geo_node.setColor(hou.Color((1, 0, 0)))
             self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
             self.fx_geo_node.setDisplayFlag(True)
+            cache_node = self.create_cache_node()
+            # Bypass the cache node
+            cache_node.bypass(True)
+            self.my_created_nodes.append(cache_node)
+            HoudiniNodeUtils.insert_node_after(self.end_null, cache_node)
 
             self.import_layout()
             if self.fx_name == 'leaves_and_gravel':
                 HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+                cache_node.bypass(False)
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
