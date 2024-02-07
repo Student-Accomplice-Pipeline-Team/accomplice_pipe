@@ -643,7 +643,7 @@ def update_camera_edit_node(node: hou.Node, source_num: int, layer_num: int) -> 
     camera_parm = get_parm(node, 'nodecamera', source_num)
     do_dof = get_parm_int(node, f'layerdof{str(source_num)}_{str(layer_num)}')
     
-    dof_control_setting = 'set' if do_dof != 0 else 'none'
+    dof_control_setting = 'set' if do_dof == 0 else 'none'
 
     # Find the camera edit node
     camera_edit_node = get_camera_node(node)
