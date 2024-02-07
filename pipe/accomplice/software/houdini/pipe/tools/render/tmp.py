@@ -4,13 +4,12 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence, Optional
-from enum import Enum
-import pipe
+from typing import Sequence
+
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 
-# Tractor requires all neccesiary envionment paths of the job to function.
+# Tractor requires all necessary environment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
 ENV_PATHS = [
     "PATH",
@@ -51,7 +50,7 @@ class TractorSubmit:
         # Tractor library Job class object used to submit jobs
         self.job = author.Job()
         # Set job title
-        self.job.title = node.parm("jobtitle").eval()
+        self.job.title = get_parm_str(node, 'jobtitle')
         # Set job environment key
         self.job.envkey = [ENV_KEY]
 
@@ -67,7 +66,7 @@ class TractorSubmit:
     # Gets the directory paths and render output overrides when
     # USDs are inputted manually with the "From Disk" Render method
     def input_usd_info(self):
-        num_sources = self.node.parm("sources").evalAsInt()
+        num_sources = get_parm_int(self.node, 'sources')
 
         # For loop for getting variables from dynamically changing parameters
         for source_num in range(1, num_sources + 1):
@@ -77,7 +76,7 @@ class TractorSubmit:
             if source_type == 'file':
                 # Get filepaths for the pattern
                 filepaths = validate_files(
-                    self.node, self.node.parm("filepath" + str(source_num))
+                    self.node, get_parm_str(self.node, 'filepath', source_num)
                 )
             elif source_type == 'node':
                 # Prepare for and render the USD
@@ -85,16 +84,16 @@ class TractorSubmit:
 
                 update_source_nodes(self.node, source_num)
 
-                num_layers: hou.Parm = self.node.parm('nodelayers' + str(source_num)).evalAsInt()
+                num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
                 for layer_num in range(1, num_layers + 1):
                     update_layer_nodes(self.node, source_num, layer_num)
-                    filepaths.append(usd_node.parm('lopoutput').eval())
+                    filepaths.append(get_parm_str(usd_node, 'lopoutput'))
                     usd_node.parm('execute').pressButton()
 
                 # Create a lopimportcam node in /obj
                 sop_cam_node = hou.node('/obj').createNode('lopimportcam')
                 sop_cam_node.parm('loppath').set(self.node.path())
-                sop_cam_node.parm('primpath').setFromParm(self.node.parm('nodecamera' + str(source_num)))
+                sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
 
                 # Prepare for and render the camera alembic
                 alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
@@ -115,7 +114,7 @@ class TractorSubmit:
                 output_path_override = None
                 do_cryptomatte = 0
                 if source_type == 'file':
-                    if int(self.node.parm(source_type + 'useoutputoverride' + str(source_num)).eval()) == 1:
+                    if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
                         output_path_override = []
                         hou.hscript(
                             f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
@@ -127,7 +126,7 @@ class TractorSubmit:
                                 ).evalAtFrame(frame)
                             )
                 elif source_type == 'node':
-                    do_cryptomatte = int(self.node.parm(source_type + 'cryptomatteenable' + str(source_num)).eval())
+                    do_cryptomatte = get_parm_bool(self.node, source_type + 'cryptomatteenable' + str(source_num))
                 
                 self.do_cryptomattes.append(do_cryptomatte)
                 self.output_path_overrides.append(output_path_override)
@@ -136,13 +135,13 @@ class TractorSubmit:
 
     # Gets the job priority from the node user interface
     def input_priority(self):
-        self.job.priority = float(self.node.parm("jobpriority").eval())
+        self.job.priority = get_parm_float(self.node, "jobpriority")
 
     # Gets the blade selection info from the node user interface
     def input_blades(self):
-        blade_method = self.node.parm("blademethod").evalAsString()
+        blade_method = get_parm_str(self.node, "blademethod")
 
-        blade_pattern = self.node.parm(blade_method).eval()
+        blade_pattern = get_parm_str(self.node, blade_method)
 
         if blade_method == "profile" or blade_method == "name":
             pattern_list = blade_pattern.split()
@@ -181,8 +180,8 @@ class TractorSubmit:
             render_task = author.Task()
             render_task.title = "render"
             
-            if self.node.parm("denoise").evalAsInt():
-                asymmetry = self.node.parm("denoise_asymmetry").evalAsFloat()
+            if get_parm_int(self.node, "denoise"):
+                asymmetry = get_parm_float(self.node, "denoise_asymmetry")
                 denoise_task = author.Task()
                 denoise_task.title = "denoise"
 
@@ -237,7 +236,7 @@ class TractorSubmit:
                     "/bin/bash",
                     "-c",
                     "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
-                    + self.node.parm("renderer").eval()
+                    + get_parm_int(self.node, "renderer")
                     + " --frame "
                     + str(frame)
                     + " --frame-inc "
@@ -254,7 +253,7 @@ class TractorSubmit:
                 renderCommand[-1] += (
                     " " + self.filepaths[file_num]
                 )  # + " &> /tmp/test.log"
-                # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", self.node.parm("renderer").eval(),
+                # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
                 #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
                 # if (self.output_path_overrides[i] != None):
                 #     renderCommand.extend(
@@ -269,7 +268,7 @@ class TractorSubmit:
                 subTask.addCommand(command)
 
                 # Create post task to convert to PNG
-                if self.node.parm("createplayblasts").evalAsInt():
+                if get_parm_bool(self.node, "createplayblasts"):
                     pngconvert = author.Command()
                     exr_path = ""
                     if self.output_path_overrides[file_num] != None:
@@ -314,7 +313,7 @@ class TractorSubmit:
             task.addChild(render_task)
 
             # Create playblast file
-            if self.node.parm("createplayblasts").evalAsInt():
+            if get_parm_bool(self.node, 'createplayblasts'):
                 create_mov = author.Command()
 
                 # fmt: off
@@ -404,7 +403,7 @@ def create_directory_task(directory: str) -> author.Task:
     
 
 def get_source_type_index(node: hou.Node, source_num: int) -> int:
-    return node.parm('sourceoptions' + str(source_num) + '1').evalAsInt()
+    return get_parm_int(node, 'sourceoptions' + str(source_num) + '1')
 
 
 def get_source_type(node: hou.Node, source_num: int) -> str:
@@ -424,7 +423,7 @@ def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
 
     if trange == 'file':
         if source_type == 'file':
-            filepath = node.parm('filepath' + str(source_num)).evalAsString()
+            filepath = get_parm_str(node, 'filepath', source_num)
             print(filepath)
             file_stage = Usd.Stage.Open(filepath)
             frame_range = [
@@ -513,7 +512,7 @@ def get_child_node(node: hou.Node, child_name: str = None, child_type: hou.NodeT
         return matched_children[0]
     else:
         raise Exception(f'Found more than one match for child node')
-
+    
 
 def update_source_nodes(node: hou.Node, source_num: int):
     for update_source_node in [
@@ -522,10 +521,12 @@ def update_source_nodes(node: hou.Node, source_num: int):
     ]:
         update_source_node(node, source_num)
 
+
 def update_layer_nodes(node: hou.Node, source_num: int, layer_num: int):
     for update_layer_node in [
         update_motion_blur_node,
-        update_prune_node, update_matte_node,
+        update_prune_node,
+        update_matte_node,
         update_phantom_node,
         update_camera_edit_node,
         update_usd_node,
@@ -535,7 +536,7 @@ def update_layer_nodes(node: hou.Node, source_num: int, layer_num: int):
 
 def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
     # Get the relevant options for the source
-    input_index = node.parm('nodeindex' + str(source_num)).evalAsInt()
+    input_index = get_parm_int(node, 'nodeindex', source_num)
 
     # Find the fetch node
     fetch_node = get_fetch_node(node)
@@ -548,7 +549,7 @@ def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
 
 def update_motion_blur_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    motion_blur = node.parm(f'layermotionblur{str(source_num)}_{str(layer_num)}')
+    motion_blur = get_parm(node, 'layermotionblur', source_num, layer_num)
 
     # Find the motion blur node
     motion_blur_node = get_motion_blur_node(node)
@@ -561,7 +562,7 @@ def update_motion_blur_node(node: hou.Node, source_num: int, layer_num: int) -> 
 
 def update_prune_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    exclude_parm = node.parm(f'layerexclude{str(source_num)}_{str(layer_num)}')
+    exclude_parm = get_parm(node, 'layerexclude', source_num, layer_num)
 
     # Find the prune node
     prune_node = get_prune_node(node)
@@ -574,7 +575,7 @@ def update_prune_node(node: hou.Node, source_num: int, layer_num: int) -> hou.No
 
 def update_matte_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    matte_parm = node.parm(f'layermatte{str(source_num)}_{str(layer_num)}')
+    matte_parm = get_parm(node, 'layermatte', source_num, layer_num)
 
     # Find the matte node
     matte_node = get_matte_node(node)
@@ -587,7 +588,7 @@ def update_matte_node(node: hou.Node, source_num: int, layer_num: int) -> hou.No
 
 def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    phantom_parm = node.parm(f'layerphantom{str(source_num)}_{str(layer_num)}')
+    phantom_parm = get_parm('layerphantom', source_num, layer_num)
 
     # Find the phantom node
     phantom_node = get_phantom_node(node)
@@ -599,48 +600,48 @@ def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.
 
 
 def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
-    # Get the relevant options for the source
-    camera = node.parm('nodecamera' + str(source_num)).evalAsString()
+    # Get camera settings
+    camera = get_parm_str(node, 'nodecamera', source_num)
 
-    resolution_ctl: str = node.parm('noderesolutionctl' + str(source_num)).evalAsString()
+    resolution_ctl = get_parm_str(node, 'noderesolutionctl', source_num)
     if resolution_ctl == 'custom':
-        resolution_x = int(node.parm('noderesolution' + str(source_num) + 'x').evalAsInt())
-        resolution_y = int(node.parm('noderesolution' + str(source_num) + 'y').evalAsInt())
+        resolution_x = get_parm_int(node, 'noderesolution' + str(source_num) + 'x')
+        resolution_y = get_parm_int(node, 'noderesolution' + str(source_num) + 'y')
     else:
         resolution_x, resolution_y = resolution_ctl.split('x')
     
-    output_path_parm = node.parm('nodeoutputpath' + str(source_num))
+    # Get rendered image settings
+    denoise = get_parm_bool(node, 'denoise')
+    output_path_parm = get_parm(node, 'nodeoutputpath', source_num)
 
-    sample_filter = 'PxrCryptomatte' if node.parm('nodecryptomatteenable' + str(source_num)).evalAsInt() == 1 else 'None'
-    cryptomatte_layer_parm = node.parm('nodecryptomatteproperty' + str(source_num))
-    cryptomatte_attr_parm = node.parm('nodecryptomatteattribute' + str(source_num))
-
-    denoise = bool(node.parm('denoise').evalAsInt())
+    sample_filter = 'PxrCryptomatte' if get_parm_bool(node, 'nodecryptomatteenable', source_num) else 'None'
+    cryptomatte_layer_parm = get_parm(node, 'nodecryptomatteproperty', source_num)
+    cryptomatte_attr_parm = get_parm(node, 'nodecryptomatteattribute', source_num)
 
     # Find the render settings node
     render_settings_node = get_render_settings_node(node)
 
-    # Set the options on the render settings node
+    # Set the camera settings
     render_settings_node.parm('camera').set(camera)
     render_settings_node.parm('resolutionx').set(resolution_x)
     render_settings_node.parm('resolutiony').set(resolution_y)
+
+    # Set rendered image settings
+    render_settings_node.parm('enableDenoise').set(denoise)
+    render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
     render_settings_node.parm('picture').setFromParm(output_path_parm)
 
     render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomatteattribute_u2bno').setFromParm(cryptomatte_attr_parm)
-
-    
-    render_settings_node.parm('enableDenoise').set(denoise)
-    render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
     
     return render_settings_node
 
 
 def update_camera_edit_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    camera_parm = node.parm('nodecamera' + str(source_num))
-    do_dof = int(node.parm(f'layerdof{str(source_num)}_{str(layer_num)}').evalAsInt())
+    camera_parm = get_parm(node, 'nodecamera', source_num)
+    do_dof = get_parm_int(node, f'layerdof{str(source_num)}_{str(layer_num)}')
     
     dof_control_setting = 'set' if do_dof != 0 else 'none'
 
@@ -674,17 +675,16 @@ def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -
 
 def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Set the $LAYER variable to the layer name
-    layer_name = node.parm(f'layername{str(source_num)}_{str(layer_num)}').eval()
+    layer_name = get_parm_str(node, f'layername{str(source_num)}_{str(layer_num)}')
     hou.hscript(
         f"set -g LAYER={layer_name}"
     )
 
     # Get the relevant options for the source
-    usd_path = node.parm(f'usdpath{str(source_num)}_{str(layer_num)}').eval()
+    usd_path = get_parm_str(node, f'usdpath{str(source_num)}_{str(layer_num)}')
     f1, f2, f3 = get_frame_range(node, str(source_num))
-    strip_layer_breaks_parm = node.parm(f'striplayerbreaks{str(source_num)}_{str(layer_num)}')
-    error_saving_implicit_paths_parm = node.parm(
-        f'errorsavingimplicitpaths{str(source_num)}_{str(layer_num)}')
+    strip_layer_breaks_parm = get_parm(node, 'striplayerbreaks', source_num, layer_num)
+    error_saving_implicit_paths_parm = get_parm(node, 'errorsavingimplicitpaths', source_num, layer_num)
 
     # Find the USD node
     usd_node = get_usd_node(node)
@@ -828,6 +828,7 @@ def switch_source_type(
     script_multiparm_index: int,
     **kwargs
 ) -> None:
+    source_num = script_multiparm_index
 
     SOURCE_TYPES = [
         'file',
@@ -835,10 +836,10 @@ def switch_source_type(
     ]
 
     source_type_labels = node.parm(
-        'sourceoptions' + script_multiparm_index + '1'
+        'sourceoptions' + source_num + '1'
     ).parmTemplate().folderNames()
 
-    type_parm: hou.Node = node.parm('sourcetype' + script_multiparm_index)
+    type_parm: hou.Parm = get_parm(node, 'sourcetype', source_num)
 
     curr_type = SOURCE_TYPES[int(script_value)]
     prev_type = SOURCE_TYPES[type_parm.evalAsInt()]
@@ -849,8 +850,8 @@ def switch_source_type(
     ]
 
     # Make the collapsed source display the current sourcetype, if not a file
-    filepath_parm: hou.Parm = node.parm('filepath' + script_multiparm_index)
-    filepathholder_parm = node.parm('filepathholder' + script_multiparm_index)
+    filepath_parm: hou.Parm = get_parm(node, 'filepath', source_num)
+    filepathholder_parm = get_parm(node, 'filepathholder', source_num)
     if curr_type == 'file':
         # Copy filepath# from invisible parm
         filepath_parm.deleteAllKeyframes()
@@ -865,14 +866,14 @@ def switch_source_type(
 
         if curr_type == 'node':
             # If the source is node input, add the index to the label
-            source_label += ' ' + node.parm('nodeindex' + script_multiparm_index).evalAsString()
+            source_label += ' ' + get_parm_str(node, 'nodeindex', source_num)
         
         filepath_parm.deleteAllKeyframes()
         filepath_parm.set(source_label)
 
     for parmtuple_base in PARMTUPLE_BASE_NAMES:
         prev_option_parmtuple: hou.ParmTuple = node.parmTuple(
-            prev_type + parmtuple_base + script_multiparm_index)
+            prev_type + parmtuple_base + source_num)
 
         for prev_option_parm in prev_option_parmtuple:
             print(prev_option_parm.name())
@@ -891,22 +892,84 @@ def switch_source_type(
     # Warn the user if the source is set to Node Input but no input is connected
     # if curr_type == 'node' and len(node.inputConnections()) < 1:
     #     set_warning(node, parm.name(
-    #     ), f"Source {script_multiparm_index} set to Node Input but no input is connected")
+    #     ), f"Source {source_num} set to Node Input but no input is connected")
     #     return
 
     # unset_issues(node, parm.name())
 
+
 def get_render_camera_path(node: hou.Node) -> str:
     # Determine the render camera
-    ls = hou.LopSelectionRule()
-    ls.setPathPattern('%rendercamera')
+    ls = hou.LopSelectionRule(pattern='%rendercamera')
     return ls.expandedPaths(node.inputs()[0])[0].pathString
 
-def update_layer_parms(node: hou.Node, parm: hou.Parm, script_value: str, script_multiparm_index):
+
+def update_layer_parms(
+        node: hou.Node,
+        parm: hou.Parm,
+        script_value: str,
+        script_multiparm_index: int
+    ):
     pass
+
 
 def get_layer_list():
     return [
         'layout', 'layout',
         'anim', 'anim',
         ]
+
+
+def get_parm(
+        node: hou.Node,
+        parm_name: str,
+        source_num: int = None,
+        layer_num: int = None,
+    ) -> hou.Parm:
+    if source_num != None:
+        parm_name += str(source_num)
+
+        if layer_num != None:
+            parm_name += '_' + str(layer_num)
+    
+    return node.parm(parm_name)
+
+    
+def get_parm_bool(
+        node: hou.Node,
+        parm_name: str,
+        source_num: int = None,
+        layer_num: int = None,
+    ) -> bool:
+    parm = get_parm(node, parm_name, source_num, layer_num)
+    return bool(parm.evalAsInt())
+
+
+def get_parm_float(
+        node: hou.Node,
+        parm_name: str,
+        source_num: int = None,
+        layer_num: int = None,
+    ) -> float:
+    parm = get_parm(node, parm_name, source_num, layer_num)
+    return float(parm.evalAsFloat())
+
+
+def get_parm_int(
+        node: hou.Node,
+        parm_name: str,
+        source_num: int = None,
+        layer_num: int = None,
+    ) -> int:
+    parm = get_parm(node, parm_name, source_num, layer_num)
+    return int(parm.evalAsInt())
+
+
+def get_parm_str(
+        node: hou.Node,
+        parm_name: str,
+        source_num: int = None,
+        layer_num: int = None,
+    ) -> str:
+    parm = get_parm(node, parm_name, source_num, layer_num)
+    return parm.evalAsString()
