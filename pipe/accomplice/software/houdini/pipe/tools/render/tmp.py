@@ -200,6 +200,8 @@ class TractorSubmit:
                         exr_path = output_path_attr.Get(frame)
                     
                     denoised_exr_path = os.path.join(os.path.dirname(exr_path), 'denoised', os.path.basename(exr_path))
+                    lowest_crossframe = max(self.frame_ranges[file_num][0], frame - 3)
+                    highest_crossframe = min(frame + 3, self.frame_ranges[file_num][1])
 
                     denoise_command_argv = [
                         "/bin/bash",
@@ -208,8 +210,8 @@ class TractorSubmit:
                         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
                         + f"--asymmetry {str(asymmetry)} "
                         + "--crossframe "
-                        + f"--frame-include {frame - self.frame_ranges[file_num][0]} "
-                        + re.sub(r'\.\d{4}\.', '.*.', exr_path)
+                        + f"--frame-include {frame - lowest_crossframe} "
+                        + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {lowest_crossframe}-{highest_crossframe}"
                         + f" && [ -f '{denoised_exr_path}' ]"
                     ]
 
@@ -218,7 +220,7 @@ class TractorSubmit:
                     denoise_command.envkey = [ENV_KEY]                    
                     denoise_frame_task.addCommand(denoise_command)
 
-                    for p in range(max(self.frame_ranges[file_num][0], frame - 3), min(frame + 3, self.frame_ranges[file_num][1]) + 1):
+                    for p in range(lowest_crossframe, highest_crossframe + 1):
                         denoise_frame_task.addChild(author.Instance(title=f"Frame {p} f{file_num}"))
 
                     denoise_task.addChild(denoise_frame_task)
