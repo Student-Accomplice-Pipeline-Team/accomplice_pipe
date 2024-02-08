@@ -256,7 +256,7 @@ def operation():
     stage.layoutChildren()
 
     # Set the title to be the name + MotionBlurTest + the date in two digits (e.g., for February 3, it would be 2-3-2024)
-    tractor_node.parm('jobtitle').set(shot.name + ' MotionBlurTest ' + date_string)
+    tractor_node.parm('jobtitle').set(shot.name + ' Beauty Submission from FX Convenience Shelf ' + date_string)
     tractor_node.parm('createplayblasts').set(1)
     tractor_node.parm('ui_notify_on_job_submission').set(0)
     tractor_node.parm('sourceoptions11').set(1)
