@@ -180,7 +180,7 @@ class TractorSubmit:
             render_task = author.Task()
             render_task.title = "render"
             
-            if get_parm_int(self.node, "denoise"):
+            if get_parm_bool(self.node, "denoise"):
                 asymmetry = get_parm_float(self.node, "denoise_asymmetry")
                 denoise_task = author.Task()
                 denoise_task.title = "denoise"
