@@ -228,7 +228,7 @@ from pipe.shared import Shot
 from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 
 def operation():
-    submit_for_real = False
+    submit_for_real = True
     stage = hou.node('/stage')
     shot = HoudiniUtils.get_shot_for_file()
     print(shot.name)
@@ -296,6 +296,6 @@ if shot_selector.exec_():
             error_messages.append(str(e))
 
 print("These are the missing shots " + str(missing_shots))
-print("These are the errored shots " + str(zip(errored_shots, error_messages)))]]></script>
+print("These are the errored shots " + str(list(zip(errored_shots, error_messages))))]]></script>
   </tool>
 </shelfDocument>
