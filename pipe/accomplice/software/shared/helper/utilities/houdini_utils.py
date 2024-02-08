@@ -600,7 +600,7 @@ class HoudiniNodeUtils():
 
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'camera', stage)
-            self.camera_prim_path = '/scene/camera/camera_' + self.shot.get_name()
+            self.camera_prim_path = HoudiniPathUtils.get_camera_prim_path(self.shot)
 
         def post_set_view(self):
             desktop: hou.Desktop = hou.ui.curDesktop()
@@ -881,6 +881,10 @@ class HoudiniPathUtils():
         if folder_path is None:
             return None
         return os.path.join(folder_path, f"{base_name}.usd")
+    
+    @staticmethod
+    def get_camera_prim_path(shot: Shot):
+        return '/scene/camera/camera_' + shot.get_name()
     
 class HoudiniSceneOpenerFactory:
     def __init__(self, shot, department_name):
