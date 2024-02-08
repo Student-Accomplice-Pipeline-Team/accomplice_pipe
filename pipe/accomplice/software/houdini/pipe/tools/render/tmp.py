@@ -198,6 +198,8 @@ class TractorSubmit:
                         ]
                     else:
                         exr_path = output_path_attr.Get(frame)
+                    
+                    denoised_exr_path = os.path.join(os.path.dirname(exr_path), 'denoised', os.path.basename(exr_path))
 
                     denoise_command_argv = [
                         "/bin/bash",
@@ -208,6 +210,7 @@ class TractorSubmit:
                         + "--crossframe "
                         + f"--frame-include {frame - self.frame_ranges[file_num][0]} "
                         + re.sub(r'\.\d{4}\.', '.*.', exr_path)
+                        + f" && [ -f '{denoised_exr_path}' ]"
                     ]
 
                     denoise_command = author.Command()
