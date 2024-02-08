@@ -180,7 +180,7 @@ class TractorSubmit:
             render_task = author.Task()
             render_task.title = "render"
             
-            if get_parm_int(self.node, "denoise"):
+            if get_parm_bool(self.node, "denoise"):
                 asymmetry = get_parm_float(self.node, "denoise_asymmetry")
                 denoise_task = author.Task()
                 denoise_task.title = "denoise"
@@ -198,6 +198,10 @@ class TractorSubmit:
                         ]
                     else:
                         exr_path = output_path_attr.Get(frame)
+                    
+                    denoised_exr_path = os.path.join(os.path.dirname(exr_path), 'denoised', os.path.basename(exr_path))
+                    lowest_crossframe = max(self.frame_ranges[file_num][0], frame - 3)
+                    highest_crossframe = min(frame + 3, self.frame_ranges[file_num][1])
 
                     denoise_command_argv = [
                         "/bin/bash",
@@ -206,8 +210,9 @@ class TractorSubmit:
                         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
                         + f"--asymmetry {str(asymmetry)} "
                         + "--crossframe "
-                        + f"--frame-include {frame - self.frame_ranges[file_num][0]} "
-                        + re.sub(r'\.\d{4}\.', '.*.', exr_path)
+                        + f"--frame-include {frame - lowest_crossframe} "
+                        + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {lowest_crossframe}-{highest_crossframe}"
+                        + f" && [ -f '{denoised_exr_path}' ]"
                     ]
 
                     denoise_command = author.Command()
@@ -215,7 +220,7 @@ class TractorSubmit:
                     denoise_command.envkey = [ENV_KEY]                    
                     denoise_frame_task.addCommand(denoise_command)
 
-                    for p in range(max(self.frame_ranges[file_num][0], frame - 3), min(frame + 3, self.frame_ranges[file_num][1]) + 1):
+                    for p in range(lowest_crossframe, highest_crossframe + 1):
                         denoise_frame_task.addChild(author.Instance(title=f"Frame {p} f{file_num}"))
 
                     denoise_task.addChild(denoise_frame_task)
@@ -236,7 +241,7 @@ class TractorSubmit:
                     "/bin/bash",
                     "-c",
                     "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
-                    + get_parm_int(self.node, "renderer")
+                    + get_parm_str(self.node, 'renderer')
                     + " --frame "
                     + str(frame)
                     + " --frame-inc "
@@ -589,7 +594,7 @@ def update_matte_node(node: hou.Node, source_num: int, layer_num: int) -> hou.No
 
 def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    phantom_parm = get_parm('layerphantom', source_num, layer_num)
+    phantom_parm = get_parm(node, 'layerphantom', source_num, layer_num)
 
     # Find the phantom node
     phantom_node = get_phantom_node(node)
@@ -953,7 +958,7 @@ def get_parm_float(
         layer_num: int = None,
     ) -> float:
     parm = get_parm(node, parm_name, source_num, layer_num)
-    return float(parm.evalAsFloat())
+    return float(parm.eval())
 
 
 def get_parm_int(
