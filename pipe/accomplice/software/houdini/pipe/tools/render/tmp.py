@@ -236,7 +236,7 @@ class TractorSubmit:
                     "/bin/bash",
                     "-c",
                     "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
-                    + get_parm_int(self.node, "renderer")
+                    + get_parm_str(self.node, 'renderer')
                     + " --frame "
                     + str(frame)
                     + " --frame-inc "
@@ -588,7 +588,7 @@ def update_matte_node(node: hou.Node, source_num: int, layer_num: int) -> hou.No
 
 def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Get the relevant options for the layer
-    phantom_parm = get_parm('layerphantom', source_num, layer_num)
+    phantom_parm = get_parm(node, 'layerphantom', source_num, layer_num)
 
     # Find the phantom node
     phantom_node = get_phantom_node(node)
@@ -952,7 +952,7 @@ def get_parm_float(
         layer_num: int = None,
     ) -> float:
     parm = get_parm(node, parm_name, source_num, layer_num)
-    return float(parm.evalAsFloat())
+    return float(parm.eval())
 
 
 def get_parm_int(
