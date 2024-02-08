@@ -35,7 +35,7 @@ ENV_KEY = functools.reduce(
 def farm_render(node: hou.Node) -> None:
     author.setEngineClientParam(hostname="hopps.cs.byu.edu", port=443)
     job = TractorSubmit(node)
-    job.spoolJob()
+    job.spoolJob(node)
 
 
 # This class holds all the variables and methods required to gather the paramters
@@ -353,7 +353,7 @@ class TractorSubmit:
             # print(self.job.asTcl())
 
     # Calls all functions in this class required to gather parameter info, create, and spool the Tractor Job
-    def spoolJob(self):
+    def spoolJob(self, node):
         self.input_usd_info()
         if len(self.filepaths) > 0:
             self.input_priority()
@@ -361,7 +361,8 @@ class TractorSubmit:
             self.add_tasks()
             # print(self.job.asTcl())
             self.job.spool()
-            hou.ui.displayMessage("Job sent to tractor")
+            if get_parm_bool(node, 'ui_notify_on_job_submission'):
+                hou.ui.displayMessage("Job sent to tractor")
 
 
 # def on_input_changed(node: hou.Node, type: hou.NodeType, input_index: int) -> None:
