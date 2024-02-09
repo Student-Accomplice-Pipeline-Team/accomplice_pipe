@@ -95,9 +95,10 @@ class TractorSubmit:
                 sop_cam_node.parm('loppath').set(self.node.path())
                 sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
 
+                ## DEPRECATED, HERE FOR POSTERITY
                 # Prepare for and render the camera alembic
-                alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
-                alembic_node.parm('execute').pressButton()
+                # alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
+                # alembic_node.parm('execute').pressButton()
 
                 # Destroy the lopimportcam node
                 sop_cam_node.destroy()
