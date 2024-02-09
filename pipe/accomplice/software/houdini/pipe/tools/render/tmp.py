@@ -91,9 +91,9 @@ class TractorSubmit:
                     usd_node.parm('execute').pressButton()
 
                 # Create a lopimportcam node in /obj
-                sop_cam_node = hou.node('/obj').createNode('lopimportcam')
-                sop_cam_node.parm('loppath').set(self.node.path())
-                sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
+                # sop_cam_node = hou.node('/obj').createNode('lopimportcam')
+                # sop_cam_node.parm('loppath').set(self.node.path())
+                # sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
 
                 ## DEPRECATED, HERE FOR POSTERITY
                 # Prepare for and render the camera alembic
@@ -101,7 +101,7 @@ class TractorSubmit:
                 # alembic_node.parm('execute').pressButton()
 
                 # Destroy the lopimportcam node
-                sop_cam_node.destroy()
+                # sop_cam_node.destroy()
 
             for filepath in filepaths:
                 # Add the file to the filepaths
@@ -558,7 +558,7 @@ def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
 
     # Set the options on the fetch node
     fetch_expression: str = fetch_node.parm('loppath').rawValue()
-    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(source_num), fetch_expression)[0]
+    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(source_num - 1), fetch_expression)[0]
     fetch_node.parm('loppath').setExpression(new_fetch, hou.exprLanguage.Python)
 
     return fetch_node
