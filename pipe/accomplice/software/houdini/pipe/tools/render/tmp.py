@@ -365,7 +365,7 @@ class TractorSubmit:
             self.input_blades()
             self.add_tasks()
             # print(self.job.asTcl())
-            # self.job.spool()
+            self.job.spool()
             self.cleanup()
             if get_parm_bool(self.node, 'ui_notify_on_job_submission'):
                 hou.ui.displayMessage("Job sent to tractor")
