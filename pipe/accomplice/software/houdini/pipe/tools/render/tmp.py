@@ -35,7 +35,7 @@ ENV_KEY = functools.reduce(
 def farm_render(node: hou.Node) -> None:
     author.setEngineClientParam(hostname="hopps.cs.byu.edu", port=443)
     job = TractorSubmit(node)
-    job.spoolJob(node)
+    job.spoolJob()
 
 
 # This class holds all the variables and methods required to gather the paramters
@@ -91,16 +91,17 @@ class TractorSubmit:
                     usd_node.parm('execute').pressButton()
 
                 # Create a lopimportcam node in /obj
-                sop_cam_node = hou.node('/obj').createNode('lopimportcam')
-                sop_cam_node.parm('loppath').set(self.node.path())
-                sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
+                # sop_cam_node = hou.node('/obj').createNode('lopimportcam')
+                # sop_cam_node.parm('loppath').set(self.node.path())
+                # sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
 
+                ## DEPRECATED, HERE FOR POSTERITY
                 # Prepare for and render the camera alembic
-                alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
-                alembic_node.parm('execute').pressButton()
+                # alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
+                # alembic_node.parm('execute').pressButton()
 
                 # Destroy the lopimportcam node
-                sop_cam_node.destroy()
+                # sop_cam_node.destroy()
 
             for filepath in filepaths:
                 # Add the file to the filepaths
@@ -358,7 +359,7 @@ class TractorSubmit:
             # print(self.job.asTcl())
 
     # Calls all functions in this class required to gather parameter info, create, and spool the Tractor Job
-    def spoolJob(self, node):
+    def spoolJob(self):
         self.input_usd_info()
         if len(self.filepaths) > 0:
             self.input_priority()
@@ -366,8 +367,16 @@ class TractorSubmit:
             self.add_tasks()
             # print(self.job.asTcl())
             self.job.spool()
-            if get_parm_bool(node, 'ui_notify_on_job_submission'):
+            self.cleanup()
+            if get_parm_bool(self.node, 'ui_notify_on_job_submission'):
                 hou.ui.displayMessage("Job sent to tractor")
+    
+    def cleanup(self):
+        fetch_node = get_fetch_node(self.node)
+        fetch_expression: str = fetch_node.parm('loppath').rawValue()
+
+        new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>0', fetch_expression)[0]
+        fetch_node.parm('loppath').setExpression(new_fetch)
 
 
 # def on_input_changed(node: hou.Node, type: hou.NodeType, input_index: int) -> None:
@@ -548,7 +557,9 @@ def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
     fetch_node = get_fetch_node(node)
 
     # Set the options on the fetch node
-    fetch_node.parm('loppath').setExpression(f"hou.node('../').inputs()[{input_index}].path()", hou.exprLanguage.Python)
+    fetch_expression: str = fetch_node.parm('loppath').rawValue()
+    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(source_num - 1), fetch_expression)[0]
+    fetch_node.parm('loppath').setExpression(new_fetch, hou.exprLanguage.Python)
 
     return fetch_node
 
@@ -924,6 +935,31 @@ def get_layer_list():
         'layout', 'layout',
         'anim', 'anim',
         ]
+
+
+def is_valid_aov_name(aov_name: str):
+    return len(aov_name) > 1 or aov_name == 'a'
+
+
+def get_invalid_aov_paths(stage) -> Sequence[str]:
+    ls = hou.LopSelectionRule(pattern="%rendervars ~ (/* ^ /Render)")
+    render_vars = ls.expandedPaths(stage=stage)
+    invalid_aov_paths = [
+        path.pathString for path in render_vars
+        if not is_valid_aov_name(
+            stage.GetAttributeAtPath(
+                path.pathString + '.driver:parameters:aov:name'
+            ).Get()
+        )
+    ]
+    return invalid_aov_paths
+
+
+def check_aov_names_error() -> int:
+    return (
+        get_parm_bool(hou.parent(), 'denoise') and
+        len(hou.hscriptExpression("lopinputprims('.', 0)")) > 0
+    )
 
 
 def get_parm(
