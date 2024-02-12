@@ -444,3 +444,6 @@ class Shot(JsonSerializable):
     
     def get_name(self):
         return self.name
+    
+    def get_sequence(self):
+        return self.name.split('_')[0]
