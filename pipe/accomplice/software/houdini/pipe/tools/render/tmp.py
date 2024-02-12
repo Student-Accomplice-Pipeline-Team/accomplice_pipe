@@ -76,7 +76,7 @@ class TractorSubmit:
             if source_type == 'file':
                 # Get filepaths for the pattern
                 filepaths = validate_files(
-                    self.node, get_parm_str(self.node, 'filepath', source_num)
+                    self.node, get_parm(self.node, 'filepath', source_num)
                 )
             elif source_type == 'node':
                 # Prepare for and render the USD
