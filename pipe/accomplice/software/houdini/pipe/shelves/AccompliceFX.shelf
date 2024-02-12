@@ -264,6 +264,7 @@ def operation():
     tractor_node.parm('layername1_1').set("Beauty")
     tractor_node.parm('denoise').set(0)
     tractor_node.parm('nodeoutputpath1').set(destination_path + '/frame.$F4.exr')
+    tractor_node.node('hdprmanrendersettings1').parm('xn__driverparametersopenexrasrgba_bobkh').set(0)
 
     if submit_for_real:
         tractor_node.parm('submit').pressButton()
