@@ -2,9 +2,14 @@ import hou
 import os
 import pipe
 
+from pipe.tools.asset_publish.publish_lock import check_lock
+
 
 class AssetPublisher:
     def publish(node):
+        if not check_lock():
+            return
+
         if not AssetPublisher._check_inputs(node):
             return
 
