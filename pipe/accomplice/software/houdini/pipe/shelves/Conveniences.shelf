@@ -13,6 +13,7 @@
     <memberTool name="replace_substring_in_parms"/>
     <memberTool name="replace_substring_in_parm_expressions"/>
     <memberTool name="copy_path_to_clipboard"/>
+    <memberTool name="hyper_usd_rop"/>
   </toolshelf>
 
   <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
@@ -26,6 +27,7 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node # Yes, I realize that setting a private member of this class is messed up and if I had more time, this functionality would be abstracted into another class (also I apologize for the code duplication.)
 working_file_fx_scene_creator.import_camera_geo()]]></script>
   </tool>
+
   <tool name="import_geo_animation" label="Import Animation to /obj" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[
 import hou
@@ -37,7 +39,8 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
 working_file_fx_scene_creator.import_animation_geo()]]></script>
   </tool>
-    <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
+
+  <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[
 import hou
 from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
@@ -48,6 +51,7 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
 working_file_fx_scene_creator.import_layout()]]></script>
   </tool>
+
   <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[mw = hou.qt.mainWindow()
 if mw.isFullScreen():
@@ -152,5 +156,13 @@ file_path = hou.hipFile.path()
 # Copy to clipboard using xclip (make sure xclip is installed on your system)
 subprocess.run("echo -n '{}' | xclip -selection clipboard".format(file_path), shell=True)
 ]]></script>
+  </tool>
+
+  <tool name="hyper_usd_rop" label="Hyper USD ROP" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+HoudiniUtils.hyper_rop()
+
+# Display a completion message
+hou.ui.displayMessage('Tasks completed successfully!', title='Script Notification')]]></script>
   </tool>
 </shelfDocument>
