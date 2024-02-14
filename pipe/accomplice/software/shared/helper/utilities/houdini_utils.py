@@ -545,6 +545,8 @@ class HoudiniNodeUtils():
         def add_nodes(self):
             import_layout_node = self.create_import_layout_node()
             load_shot_node = self.create_load_department_layers_node(import_layout_node)
+            if (self.department_name != 'lighting'): # Lighting is the only department that needs to see the CFX
+                load_shot_node.parm('include_cfx').set(0)
             layer_break_node = self.add_layer_break_node(load_shot_node)
 
             self.begin_null = layer_break_node.createOutputNode('null', 'BEGIN_' + self.department_name)
