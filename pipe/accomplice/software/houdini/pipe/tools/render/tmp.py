@@ -213,13 +213,11 @@ class TractorSubmit:
                         + "--crossframe "
                         + f"--frame-include {frame - lowest_crossframe} "
                         + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {lowest_crossframe}-{highest_crossframe}"
-                        + f" && [ -f '{denoised_exr_path}' ]"
                     ]
 
-                    denoise_command = author.Command()
-                    denoise_command.argv = denoise_command_argv
-                    denoise_command.envkey = [ENV_KEY]                    
-                    denoise_frame_task.addCommand(denoise_command)
+                    denoise_frame_task.newCommand(argv=denoise_command_argv, envkey=[ENV_KEY])
+                    denoise_frame_task.newCommand(argv=["/bin/bash", "-c", f"[ -f '{denoised_exr_path}' ]"], envkey=[ENV_KEY])
+                    denoise_frame_task.newCommand(argv=create_aov_transfer_argv(exr_path, denoised_exr_path), envkey=[ENV_KEY])
 
                     for p in range(lowest_crossframe, highest_crossframe + 1):
                         denoise_frame_task.addChild(author.Instance(title=f"Frame {p} f{file_num}"))
@@ -384,7 +382,7 @@ class TractorSubmit:
 #     num_inputs = len(node.inputConnections())
 #     if num_inputs < 1:
 #         # Check if there are any sources set to the node input
-#         node_sources = []
+#         node_sources = []echo
 #         for parm_instance in node.parmTuple('sources').multiParmInstances():
 #             if parm_instance.name().startswith('sourceoptions'):
 #                 if parm_instance.evalAsInts()[0] == 1:
@@ -397,6 +395,25 @@ class TractorSubmit:
 #                 parm_instance.name(),
 #                 f"Source(s) {', '.join(node_sources)} set to Node Input but no input is connected",
 #             )
+
+
+def create_aov_transfer_argv(exr_path: str, denoised_exr_path: str) -> str:
+    return [
+        "/bin/bash",
+        "-xc",
+        """
+            exr_path=%(exr_path)s
+            denoised_exr_path=%(denoised_exr_path)s
+            output_exr_path=%(output_exr_path)s
+            og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
+            og_channels_newlines=\"$(/usr/bin/echo \"$og_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$denoised_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
+            denoised_channels_newlines=\"$(/usr/bin/echo \"$denoised_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            shared_channels=\"$(comm -12 <(/usr/bin/echo \"$og_channels_newlines\" | /usr/bin/sort) <(/usr/bin/echo \"$denoised_channels_newlines\" | /usr/bin/tr [:upper:] [:lower:] | /usr/bin/sort))\"
+            transfer_channels_commas=\"$(/usr/bin/grep -vxf <(/usr/bin/echo -e \"$shared_channels\\nCi.r\\nCi.g\\nCi.b\") <(/usr/bin/echo \"$og_channels_newlines\") | /usr/bin/tr '\\n' ',')\"
+            /opt/hfs19.5/bin/hoiiotool \"$denoised_exr_path\" --ch \"$denoised_channels_commas\" \"$exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$output_exr_path\"
+        """ % {'exr_path':exr_path, 'denoised_exr_path':denoised_exr_path, 'output_exr_path':denoised_exr_path},
+    ]
 
 
 def create_directory_task(directory: str) -> author.Task:
