@@ -390,6 +390,17 @@ class HoudiniNodeUtils():
         if len(matching_nodes) == 0:
             return None
         return matching_nodes[0]
+
+    @staticmethod
+    def find_nodes_name_starts_with(parent, node_name_prefix):
+        return [node for node in parent.allSubChildren() if node.name().startswith(node_name_prefix)]
+    
+    @staticmethod
+    def find_first_node_name_starts_with(parent, node_name_prefix):
+        matching_nodes = HoudiniNodeUtils.find_nodes_name_starts_with(parent, node_name_prefix)
+        if len(matching_nodes) == 0:
+            return None
+        return matching_nodes[0]
     
     @staticmethod
     def insert_node_after(existing_node: hou.Node, node_to_insert: hou.Node):
@@ -1108,6 +1119,38 @@ class HoudiniUtils:
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
         hou.playbar.setFrameRange(handle_start, handle_end)
         hou.playbar.setPlaybackRange(shot_start, shot_end)
+    
+    @staticmethod
+    def hyper_rop():
+        # This is intended to disconnect things from above the begin null, rop, and then reconnect them to the begin null. For some reason this is a lot faster and the results seem to be *mostly* the same
+        # Get the BEGIN_ node using the custom helper function
+        begin_null = HoudiniNodeUtils.find_first_node_name_starts_with(hou.node('/stage'), 'BEGIN_')
+
+        # Get the usd_rop node using the custom helper function
+        rop_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'usd_rop')
+
+        # Check if the BEGIN_ node exists and has an input
+        if begin_null and begin_null.inputs():
+            # Store the connected node for reconnection later
+            connected_node = begin_null.inputs()[0]
+            # Disconnect the connected node from the BEGIN_ node
+            begin_null.setInput(0, None)
+        else:
+            raise Exception('No "BEGIN_" null in scene!')
+
+        # Check if the USD ROP node exists
+        if rop_node:
+            # Trigger the 'Save to Disk' action on the USD ROP node
+            rop_node.parm('execute').pressButton()
+        else:
+            raise Exception('No ROP node in scene!')
+
+        # Reconnect the BEGIN_ node with the previously connected node
+        assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
+        begin_null.setInput(0, connected_node)
+
+
+
 
 class HoudiniFileVersionManager(DCCVersionManager):
     def get_my_path(self):
