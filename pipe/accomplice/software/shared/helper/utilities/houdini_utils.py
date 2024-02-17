@@ -45,14 +45,15 @@ class HoudiniFXUtils():
         def callback(shot: Shot):
             HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(shot)
             # Find the USD rop and hit render
-            usd_rop_candidates = HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'usd_rop')
-            selected_usd_rop = None
-            for usd_rop in usd_rop_candidates:
-                if usd_rop.parm('lopoutput').eval() == shot.get_shot_usd_path('fx'):
-                    selected_usd_rop = usd_rop
-                    break
-            if selected_usd_rop is not None:
-                selected_usd_rop.parm('execute').pressButton()
+            HoudiniUtils.hyper_rop()
+            # usd_rop_candidates = HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'usd_rop')
+            # selected_usd_rop = None
+            # for usd_rop in usd_rop_candidates:
+            #     if usd_rop.parm('lopoutput').eval() == shot.get_shot_usd_path('fx'):
+            #         selected_usd_rop = usd_rop
+            #         break
+            # if selected_usd_rop is not None:
+            #     selected_usd_rop.parm('execute').pressButton()
 
         print(f"Adding missing sublayers to shot {shot.name}")
         main_fx_file = shot.get_shotfile('fx')
