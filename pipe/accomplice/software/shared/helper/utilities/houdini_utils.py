@@ -13,7 +13,7 @@ from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 
 
 class HoudiniFXUtils():
-    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel']
+    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel', 'background_cop_cars']
     FX_PREFIX = "/scene/fx"
     
     @staticmethod
@@ -238,9 +238,10 @@ class HoudiniFXUtils():
 
             # Add a subnetwork indicating a place to add materials
             materials_node = self.get_materials_node()
-            materials_node.setName(self.effect_name + "_materials", unique_name=True)
-            HoudiniNodeUtils.insert_node_between_two_nodes(self.effect_import_node, self.fx_end_null, materials_node)
-            auxiliary_nodes.append(materials_node)
+            if materials_node is not None:
+                materials_node.setName(self.effect_name + "_materials", unique_name=True)
+                HoudiniNodeUtils.insert_node_between_two_nodes(self.effect_import_node, self.fx_end_null, materials_node)
+                auxiliary_nodes.append(materials_node)
             
             # Connect a USD ROP to the LOP node
             # usd_rop_node = HoudiniNodeUtils.create_node(self.effect_import_node.parent(), 'usd_rop')
@@ -257,22 +258,9 @@ class HoudiniFXUtils():
             usd_rop_node.parm('lopoutput').set(usd_path)
             auxiliary_nodes.append(usd_rop_node)
 
-            # Create a reference node that references the usd file
-            # reference_node = HoudiniNodeUtils.create_node(usd_rop_node.parent(), 'reference')
-            # reference_node.setName(self.effect_name + "_reference", unique_name=True)
-            # reference_node.parm('filepath1').set(usd_path)
-            # reference_node.parm('primpath1').set(HoudiniFXUtils.FX_PREFIX)
-            # reference_node.setDisplayFlag(True)
-            # auxiliary_nodes.append(reference_node)
             
             # Layout only the associated nodes
             self.effect_import_node.parent().layoutChildren()
-
-            # Create a network box and add the nodes to it
-            # box = self.effect_import_node.parent().createNetworkBox()
-            # box.setComment("Configure " + self.effect_name)
-            # for node in auxiliary_nodes:
-            #     box.addNode(node)
 
         def get_effect_name(self, original_node_name: str):
             return original_node_name.replace("OUT_", "")
@@ -330,6 +318,21 @@ class HoudiniFXUtils():
 
         def configure_sop_import_lop(self, lop_node: hou.Node):
             return # It's already configured so do nothing :)
+    
+    class BackgroundCopCarsUSDGeometryCacheEffectWrapper(USDGeometryCacheEffectWrapper):
+        def __init__(self, null_node: hou.Node):
+            super().__init__(null_node)
+        
+        def create_sop_import_lop(self) -> hou.Node:
+            lop_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'accomp_background_cop_cars')
+            return lop_node
+
+        def get_materials_node(self):
+            # Materials are already included in the USD asset that's referenced in
+            return None
+        
+        def configure_sop_import_lop(self, lop_node: hou.Node):
+            return
 
 class HoudiniNodeUtils():
     def __init__(self):
@@ -789,6 +792,9 @@ class HoudiniNodeUtils():
             self.import_layout()
             if self.fx_name == 'leaves_and_gravel':
                 HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+                cache_node.bypass(False)
+            elif self.fx_name == 'background_cop_cars':
+                HoudiniFXUtils.BackgroundCopCarsUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
                 cache_node.bypass(False)
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
