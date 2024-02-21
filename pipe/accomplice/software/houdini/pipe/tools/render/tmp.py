@@ -208,8 +208,6 @@ class TractorSubmit:
                         "/bin/bash",
                         "-c",
                         "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
-                        + "RMAN_SHADERPATH=/groups/accomplice/shading/hGeoPatterns/shaders"
-                        + "RMAN_RIXPLUGINPATH=/groups/accomplice/shading/hGeoPatterns/rixplugins"
                         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
                         + f"--asymmetry {str(asymmetry)} "
                         + "--crossframe "
@@ -241,7 +239,10 @@ class TractorSubmit:
                 renderCommand = [
                     "/bin/bash",
                     "-c",
-                    "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
+                    "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "                        
+                    + "RMAN_SHADERPATH=/groups/accomplice/shading/hGeoPatterns/shaders "
+                    + "RMAN_RIXPLUGINPATH=/groups/accomplice/shading/hGeoPatterns/rixplugins " 
+                    + "/opt/hfs19.5/bin/husk --renderer "
                     + get_parm_str(self.node, 'renderer')
                     + " --frame "
                     + str(frame)
