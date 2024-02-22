@@ -244,7 +244,6 @@ def operation():
     # insert the accomp motion blur node before the shot_rop_node
     end_lighting_node = hou.node('/stage/END_lighting')
     motion_blur_node = end_lighting_node.createOutputNode('accomp_motion_blur')
-    motion_blur_node.parm('unpack_anim_primitive_to_compute_velocity').set(0)
 
 
 
