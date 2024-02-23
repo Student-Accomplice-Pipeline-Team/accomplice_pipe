@@ -4,7 +4,7 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence
+from typing import Sequence, Iterable
 
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
@@ -154,210 +154,175 @@ class TractorSubmit:
 
     # Creates all tasks for each USD and adds them to the job
     def add_tasks(self):
-        # For loop creating a task for each USD file inputed into the node
-        for file_num in range(0, len(self.filepaths)):
-            task = author.Task()
-            task.title = os.path.basename(self.filepaths[file_num])
-            task.serialsubtasks = 1
+        denoise = get_parm_bool(self.node, 'denoise')
+        playblast = get_parm_bool(self.node, 'createplayblasts')
 
+        # Create all tasks for each USD file
+        for file_num in range(0, len(self.filepaths)):
+            usd_file_task = author.Task(
+                title=os.path.basename(self.filepaths[file_num]),
+                serialsubtasks=1,
+            )
+
+            # Create the output directory if necessary
             current_file_stage = Usd.Stage.Open(self.filepaths[file_num])
             output_path_attr = current_file_stage.GetPrimAtPath(
                 "/Render/Products/renderproduct"
             ).GetAttribute("productName")
 
-
-            if self.output_path_overrides[file_num] is not None:
+            if self.output_path_overrides[file_num] != None:
                 output_dir = os.path.dirname(self.output_path_overrides[file_num][0])
             else:
                 output_dir = os.path.dirname(output_path_attr.Get(0))
             
-            
             if not os.path.exists(output_dir):
-                task.addChild(create_directory_task(output_dir))
+                usd_file_task.addChild(create_directory_task(output_dir))
+
+            # Handle denoise-specific behavior
+            if denoise:
+                # Create the undenoised directory if necessary
+                undenoised_exr_dir = os.path.join(output_dir, 'undenoised')
+                if not os.path.exists(undenoised_exr_dir):
+                    usd_file_task.addChild(create_directory_task(undenoised_exr_dir))
             
+            # Create the png directory if necessary
+            if playblast:
+                png_dir = os.path.join(output_dir, 'png')
+                if not os.path.exists(png_dir):
+                    usd_file_task.addChild(create_directory_task(png_dir))
+            
+            # Create the cryptomatte directory if necessary
+            cryptomatte_dir = None
             if self.do_cryptomattes[file_num] == 1:
-                task.addChild(create_directory_task(os.path.join(output_dir, 'cryptomattes')))
+                cryptomatte_dir = os.path.dirname(get_render_settings_node(self.node).parm('xn__risamplefilter0PxrCryptomattefilename_70bno').eval())
+
+                if not os.path.exists(cryptomatte_dir):
+                    usd_file_task.addChild(create_directory_task(cryptomatte_dir))
             
-            render_task = author.Task()
-            render_task.title = "render"
-            
-            if get_parm_bool(self.node, "denoise"):
-                asymmetry = get_parm_float(self.node, "denoise_asymmetry")
-                denoise_task = author.Task()
-                denoise_task.title = "denoise"
+            # Create any necessary base tasks
+            render_task = author.Task(title='render')
+            usd_file_task.addChild(render_task)
 
-                for frame in range(self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1):
-                    if frame % self.frame_ranges[file_num][2] != 0:
-                        continue
-                    denoise_frame_task = author.Task()
-                    denoise_frame_task.title = f"Denoise Frame {str(frame)} f{file_num}"
+            if denoise or playblast:
+                post_task = author.Task(title='post')
+                usd_file_task.addChild(post_task)
 
-                    exr_path = ""
-                    if self.output_path_overrides[file_num] != None:
-                        exr_path = self.output_path_overrides[file_num][
-                            frame - self.frame_ranges[file_num][0]
-                        ]
-                    else:
-                        exr_path = output_path_attr.Get(frame)
-                    
-                    denoised_exr_path = os.path.join(os.path.dirname(exr_path), 'denoised', os.path.basename(exr_path))
-                    lowest_crossframe = max(self.frame_ranges[file_num][0], frame - 3)
-                    highest_crossframe = min(frame + 3, self.frame_ranges[file_num][1])
-
-                    denoise_command_argv = [
-                        "/bin/bash",
-                        "-c",
-                        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
-                        + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
-                        + f"--asymmetry {str(asymmetry)} "
-                        + "--crossframe "
-                        + f"--frame-include {frame - lowest_crossframe} "
-                        + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {lowest_crossframe}-{highest_crossframe}"
+                if playblast:
+                    # fmt: off
+                    playblast_command = [
+                        "/usr/bin/ffmpeg",
+                        "-y",
+                        "-r", "24",
+                        "-f", "image2",
+                        "-pattern_type", "glob",
+                        "-i", png_dir + os.path.sep + "*.png",
+                        "-s", "1920x1080",
+                        # "-vcodec", "dnxhd",
+                        "-vcodec", "libx264",
+                        "-pix_fmt", "yuv422p",
+                        "-colorspace:v", "bt709",
+                        "-color_primaries:v", "bt709",
+                        "-color_trc:v", "bt709",
+                        "-color_range:v", "tv",
+                        # "-b:v", "440M",
+                        "-crf", "25",
+                        # png_dir + os.path.sep + "playblast.mov",
+                        png_dir + os.path.sep + "playblast.mp4",
                     ]
+                    # fmt: on
 
-                    denoise_frame_task.newCommand(argv=denoise_command_argv, envkey=[ENV_KEY])
-                    denoise_frame_task.newCommand(argv=["/bin/bash", "-c", f"[ -f '{denoised_exr_path}' ]"], envkey=[ENV_KEY])
-                    denoise_frame_task.newCommand(argv=create_aov_transfer_argv(exr_path, denoised_exr_path), envkey=[ENV_KEY])
+                    playblast_task = author.Task(title='playblast', argv=playblast_command)
+                    post_task.addChild(playblast_task)
 
-                    for p in range(lowest_crossframe, highest_crossframe + 1):
-                        denoise_frame_task.addChild(author.Instance(title=f"Frame {p} f{file_num}"))
+                if denoise:
+                    denoise_task = author.Task(title='denoise')
+                    render_task.addChild(denoise_task)
 
+            # Create the tasks for each frame
+            frame_start, frame_end, frame_increment = self.frame_ranges[file_num]
+            for frame in range(frame_start, frame_end + 1, frame_increment):
+                # Get the output path of the frame
+                frame_output_path = None
+                final_frame_path = None
+                output_path_overridden = False
+                if self.output_path_overrides[file_num] != None:
+                    frame_output_path = self.output_path_overrides[file_num][frame - frame_start]
+                    output_path_overridden = True
+                else:
+                    frame_output_path = output_path_attr.Get(frame)
+                
+                final_frame_path = frame_output_path
+
+                if denoise:
+                    frame_output_path = os.path.join(undenoised_exr_dir, os.path.basename(frame_output_path))
+
+                # Create and add the render frame task
+                render_frame_task = create_render_frame_task(
+                    title = f"Frame {str(frame)} f{file_num}",
+                    usd_file = self.filepaths[file_num],
+                    frame = frame,
+                    frame_increment = frame_increment,
+                    renderer = get_parm_str(self.node, 'renderer'),
+                    output_path = frame_output_path if output_path_overridden or denoise else None,
+                )
+                render_task.addChild(render_frame_task)
+
+                # Create task to denoise the frame
+                if get_parm_bool(self.node, 'denoise'):
+                    asymmetry = get_parm_float(self.node, "denoise_asymmetry")
+                    
+                    # Determine the crossframe-denoising frame range
+                    crossframe_start = max(frame_start, frame - 3)
+                    crossframe_end = min(frame + 3, frame_end)
+
+                    # Get the dependencies for the denoising task
+                    dependencies = []
+                    for crossframe in range(crossframe_start, crossframe_end + 1):
+                       dependencies.append(author.Instance(title=f"Frame {crossframe} f{file_num}"))
+
+                    # Create and add the denoise frame task
+                    denoise_frame_task = create_denoise_frame_task(
+                        title = f"Denoise Frame {str(frame)} f{file_num}",
+                        frame = frame,
+                        exr_path = frame_output_path,
+                        asymmetry = asymmetry,
+                        crossframe_range = (crossframe_start, crossframe_end),
+                        dependencies = dependencies,
+                        backup_exr_dir = os.path.join(undenoised_exr_dir, os.path.basename(frame_output_path)),
+                    )
                     denoise_task.addChild(denoise_frame_task)
                 
-                render_task.addChild(denoise_task)
-
-            # For loop creating a sub-task for each frame to be rendered in the USD
-            for frame in range(
-                self.frame_ranges[file_num][0], self.frame_ranges[file_num][1] + 1
-            ):
-                if frame % self.frame_ranges[file_num][2] != 0:
-                    continue
-                subTask = author.Task()
-                subTask.title = f"Frame {str(frame)} f{str(file_num)}"
-                # Build render command from USD info
-                # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
-                renderCommand = [
-                    "/bin/bash",
-                    "-c",
-                    "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "                        
-                    + "RMAN_SHADERPATH=/groups/accomplice/shading/hGeoPatterns/shaders "
-                    + "RMAN_RIXPLUGINPATH=/groups/accomplice/shading/hGeoPatterns/rixplugins " 
-                    + "/opt/hfs19.5/bin/husk --renderer "
-                    + get_parm_str(self.node, 'renderer')
-                    + " --frame "
-                    + str(frame)
-                    + " --frame-inc "
-                    + str(self.frame_ranges[file_num][2])
-                    + " --make-output-path -V2",
-                ]
-                if self.output_path_overrides[file_num] != None:
-                    renderCommand[-1] += (
-                        " --output "
-                        + self.output_path_overrides[file_num][
-                            frame - self.frame_ranges[file_num][0]
-                        ]
-                    )
-                renderCommand[-1] += (
-                    " " + self.filepaths[file_num]
-                )  # + " &> /tmp/test.log"
-                # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
-                #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
-                # if (self.output_path_overrides[i] != None):
-                #     renderCommand.extend(
-                #         ["--output", self.output_path_overrides[i]])
-                # renderCommand.append(self.filepaths[i])
-
-                # Create command object
-                command = author.Command()
-                command.argv = renderCommand
-                command.envkey = [ENV_KEY]
-                # Add command to subtask
-                subTask.addCommand(command)
+                ## TODO: add cryptomatte transfer task
 
                 # Create post task to convert to PNG
-                if get_parm_bool(self.node, "createplayblasts"):
-                    pngconvert = author.Command()
-                    exr_path = ""
-                    if self.output_path_overrides[file_num] != None:
-                        exr_path = self.output_path_overrides[file_num][
-                            frame - self.frame_ranges[file_num][0]
-                        ]
-                    else:
-                        exr_path = output_path_attr.Get(frame)
+                if playblast:
+                    frame_filename = os.path.basename(final_frame_path)
+                    png_filename = os.path.splitext(frame_filename)[0] + '.png'
+                    png_path = os.path.join(output_dir, 'png', png_filename)
 
-                    exr_path_split = os.path.split(exr_path)
-                    
-                    png_dir = exr_path_split[0] + os.path.sep + "png"
+                    # Get the dependencies for the conversion task
+                    dependency_title = f"Frame {str(frame)} f{file_num}"
+                    if denoise:
+                        dependency_title = "Denoise " + dependency_title
+                    dependencies = [author.Instance(title=dependency_title)]
 
-                    if not os.path.exists(png_dir):
-                        os.makedirs(png_dir, mode=775)
+                    # Determine the channel names for the conversion
+                    channels = ['Ci.r', 'Ci.g', 'Ci.b', 'a']
+                    if denoise:
+                        channels = ['r', 'g', 'b', 'a']
                     
-                    png_path = (
-                        png_dir
-                        + os.path.sep
-                        + os.path.splitext(exr_path_split[1])[0]
-                        + ".png"
+                    convert_frame_task = create_convert_frame_task(
+                        title = f"Convert Frame {str(frame)} f{file_num}",
+                        exr_path = final_frame_path,
+                        output_path = png_path,
+                        dependencies = dependencies,
+                        channels = channels,
                     )
-
-                    pngconvert.argv = [
-                        "/bin/bash",
-                        "-c",
-                        "OCIO='/opt/pixar/RenderManProServer-25.2/lib/ocio/ACES-1.2/config.ocio' "
-                        + "/opt/hfs19.5/bin/hoiiotool "
-                        + exr_path
-                        + " "
-                        + "--ch Ci.r,Ci.g,Ci.b,a "
-                        + "--colorconvert linear 'Output - Rec.709' "
-                        + "-o "
-                        + png_path,
-                    ]
-                    pngconvert.envkey = [ENV_KEY]
-                    subTask.addCommand(pngconvert)
-
-                # Add sub-task to task
-                render_task.addChild(subTask)
-
-            task.addChild(render_task)
-
-            # Create playblast file
-            if get_parm_bool(self.node, 'createplayblasts'):
-                create_mov = author.Command()
-
-                # fmt: off
-                create_mov.argv = [
-                    "/usr/bin/ffmpeg",
-                    "-y",
-                    "-r", "24",
-                    "-f", "image2",
-                    "-pattern_type", "glob",
-                    "-i", png_dir + os.path.sep + "*.png",
-                    "-s", "1920x1080",
-                    # "-vcodec", "dnxhd",
-                    "-vcodec", "libx264",
-                    "-pix_fmt", "yuv422p",
-                    "-colorspace:v", "bt709",
-                    "-color_primaries:v", "bt709",
-                    "-color_trc:v", "bt709",
-                    "-color_range:v", "tv",
-                    # "-b:v", "440M",
-                    "-crf", "25",
-                    # png_dir + os.path.sep + "playblast.mov",
-                    png_dir + os.path.sep + "playblast.mp4",
-                ]
-                # fmt: on
-
-                create_mov.envkey = [ENV_KEY]
-
-                create_mov_task = author.Task()
-                create_mov_task.title = "playblast"
-                create_mov_task.addCommand(create_mov)
-
-                task.addChild(create_mov_task)
+                    playblast_task.addChild(convert_frame_task)
 
             # Add task to job
-            self.job.addChild(task)
+            self.job.addChild(usd_file_task)
 
-            # print(self.job.asTcl())
 
     # Calls all functions in this class required to gather parameter info, create, and spool the Tractor Job
     def spoolJob(self):
@@ -400,28 +365,152 @@ class TractorSubmit:
 #             )
 
 
-def create_aov_transfer_argv(exr_path: str, denoised_exr_path: str) -> str:
+def create_convert_frame_task(
+    title: str,
+    exr_path: str,
+    output_path: str,
+    dependencies: Iterable[author.Task],
+    channels: Sequence[str] = ['Ci.r', 'Ci.g', 'Ci.b', 'a'],
+):
+    convert_frame_command = [
+        "/bin/bash",
+        "-c",
+        "OCIO='/opt/pixar/RenderManProServer-25.2/lib/ocio/ACES-1.2/config.ocio' "
+        + "/opt/hfs19.5/bin/hoiiotool "
+        + exr_path
+        + " "
+        + f"--ch {','.join(channels)} "
+        + "--colorconvert linear 'Output - Rec.709' "
+        + "-o "
+        + output_path,
+    ]
+
+    # Create the convert frame task
+    convert_frame_task = author.Task(
+        title=title,
+        argv=convert_frame_command,
+    )
+
+    # Add dependencies
+    for dependency in dependencies:
+        convert_frame_task.addChild(dependency)
+
+    return convert_frame_task
+    
+
+def create_render_frame_task(
+        title: str,
+        usd_file: str,
+        frame: int,
+        frame_increment: int,
+        renderer: str,
+        output_path: str = None,
+    ):
+    # Build render command from USD info
+    # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
+    render_frame_command = [
+        "/bin/bash",
+        "-c",
+        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
+        + "RMAN_SHADERPATH=/groups/accomplice/shading/hGeoPatterns/shaders "
+        + "RMAN_RIXPLUGINPATH=/groups/accomplice/shading/hGeoPatterns/rixplugins " 
+        + "/opt/hfs19.5/bin/husk --renderer "
+        + str(renderer)
+        + " --frame "
+        + str(frame)
+        + " --frame-inc "
+        + str(frame_increment)
+        + " --make-output-path -V2",
+    ]
+    if output_path != None:
+        render_frame_command[-1] += " --output " + str(output_path)
+    
+    render_frame_command[-1] += " " + usd_file
+    # + " &> /tmp/test.log"
+    # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
+    #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
+
+    return author.Task(
+        title=title,
+        argv=render_frame_command,
+    )
+
+
+def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
     return [
         "/bin/bash",
-        "-xc",
+        "-exc",
         """
-            exr_path=%(exr_path)s
-            denoised_exr_path=%(denoised_exr_path)s
-            output_exr_path=%(output_exr_path)s
-            og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
+            src_exr_path=%(src_exr_path)s
+            dest_exr_path=%(dest_exr_path)s
+            og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$src_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             og_channels_newlines=\"$(/usr/bin/echo \"$og_channels_commas\" | /usr/bin/tr ',' '\\n')\"
-            denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$denoised_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
+            denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             denoised_channels_newlines=\"$(/usr/bin/echo \"$denoised_channels_commas\" | /usr/bin/tr ',' '\\n')\"
             shared_channels=\"$(comm -12 <(/usr/bin/echo \"$og_channels_newlines\" | /usr/bin/sort) <(/usr/bin/echo \"$denoised_channels_newlines\" | /usr/bin/tr [:upper:] [:lower:] | /usr/bin/sort))\"
             transfer_channels_commas=\"$(/usr/bin/grep -vxf <(/usr/bin/echo -e \"$shared_channels\\nCi.r\\nCi.g\\nCi.b\") <(/usr/bin/echo \"$og_channels_newlines\") | /usr/bin/tr '\\n' ',')\"
-            /opt/hfs19.5/bin/hoiiotool \"$denoised_exr_path\" --ch \"$denoised_channels_commas\" \"$exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$output_exr_path\"
-        """ % {'exr_path':exr_path, 'denoised_exr_path':denoised_exr_path, 'output_exr_path':denoised_exr_path},
+            /opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+        """ % {'src_exr_path':src_exr_path, 'dest_exr_path':dest_exr_path},
     ]
 
 
+def create_denoise_frame_task(
+        title: str,
+        frame: int,
+        exr_path: str,
+        asymmetry: int,
+        crossframe_range: tuple,
+        dependencies: Iterable[author.Task],
+        backup_exr_dir: str = None,
+    ) -> author.Task:
+    crossframe_start, crossframe_end = crossframe_range
+
+    denoise_frame_task = author.Task(title=title)
+    
+    frame_dir = os.path.join(os.path.dirname(exr_path), os.path.pardir)
+    
+    final_exr_path = os.path.join(frame_dir, os.path.basename(exr_path))
+    denoised_exr_path = os.path.join(frame_dir, 'denoised', os.path.basename(exr_path))
+
+    denoise_command_argv = [
+        "/bin/bash",
+        "-c",
+        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
+        + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
+        + f"--asymmetry {asymmetry} "
+        + "--crossframe "
+        + f"--frame-include {frame - crossframe_start} "
+        + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {crossframe_start}-{crossframe_end} "
+        + f"--output {os.path.join(frame_dir, 'denoised')} "
+        + "&& "
+        + "/usr/bin/test "
+        + "-f "
+        + denoised_exr_path
+    ]
+
+    # Denoise the frame (and verify that it was)
+    denoise_frame_task.newCommand(argv=denoise_command_argv, envkey=[ENV_KEY])
+
+    # Transfer unique AOVs from the original frame to the denoised frame
+    denoise_frame_task.newCommand(argv=create_aov_transfer_argv(exr_path, denoised_exr_path))
+    
+    # # Backup the original frame file if specified
+    # if backup_exr_dir != None:
+    #     denoise_frame_task.newCommand(argv=[f"/usr/bin/mv", exr_path, backup_exr_dir])
+
+    # Replace the original frame file with the denoised frame file
+    denoise_frame_task.newCommand(argv=[f"/usr/bin/mv", denoised_exr_path, final_exr_path])
+
+    # Add dependencies for denoising
+    for dependency in dependencies:
+        denoise_frame_task.addChild(dependency)
+    
+    return denoise_frame_task
+    
+
 def create_directory_task(directory: str) -> author.Task:
-    directory_task = author.Task()
-    directory_task.title = "directory"
+    directory_task_title = f"{os.path.basename(directory)} directory"
+    directory_task = author.Task(title=directory_task_title)
 
     mkdir = [
         "/bin/bash",
