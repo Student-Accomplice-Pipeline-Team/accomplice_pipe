@@ -411,7 +411,7 @@ def create_render_frame_task(
     render_frame_command = [
         "/bin/bash",
         "-c",
-        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' /opt/hfs19.5/bin/husk --renderer "
+        "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
         + "RMAN_SHADERPATH=/groups/accomplice/shading/hGeoPatterns/shaders "
         + "RMAN_RIXPLUGINPATH=/groups/accomplice/shading/hGeoPatterns/rixplugins " 
         + "/opt/hfs19.5/bin/husk --renderer "
