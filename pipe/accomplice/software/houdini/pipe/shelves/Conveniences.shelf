@@ -157,6 +157,19 @@ file_path = hou.hipFile.path()
 subprocess.run("echo -n '{}' | xclip -selection clipboard".format(file_path), shell=True)
 ]]></script>
   </tool>
+  <tool name="open_containing_folder" label="Open Containing Folder" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+import os
+
+# Get the current file path
+file_path = hou.hipFile.path()
+
+# Get the direcotry path
+directory_path = os.path.dirname(file_path)
+
+# Open the directory in the file explorer (caja)
+os.system(f"caja {directory_path}")]]></script>
+</tool>
 
   <tool name="hyper_usd_rop" label="Hyper USD ROP" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
