@@ -10,12 +10,47 @@ from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
 from .ui_utils import ListWithFilter
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
+import os
+import subprocess
+import toolutils
 
 
 class HoudiniFXUtils():
     supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel', 'background_cop_cars']
     FX_PREFIX = "/scene/fx"
-    
+
+    @staticmethod
+    def perform_operation_on_selected_shots(operation: callable, title: str, shot_file_type:str, save_after_operation = False):
+        all_shots = sorted(pipe.server.get_shot_list())
+        shot_selector = ListWithCheckboxFilter(title, all_shots)
+
+        missing_shots = []
+        errored_shots = []
+        error_messages = []
+
+        if shot_selector.exec_():
+            selected_shots = shot_selector.get_selected_items()
+            selected_shots = [Shot(shot) for shot in selected_shots]
+
+            for shot in selected_shots:
+                lighting_file_path = shot.get_shotfile(shot_file_type)
+                if not os.path.exists(lighting_file_path):
+                    missing_shots.append(shot.name)
+                    continue
+                try:
+                    HoudiniUtils.perform_operation_on_houdini_file(
+                        lighting_file_path,
+                        save_after_operation,
+                        operation
+                    )
+                    print("Completed operation on shot " + shot.name)
+                except Exception as e:
+                    errored_shots.append(shot.name)
+                    error_messages.append(str(e))
+
+        print("These are the missing shots " + str(missing_shots))
+        print("These are the errored shots " + str(list(zip(errored_shots, error_messages))))
+
     @staticmethod
     def user_interface_for_resolving_missing_sublayers():
         sequences = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']  # default sequences
@@ -1155,6 +1190,69 @@ class HoudiniUtils:
         # Reconnect the BEGIN_ node with the previously connected node
         assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
         begin_null.setInput(0, connected_node)
+    
+    @staticmethod
+    def render_flipbook_to_video(output_directory, filename_base, frame_range=(0, 32), resolution=(1920, 1080),
+                                video_format='mov', codec='prores', profile='standard'):
+        """
+        Renders a flipbook in Houdini and saves it as a video file (MP4 or MOV), overwriting if the file already exists.
+
+        Parameters:
+        - output_directory: The directory where the flipbook images and video will be saved.
+        - filename_base: The base name for the output files.
+        - frame_range: A tuple specifying the start and end frames for the flipbook.
+        - resolution: The resolution of the flipbook images.
+        - video_format: The format of the video file ('mp4' or 'mov').
+        - codec: The codec to use for the video ('libx264' for MP4, 'prores' for MOV).
+        - profile: The profile to use with the codec, if applicable (e.g., 'proxy' for ProRes).
+        """
+
+        # Ensure the output directory exists
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+
+        # Set up flipbook settings
+        scene = toolutils.sceneViewer()
+        settings = scene.flipbookSettings()
+        settings.frameRange(frame_range)
+        settings.useResolution(True)
+        settings.resolution(resolution)
+        
+        # Specify the output path for the JPG sequence
+        output_path = os.path.join(output_directory, f'{filename_base}.$F4.jpg')
+        settings.output(output_path)
+
+        # Render the flipbook
+        scene.flipbook(None, settings)
+
+        # Construct the video file path and check if it exists, remove if it does
+        video_output_path = os.path.join(output_directory, f'{filename_base}.{video_format}')
+        if os.path.exists(video_output_path):
+            os.remove(video_output_path)
+
+        # Prepare the FFmpeg command based on the specified format and codec
+        jpg_sequence = os.path.join(output_directory, f'{filename_base}.%04d.jpg')
+        ffmpeg_cmd = f'ffmpeg -framerate 24 -i "{jpg_sequence}" -c:v {codec} '
+        
+        if codec == 'prores' and profile:
+            ffmpeg_cmd += f'-profile:v {profile} '
+        elif codec == 'libx264':
+            ffmpeg_cmd += '-pix_fmt yuv420p '
+        
+        ffmpeg_cmd += f'"{video_output_path}"'
+        
+        # Execute the FFmpeg command to create the video file
+        subprocess.call(ffmpeg_cmd, shell=True)
+
+        # Clean up the JPG images
+        for frame_number in range(frame_range[0], frame_range[1] + 1):
+            jpg_file_path = os.path.join(output_directory, f'{filename_base}.{frame_number:04d}.jpg')
+            if os.path.exists(jpg_file_path):
+                os.remove(jpg_file_path)
+
+        print(f'Flipbook rendered and saved as {video_output_path}')
+
+
 
 
 
