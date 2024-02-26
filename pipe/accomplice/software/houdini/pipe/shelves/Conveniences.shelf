@@ -13,6 +13,7 @@
     <memberTool name="replace_substring_in_parms"/>
     <memberTool name="replace_substring_in_parm_expressions"/>
     <memberTool name="copy_path_to_clipboard"/>
+    <memberTool name="open_containing_folder"/>
     <memberTool name="hyper_usd_rop"/>
   </toolshelf>
 
