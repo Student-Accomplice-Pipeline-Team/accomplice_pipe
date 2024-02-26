@@ -4,10 +4,11 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence, Iterable
+from typing import Sequence, Iterable, Mapping, Any
 
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+from pipe.shared.object import JsonSerializable
 
 # Tractor requires all necessary environment paths of the job to function.
 # Add any additonal required paths to the list: ENV_PATHS
@@ -184,6 +185,11 @@ class TractorSubmit:
 
             # Handle denoise-specific behavior
             if denoise:
+                # Create the denoised directory if necessary
+                denoised_exr_dir = os.path.join(output_dir, 'denoised')
+                if not os.path.exists(denoised_exr_dir):
+                    usd_file_task.addChild(create_directory_task(denoised_exr_dir))
+
                 # Create the undenoised directory if necessary
                 undenoised_exr_dir = os.path.join(output_dir, 'undenoised')
                 if not os.path.exists(undenoised_exr_dir):
@@ -293,7 +299,6 @@ class TractorSubmit:
                         crossframe_range = (crossframe_start, crossframe_end),
                         frame_increment = frame_increment,
                         dependencies = dependencies,
-                        backup_exr_dir = os.path.join(undenoised_exr_dir, os.path.basename(frame_output_path)),
                     )
                     denoise_task.addChild(denoise_frame_task)
                 
@@ -385,6 +390,53 @@ class TractorSubmit:
 #                 parm_instance.name(),
 #                 f"Source(s) {', '.join(node_sources)} set to Node Input but no input is connected",
 #             )
+
+
+class DenoiseConfig(JsonSerializable):
+    primary: Sequence[str] = None
+    aux: set[str, Sequence[Mapping[str, Sequence[str]]]] = None
+    config: Mapping[str, Any] = None
+
+    def __init__(
+            self,
+            files: Sequence[str],
+            asymmetry: float = 0.0,
+            flow: bool = False,
+            debug: bool = False,
+            output_dir: str = None,
+            frame_include: int = None,
+            passes: Sequence[str] = ['diffuse', 'specular', 'alpha', 'albedo', 'irradiance'],
+            parameters: str = '/opt/pixar/RenderManProServer-25.2/lib/denoise/20970-renderman.param',
+            topology: str = '/opt/pixar/RenderManProServer-25.2/lib/denoise/full_w7_4sv2_sym_gen2.topo',
+        ) -> None:
+        self.primary = files
+        self.aux = {}
+        
+        for render_pass in passes:
+            if render_pass == 'diffuse' or render_pass == 'specular':
+                self.aux.update(
+                    {
+                        render_pass: [
+                            {
+                                'paths': files,
+                                'layers': ['directdiffuse', 'subsurface'] if render_pass == 'diffuse' else ['directspecular'],
+                            }
+                        ]
+                    }
+                )
+            else:
+                self.aux.update({render_pass: []})
+        
+        self.config = {
+            'asymmetry': asymmetry,
+            'flow': flow,
+            'debug': debug,
+            'output-dir': output_dir,
+            'frame-include': str(frame_include),
+            'passes': passes,
+            'parameters': parameters,
+            'topology': topology,
+        }
 
 
 def create_convert_frame_task(
@@ -491,7 +543,7 @@ def create_cryptomatte_transfer_task(
         cryptomatte_transfer_task.addChild(dependency)
     
     return cryptomatte_transfer_task
-
+    
 
 def create_denoise_frame_task(
         title: str,
@@ -501,44 +553,72 @@ def create_denoise_frame_task(
         crossframe_range: tuple,
         frame_increment: int,
         dependencies: Iterable[author.Task],
-        backup_exr_dir: str = None,
     ) -> author.Task:
     crossframe_start, crossframe_end = crossframe_range
 
     denoise_frame_task = author.Task(title=title)
     
     frame_dir = os.path.join(os.path.dirname(exr_path), os.path.pardir)
+    output_dir = os.path.join(frame_dir, 'denoised')
     
     final_exr_path = os.path.join(frame_dir, os.path.basename(exr_path))
     denoised_exr_path = os.path.join(frame_dir, 'denoised', os.path.basename(exr_path))
 
-    denoise_command_argv = [
+    # denoise_command_argv = [
+    #     "/bin/bash",
+    #     "-c",
+    #     "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
+    #     + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
+    #     + f"--asymmetry {asymmetry} "
+    #     + "--crossframe "
+    #     + f"--frame-include {int((frame - crossframe_start) / frame_increment)} "
+    #     + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {crossframe_start}-{crossframe_end} "
+    #     + f"--output {os.path.join(frame_dir, 'denoised')} "
+    #     + "&& "
+    #     + "/usr/bin/test "
+    #     + "-f "
+    #     + denoised_exr_path
+    # ]
+
+    frame_paths = [re.sub(r'\.\d{4}\.', f'.{frame_num:>04}.', exr_path) for frame_num in range(crossframe_start, crossframe_end + 1, frame_increment)]
+
+    frame_conf = DenoiseConfig(
+        files = frame_paths,
+        asymmetry = asymmetry,
+        output_dir = output_dir,
+        frame_include = int((frame - crossframe_start) / frame_increment),
+        passes = ['diffuse', 'specular', 'alpha', 'albedo'],
+    ).to_json()
+    config_path = os.path.join(output_dir, f"config.{frame:>04}.json")
+
+    # Create the denoising config file
+    denoise_frame_task.newCommand(argv=[
+        "/bin/bash",
+        "-c",
+        f"/usr/bin/echo "
+        + f"'{frame_conf}' "
+        + "> "
+        + f"'{config_path}' "
+        + "&& "
+        + "/usr/bin/test "
+        + "-f "
+        + config_path
+    ])
+
+    # Denoise the frame (and verify that it was)
+    denoise_frame_task.newCommand(argv=[
         "/bin/bash",
         "-c",
         "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
-        + f"--asymmetry {asymmetry} "
-        + "--crossframe "
-        + f"--frame-include {int((frame - crossframe_start) / frame_increment)} "
-        + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {crossframe_start}-{crossframe_end} "
-        + f"--output {os.path.join(frame_dir, 'denoised')} "
-        + "&& "
-        + "/usr/bin/test "
-        + "-f "
-        + denoised_exr_path
-    ]
-
-    # Denoise the frame (and verify that it was)
-    denoise_frame_task.newCommand(argv=denoise_command_argv, envkey=[ENV_KEY])
+        + "-j "
+        + config_path
+    ])
 
     # Transfer unique AOVs from the original frame to the denoised frame
     denoise_frame_task.newCommand(argv=create_aov_transfer_argv(exr_path, denoised_exr_path))
-    
-    # # Backup the original frame file if specified
-    # if backup_exr_dir != None:
-    #     denoise_frame_task.newCommand(argv=[f"/usr/bin/mv", exr_path, backup_exr_dir])
 
-    # Replace the original frame file with the denoised frame file
+    # Move the denoised frame file to the final location
     denoise_frame_task.newCommand(argv=[f"/usr/bin/mv", denoised_exr_path, final_exr_path])
 
     # Add dependencies for denoising
