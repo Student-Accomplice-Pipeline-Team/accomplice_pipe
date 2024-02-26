@@ -113,7 +113,7 @@ class TractorSubmit:
 
                 # Get the output path overrides for file sources
                 output_path_override = None
-                do_cryptomatte = 0
+                do_cryptomatte = False
                 if source_type == 'file':
                     if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
                         output_path_override = []
@@ -127,7 +127,7 @@ class TractorSubmit:
                                 ).evalAtFrame(frame)
                             )
                 elif source_type == 'node':
-                    do_cryptomatte = get_parm_bool(self.node, source_type + 'cryptomatteenable' + str(source_num))
+                    do_cryptomatte = get_parm_bool(self.node, source_type + 'cryptomatteenable', source_num)
                 
                 self.do_cryptomattes.append(do_cryptomatte)
                 self.output_path_overrides.append(output_path_override)
@@ -159,6 +159,10 @@ class TractorSubmit:
 
         # Create all tasks for each USD file
         for file_num in range(0, len(self.filepaths)):
+            resolution = get_resolution(self.node, file_num + 1)
+            do_cryptomatte = self.do_cryptomattes[file_num]
+            frame_start, frame_end, frame_increment = self.frame_ranges[file_num]
+
             usd_file_task = author.Task(
                 title=os.path.basename(self.filepaths[file_num]),
                 serialsubtasks=1,
@@ -193,7 +197,7 @@ class TractorSubmit:
             
             # Create the cryptomatte directory if necessary
             cryptomatte_dir = None
-            if self.do_cryptomattes[file_num] == 1:
+            if do_cryptomatte:
                 cryptomatte_dir = os.path.dirname(get_render_settings_node(self.node).parm('xn__risamplefilter0PxrCryptomattefilename_70bno').eval())
 
                 if not os.path.exists(cryptomatte_dir):
@@ -206,17 +210,18 @@ class TractorSubmit:
             if denoise or playblast:
                 post_task = author.Task(title='post')
                 usd_file_task.addChild(post_task)
+                framerate = 24. / frame_increment
 
                 if playblast:
                     # fmt: off
                     playblast_command = [
                         "/usr/bin/ffmpeg",
                         "-y",
-                        "-r", "24",
+                        "-r", framerate,
                         "-f", "image2",
                         "-pattern_type", "glob",
-                        "-i", png_dir + os.path.sep + "*.png",
-                        "-s", "1920x1080",
+                        "-i", os.path.join(png_dir, "*.png"),
+                        "-s", 'x'.join(resolution),
                         # "-vcodec", "dnxhd",
                         "-vcodec", "libx264",
                         "-pix_fmt", "yuv422p",
@@ -239,7 +244,6 @@ class TractorSubmit:
                     render_task.addChild(denoise_task)
 
             # Create the tasks for each frame
-            frame_start, frame_end, frame_increment = self.frame_ranges[file_num]
             for frame in range(frame_start, frame_end + 1, frame_increment):
                 # Get the output path of the frame
                 frame_output_path = None
@@ -268,12 +272,12 @@ class TractorSubmit:
                 render_task.addChild(render_frame_task)
 
                 # Create task to denoise the frame
-                if get_parm_bool(self.node, 'denoise'):
+                if denoise:
                     asymmetry = get_parm_float(self.node, "denoise_asymmetry")
                     
                     # Determine the crossframe-denoising frame range
-                    crossframe_start = max(frame_start, frame - 3)
-                    crossframe_end = min(frame + 3, frame_end)
+                    crossframe_start = max(frame_start, frame - (3 * frame_increment))
+                    crossframe_end = min(frame + (3 * frame_increment), frame_end)
 
                     # Get the dependencies for the denoising task
                     dependencies = []
@@ -287,12 +291,30 @@ class TractorSubmit:
                         exr_path = frame_output_path,
                         asymmetry = asymmetry,
                         crossframe_range = (crossframe_start, crossframe_end),
+                        frame_increment = frame_increment,
                         dependencies = dependencies,
                         backup_exr_dir = os.path.join(undenoised_exr_dir, os.path.basename(frame_output_path)),
                     )
                     denoise_task.addChild(denoise_frame_task)
                 
-                ## TODO: add cryptomatte transfer task
+                # Create post task to transfer the frame's cryptomattes
+                if do_cryptomatte:
+                    cryptomatte_path = get_render_settings_node(self.node).parm('xn__risamplefilter0PxrCryptomattefilename_70bno').evalAtFrame(frame)
+                    
+                    # Get the dependencies for the cryptomatte transfer task
+                    dependency_title = f"Frame {str(frame)} f{file_num}"
+                    if denoise:
+                        dependency_title = "Denoise " + dependency_title
+                    dependencies = [author.Instance(title=dependency_title)]
+                    
+                    transfer_cryptomatte_task = create_cryptomatte_transfer_task(
+                        title = f"Cryptomatte Transfer Frame {str(frame)} f{file_num}",
+                        exr_path = final_frame_path,
+                        cryptomatte_path = cryptomatte_path,
+                        dependencies = dependencies,
+                    )
+                    post_task.addChild(transfer_cryptomatte_task)
+                    
 
                 # Create post task to convert to PNG
                 if playblast:
@@ -449,9 +471,26 @@ def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
             denoised_channels_newlines=\"$(/usr/bin/echo \"$denoised_channels_commas\" | /usr/bin/tr ',' '\\n')\"
             shared_channels=\"$(comm -12 <(/usr/bin/echo \"$og_channels_newlines\" | /usr/bin/sort) <(/usr/bin/echo \"$denoised_channels_newlines\" | /usr/bin/tr [:upper:] [:lower:] | /usr/bin/sort))\"
             transfer_channels_commas=\"$(/usr/bin/grep -vxf <(/usr/bin/echo -e \"$shared_channels\\nCi.r\\nCi.g\\nCi.b\") <(/usr/bin/echo \"$og_channels_newlines\") | /usr/bin/tr '\\n' ',')\"
-            /opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+            /opt/hfs19.5/bin/hoiiotool --metamerge \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
         """ % {'src_exr_path':src_exr_path, 'dest_exr_path':dest_exr_path},
     ]
+
+def create_cryptomatte_transfer_task(
+        title: str,
+        exr_path: str,
+        cryptomatte_path: str,
+        dependencies: Iterable[author.Task]
+    ) -> author.Task:
+    cryptomatte_transfer_task = author.Task(
+        title = title,
+        argv = create_aov_transfer_argv(cryptomatte_path, exr_path)
+    )
+    
+    # Add dependencies for cryptomatte transfer
+    for dependency in dependencies:
+        cryptomatte_transfer_task.addChild(dependency)
+    
+    return cryptomatte_transfer_task
 
 
 def create_denoise_frame_task(
@@ -460,6 +499,7 @@ def create_denoise_frame_task(
         exr_path: str,
         asymmetry: int,
         crossframe_range: tuple,
+        frame_increment: int,
         dependencies: Iterable[author.Task],
         backup_exr_dir: str = None,
     ) -> author.Task:
@@ -479,7 +519,7 @@ def create_denoise_frame_task(
         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
         + f"--asymmetry {asymmetry} "
         + "--crossframe "
-        + f"--frame-include {frame - crossframe_start} "
+        + f"--frame-include {int((frame - crossframe_start) / frame_increment)} "
         + re.sub(r'\.\d{4}\.', '.####.', exr_path) + f" {crossframe_start}-{crossframe_end} "
         + f"--output {os.path.join(frame_dir, 'denoised')} "
         + "&& "
@@ -536,6 +576,15 @@ def get_source_type(node: hou.Node, source_num: int) -> str:
         'node',
     ][get_source_type_index(node, source_num)]
 
+def get_resolution(node: hou.Node, source_num: int) -> Sequence[int]:
+    resolution_ctl = get_parm_str(node, 'noderesolutionctl', source_num)
+    if resolution_ctl == 'custom':
+        resolution_x = get_parm_int(node, 'noderesolution' + str(source_num) + 'x')
+        resolution_y = get_parm_int(node, 'noderesolution' + str(source_num) + 'y')
+    else:
+        resolution_x, resolution_y = resolution_ctl.split('x')
+    
+    return [resolution_x, resolution_y]
 
 def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
     source_type = get_source_type(node, source_num)
@@ -728,13 +777,7 @@ def update_phantom_node(node: hou.Node, source_num: int, layer_num: int) -> hou.
 def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     # Get camera settings
     camera = get_parm_str(node, 'nodecamera', source_num)
-
-    resolution_ctl = get_parm_str(node, 'noderesolutionctl', source_num)
-    if resolution_ctl == 'custom':
-        resolution_x = get_parm_int(node, 'noderesolution' + str(source_num) + 'x')
-        resolution_y = get_parm_int(node, 'noderesolution' + str(source_num) + 'y')
-    else:
-        resolution_x, resolution_y = resolution_ctl.split('x')
+    resolution_x, resolution_y = get_resolution(node, source_num)
     
     # Get rendered image settings
     denoise = get_parm_bool(node, 'denoise')
