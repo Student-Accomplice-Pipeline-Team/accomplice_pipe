@@ -57,11 +57,13 @@ class TractorSubmit:
 
         # Array of usd paths
         self.filepaths = []
+        self.resolutions = []
         # Array of frame ranges
         self.frame_ranges = []
         # Array of render override paths
         self.output_path_overrides = []
         self.do_cryptomattes = []
+        self.delete_usd = []
         self.blades = None
 
     # Gets the directory paths and render output overrides when
@@ -79,6 +81,7 @@ class TractorSubmit:
                 filepaths = validate_files(
                     self.node, get_parm(self.node, 'filepath', source_num)
                 )
+                self.delete_usd.extend([False] * len(filepaths))
             elif source_type == 'node':
                 # Prepare for and render the USD
                 usd_node = get_usd_node(self.node)
@@ -88,8 +91,12 @@ class TractorSubmit:
                 num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
                 for layer_num in range(1, num_layers + 1):
                     update_layer_nodes(self.node, source_num, layer_num)
+                    
                     filepaths.append(get_parm_str(usd_node, 'lopoutput'))
+                    self.delete_usd.append(get_parm_bool(self.node, 'deleteusd', source_num, layer_num))
+
                     usd_node.parm('execute').pressButton()
+
 
                 # Create a lopimportcam node in /obj
                 # sop_cam_node = hou.node('/obj').createNode('lopimportcam')
@@ -115,6 +122,7 @@ class TractorSubmit:
                 # Get the output path overrides for file sources
                 output_path_override = None
                 do_cryptomatte = False
+                resolution = None
                 if source_type == 'file':
                     if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
                         output_path_override = []
@@ -129,7 +137,9 @@ class TractorSubmit:
                             )
                 elif source_type == 'node':
                     do_cryptomatte = get_parm_bool(self.node, source_type + 'cryptomatteenable', source_num)
+                    resolution = get_resolution(self.node, source_num)
                 
+                self.resolutions.append(resolution)
                 self.do_cryptomattes.append(do_cryptomatte)
                 self.output_path_overrides.append(output_path_override)
 
@@ -160,8 +170,8 @@ class TractorSubmit:
 
         # Create all tasks for each USD file
         for file_num in range(0, len(self.filepaths)):
-            resolution = get_resolution(self.node, file_num + 1)
             do_cryptomatte = self.do_cryptomattes[file_num]
+            delete_usd = self.delete_usd[file_num]
             frame_start, frame_end, frame_increment = self.frame_ranges[file_num]
 
             usd_file_task = author.Task(
@@ -169,12 +179,31 @@ class TractorSubmit:
                 serialsubtasks=1,
             )
 
-            # Create the output directory if necessary
-            current_file_stage = Usd.Stage.Open(self.filepaths[file_num])
-            output_path_attr = current_file_stage.GetPrimAtPath(
-                "/Render/Products/renderproduct"
-            ).GetAttribute("productName")
+            # Create the cleanup commands if necessary
+            if delete_usd:
+                delete_usd_command = author.Command(argv=[
+                    "/bin/bash",
+                    "-c",
+                    f"/usr/bin/rm {self.filepaths[file_num]}",
+                ])
+                usd_file_task.addCleanup(delete_usd_command)
 
+            # Open the USD file's stage
+            current_file_stage = Usd.Stage.Open(self.filepaths[file_num])
+            resolution_attr = current_file_stage.GetAttributeAtPath(
+                "/Render/Products/renderproduct.resolution"
+            )
+            output_path_attr = current_file_stage.GetAttributeAtPath(
+                "/Render/Products/renderproduct.productName"
+            )
+
+            # Get the resolution if necessary
+            if self.resolutions[file_num] != None:
+                resolution = self.resolutions[file_num]
+            else:
+                resolution = resolution_attr.Get(0)
+
+            # Create the output directory if necessary
             if self.output_path_overrides[file_num] != None:
                 output_dir = os.path.dirname(self.output_path_overrides[file_num][0])
             else:
@@ -677,7 +706,6 @@ def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
     if trange == 'file':
         if source_type == 'file':
             filepath = get_parm_str(node, 'filepath', source_num)
-            print(filepath)
             file_stage = Usd.Stage.Open(filepath)
             frame_range = [
                 int(file_stage.GetStartTimeCode()),
@@ -1125,7 +1153,6 @@ def switch_source_type(
             prev_type + parmtuple_base + source_num)
 
         for prev_option_parm in prev_option_parmtuple:
-            print(prev_option_parm.name())
             new_option_parm: hou.Parm = node.parm(
                 curr_type +
                 prev_option_parm.name().removeprefix(prev_type)
@@ -1157,15 +1184,90 @@ def update_layer_parms(
         node: hou.Node,
         parm: hou.Parm,
         script_value: str,
-        script_multiparm_index: int
+        script_multiparm_index: int,
+        script_multiparm_index2: int,
+        **kwargs
     ):
-    pass
+
+    layer_num = script_multiparm_index
+    source_num = script_multiparm_index2
+
+    def invert_primitive_pattern(primitive_pattern: str) -> str:
+        return f'%children(%ancestors({primitive_pattern})) ^ {primitive_pattern}'
+    
+    def exclude_camera_from_pattern(primitive_pattern: str) -> str:
+        return f"{primitive_pattern} ^ /scene/camera**"
+
+    LAYER_PRESETS = {
+        'anim': {
+            'primitive': '/scene/anim',
+        },
+        'letty': {
+            'primitive': '/scene/anim/letty',
+        },
+        'vaughn': {
+            'primitive': '/scene/anim/vaughn',
+        },
+        'ed': {
+            'primitive': '/scene/anim/ed',
+        },
+        'car': {
+            'primitive': '/scene/anim/studentcar',
+        },
+        'layout': {
+            'primitive': '/scene/layout',
+        },
+        'cops': {
+            'primitive': '/scene/anim/cops',
+        },
+        'fx_sparks': {
+            'primitive': '/scene/fx/sparks',
+        },
+        'fx_smoke': {
+            'primitive': '/scene/fx/smoke',
+        },
+    }
+
+    if script_value.startswith('preset:'):
+        preset_string = script_value.split(':', 1)[-1]
+        if preset_string.find('.') != -1:
+            preset_name, preset_type = preset_string.split('.', 1)
+
+            if preset_name in LAYER_PRESETS.keys():
+                preset_pattern = exclude_camera_from_pattern(
+                    invert_primitive_pattern(
+                        LAYER_PRESETS[preset_name]['primitive']
+                    )
+                )
+
+                clear_type = 'phantom' if preset_type == 'matte' else 'matte'
+
+                parm.set(preset_name)
+                get_parm(node, 'layer' + preset_type, source_num, layer_num).set(preset_pattern)
+                get_parm(node, 'layer' + clear_type, source_num, layer_num).set('')
+
 
 
 def get_layer_list():
     return [
-        'layout', 'layout',
-        'anim', 'anim',
+        'preset:anim.matte', 'Anim (Matte)',
+        'preset:anim.phantom', 'Anim (Phantom)',
+        'preset:letty.matte', 'Letty (Matte)',
+        'preset:letty.phantom', 'Letty (Phantom)',
+        'preset:vaughn.matte', 'Vaughn (Matte)',
+        'preset:vaughn.phantom', 'Vaughn (Phantom)',
+        'preset:ed.matte', 'Ed (Matte)',
+        'preset:ed.phantom', 'Ed (Phantom)',
+        'preset:car.matte', 'Car (Matte)',
+        'preset:car.phantom', 'Car (Phantom)',
+        'preset:layout.matte', 'Layout (Matte)',
+        'preset:layout.phantom', 'Layout (Phantom)',
+        'preset:cops.matte', 'Cops (Matte)',
+        'preset:cops.phantom', 'Cops (Phantom)',
+        'preset:fx_sparks.matte', 'FX Sparks (Matte)',
+        'preset:fx_sparks.phantom', 'FX Sparks (Phantom)',
+        'preset:fx_smoke.matte', 'FX Smoke (Matte)',
+        'preset:fx_smoke.phantom', 'FX Smoke (Phantom)',
         ]
 
 
