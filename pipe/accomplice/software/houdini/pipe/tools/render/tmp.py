@@ -528,7 +528,7 @@ def create_render_frame_task(
     if output_path != None:
         render_frame_command[-1] += f" --output '{str(output_path)}'"
     
-    render_frame_command[-1] += " " + usd_file
+    render_frame_command[-1] += f" '{usd_file}'"
     # + " &> /tmp/test.log"
     # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
     #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
