@@ -184,7 +184,7 @@ class TractorSubmit:
                 delete_usd_command = author.Command(argv=[
                     "/bin/bash",
                     "-c",
-                    f"/usr/bin/rm {self.filepaths[file_num]}",
+                    f"/usr/bin/rm '{self.filepaths[file_num]}'",
                 ])
                 usd_file_task.addCleanup(delete_usd_command)
 
@@ -526,7 +526,7 @@ def create_render_frame_task(
         + " --make-output-path -V2",
     ]
     if output_path != None:
-        render_frame_command[-1] += " --output " + str(output_path)
+        render_frame_command[-1] += f" --output '{str(output_path)}'"
     
     render_frame_command[-1] += " " + usd_file
     # + " &> /tmp/test.log"
@@ -544,8 +544,8 @@ def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
         "/bin/bash",
         "-exc",
         """
-            src_exr_path=%(src_exr_path)s
-            dest_exr_path=%(dest_exr_path)s
+            src_exr_path='%(src_exr_path)s'
+            dest_exr_path='%(dest_exr_path)s'
             og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$src_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             og_channels_newlines=\"$(/usr/bin/echo \"$og_channels_commas\" | /usr/bin/tr ',' '\\n')\"
             denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
@@ -631,7 +631,7 @@ def create_denoise_frame_task(
         + "&& "
         + "/usr/bin/test "
         + "-f "
-        + config_path
+        + f"'{config_path}'"
     ])
 
     # Denoise the frame (and verify that it was)
@@ -641,7 +641,7 @@ def create_denoise_frame_task(
         "PIXAR_LICENSE_FILE='9010@animlic.cs.byu.edu' "
         + "/opt/pixar/RenderManProServer-25.2/bin/denoise_batch "
         + "-j "
-        + config_path
+        + f"'{config_path}'"
     ])
 
     # Transfer unique AOVs from the original frame to the denoised frame
@@ -665,7 +665,7 @@ def create_directory_task(directory: str) -> author.Task:
         "/bin/bash",
         "-c",
         "/usr/bin/mkdir -p "
-        + directory
+        + f"'{directory}'"
     ]
 
     directory_command = author.Command()
