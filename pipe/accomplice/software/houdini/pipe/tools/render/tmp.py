@@ -212,21 +212,22 @@ class TractorSubmit:
             if not os.path.exists(output_dir):
                 usd_file_task.addChild(create_directory_task(output_dir))
 
-            # Handle denoise-specific behavior
+            # Create denoise-specific directories if necessary
+            aux_dir = os.path.join(output_dir, 'aux')
             if denoise:
                 # Create the denoised directory if necessary
-                denoised_exr_dir = os.path.join(output_dir, 'denoised')
+                denoised_exr_dir = os.path.join(aux_dir, 'denoised')
                 if not os.path.exists(denoised_exr_dir):
                     usd_file_task.addChild(create_directory_task(denoised_exr_dir))
 
                 # Create the undenoised directory if necessary
-                undenoised_exr_dir = os.path.join(output_dir, 'undenoised')
+                undenoised_exr_dir = os.path.join(aux_dir, 'undenoised')
                 if not os.path.exists(undenoised_exr_dir):
                     usd_file_task.addChild(create_directory_task(undenoised_exr_dir))
             
             # Create the png directory if necessary
             if playblast:
-                png_dir = os.path.join(output_dir, 'png')
+                png_dir = os.path.join(aux_dir, 'png')
                 if not os.path.exists(png_dir):
                     usd_file_task.addChild(create_directory_task(png_dir))
             
@@ -242,12 +243,13 @@ class TractorSubmit:
             render_task = author.Task(title='render')
             usd_file_task.addChild(render_task)
 
-            if denoise or playblast:
+            if denoise or playblast or do_cryptomatte:
                 post_task = author.Task(title='post')
                 usd_file_task.addChild(post_task)
-                framerate = 24. / frame_increment
 
                 if playblast:
+                    framerate = 24. / frame_increment
+                    
                     # fmt: off
                     playblast_command = [
                         "/usr/bin/ffmpeg",
@@ -267,7 +269,7 @@ class TractorSubmit:
                         # "-b:v", "440M",
                         "-crf", "25",
                         # png_dir + os.path.sep + "playblast.mov",
-                        png_dir + os.path.sep + "playblast.mp4",
+                        aux_dir + os.path.sep + "playblast.mp4",
                     ]
                     # fmt: on
 
@@ -354,7 +356,7 @@ class TractorSubmit:
                 if playblast:
                     frame_filename = os.path.basename(final_frame_path)
                     png_filename = os.path.splitext(frame_filename)[0] + '.png'
-                    png_path = os.path.join(output_dir, 'png', png_filename)
+                    png_path = os.path.join(png_dir, png_filename)
 
                     # Get the dependencies for the conversion task
                     dependency_title = f"Frame {str(frame)} f{file_num}"
@@ -586,11 +588,11 @@ def create_denoise_frame_task(
 
     denoise_frame_task = author.Task(title=title)
     
-    frame_dir = os.path.join(os.path.dirname(exr_path), os.path.pardir)
-    output_dir = os.path.join(frame_dir, 'denoised')
+    aux_dir = os.path.join(os.path.dirname(exr_path), os.path.pardir)
+    output_dir = os.path.join(aux_dir, 'denoised')
     
-    final_exr_path = os.path.join(frame_dir, os.path.basename(exr_path))
-    denoised_exr_path = os.path.join(frame_dir, 'denoised', os.path.basename(exr_path))
+    final_exr_path = os.path.join(aux_dir, os.path.pardir, os.path.basename(exr_path))
+    denoised_exr_path = os.path.join(output_dir, os.path.basename(exr_path))
 
     # denoise_command_argv = [
     #     "/bin/bash",
