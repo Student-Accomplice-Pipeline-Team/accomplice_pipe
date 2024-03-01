@@ -480,12 +480,11 @@ def create_convert_frame_task(
         "-c",
         "OCIO='/opt/pixar/RenderManProServer-25.2/lib/ocio/ACES-1.2/config.ocio' "
         + "/opt/hfs19.5/bin/hoiiotool "
-        + exr_path
-        + " "
+        + f"'{exr_path}' "
         + f"--ch {','.join(channels)} "
         + "--colorconvert linear 'Output - Rec.709' "
         + "-o "
-        + output_path,
+        + f"'{output_path}'",
     ]
 
     # Create the convert frame task
