@@ -279,10 +279,19 @@ HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from 
 import hou
 import pipe
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
+
+def setCamera(camera_path, viewport='persp1'):
+    desktop = hou.ui.curDesktop()
+    viewer = desktop.paneTabOfType(hou.paneTabType.SceneViewer)
+    viewport = viewer.findViewport(viewport);       
+    viewport.setCamera(camera_path)
+
+
 def operation():
+    shot = HoudiniUtils.get_shot_for_file()
+    setCamera(HoudiniPathUtils.get_camera_prim_path(shot))
     end_fx_node = hou.node('/stage/END_fx')
     stage = hou.node('/stage')
-    shot = HoudiniUtils.get_shot_for_file()
     HoudiniUtils.render_flipbook_to_video('/groups/accomplice/edit/shots/FX/' + shot.get_sequence(), shot.get_name())
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render Flipbooks to Edit", 'fx')
