@@ -61,6 +61,7 @@ class LoadShotUsds: # TODO: note that this node has been updated to be called 'a
 
     def on_created(myself: hou.Node):
         # shot = HoudiniUtils.get_shot_for_file()
+        data_cache.reload_cached_items()
         shot = data_cache.retrieve_from_cache('shot', HoudiniUtils.get_shot_for_file)
         # import pdb; pdb.set_trace()
         # print('THIS IS THE SHOT NAME! :', shot)
