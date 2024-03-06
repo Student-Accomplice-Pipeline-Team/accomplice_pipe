@@ -1194,7 +1194,10 @@ def update_layer_parms(
     source_num = script_multiparm_index2
 
     def invert_primitive_pattern(primitive_pattern: str) -> str:
-        return f'%children(%ancestors({primitive_pattern})) ^ {primitive_pattern}'
+        return f'%children(%ancestors({primitive_pattern})) ^ %ancestors({primitive_pattern}, strict=False)'
+
+    def include_primitive_materials(primitive_pattern: str) -> str:
+        return f'%minimalset(%matfromgeo({primitive_pattern}) {primitive_pattern})'
     
     def exclude_camera_from_pattern(primitive_pattern: str) -> str:
         return f"{primitive_pattern} ^ /scene/camera**"
@@ -1216,10 +1219,10 @@ def update_layer_parms(
             'primitive': '/scene/anim/studentcar',
         },
         'layout': {
-            'primitive': '/scene/layout',
+            'primitive': '/scene/layout /scene/fx/gravel /scene/fx/leaves',
         },
         'cops': {
-            'primitive': '/scene/anim/cops',
+            'primitive': '/scene/anim/copcar*',
         },
         'fx_sparks': {
             'primitive': '/scene/fx/sparks',
@@ -1237,7 +1240,9 @@ def update_layer_parms(
             if preset_name in LAYER_PRESETS.keys():
                 preset_pattern = exclude_camera_from_pattern(
                     invert_primitive_pattern(
-                        LAYER_PRESETS[preset_name]['primitive']
+                        include_primitive_materials(
+                            LAYER_PRESETS[preset_name]['primitive']
+                        )
                     )
                 )
 
