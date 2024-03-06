@@ -262,9 +262,9 @@ def operation():
     tractor_node.parm('sourceoptions11').set(1)
     tractor_node.parm('nodecamera1').set(HoudiniPathUtils.get_camera_prim_path(shot))
     tractor_node.parm('layername1_1').set("Beauty")
-    tractor_node.parm('denoise').set(0)
+    tractor_node.parm('denoise').set(1)
     tractor_node.parm('nodeoutputpath1').set(destination_path + '/frame.$F4.exr')
-    tractor_node.node('hdprmanrendersettings1').parm('xn__driverparametersopenexrasrgba_bobkh').set(0)
+    # tractor_node.node('hdprmanrendersettings1').parm('xn__driverparametersopenexrasrgba_bobkh').set(0)
 
     if submit_for_real:
         tractor_node.parm('submit').pressButton()
@@ -279,10 +279,19 @@ HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from 
 import hou
 import pipe
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
+
+def setCamera(camera_path, viewport='persp1'):
+    desktop = hou.ui.curDesktop()
+    viewer = desktop.paneTabOfType(hou.paneTabType.SceneViewer)
+    viewport = viewer.findViewport(viewport);       
+    viewport.setCamera(camera_path)
+
+
 def operation():
+    shot = HoudiniUtils.get_shot_for_file()
+    setCamera(HoudiniPathUtils.get_camera_prim_path(shot))
     end_fx_node = hou.node('/stage/END_fx')
     stage = hou.node('/stage')
-    shot = HoudiniUtils.get_shot_for_file()
     HoudiniUtils.render_flipbook_to_video('/groups/accomplice/edit/shots/FX/' + shot.get_sequence(), shot.get_name())
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render Flipbooks to Edit", 'fx')

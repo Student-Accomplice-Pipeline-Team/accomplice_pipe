@@ -898,7 +898,7 @@ class HoudiniNodeUtils():
             camera_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'lopimportcam')
             camera_geo_node.setName('import_camera', unique_name=True)
             camera_geo_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the camera that's loaded here
-            camera_geo_node.parm('primpath').set('/scene/camera/camera_' + self.shot.get_name())
+            camera_geo_node.parm('primpath').set(HoudiniPathUtils.get_camera_prim_path(self.shot))
             return camera_geo_node
         
         def import_layout(self):
@@ -1192,7 +1192,7 @@ class HoudiniUtils:
         begin_null.setInput(0, connected_node)
     
     @staticmethod
-    def render_flipbook_to_video(output_directory, filename_base, frame_range=(0, 32), resolution=(1920, 1080),
+    def render_flipbook_to_video(output_directory, filename_base, frame_range=None, resolution=(1920, 1080),
                                 video_format='mov', codec='prores', profile='standard'):
         """
         Renders a flipbook in Houdini and saves it as a video file (MP4 or MOV), overwriting if the file already exists.
@@ -1214,7 +1214,8 @@ class HoudiniUtils:
         # Set up flipbook settings
         scene = toolutils.sceneViewer()
         settings = scene.flipbookSettings()
-        settings.frameRange(frame_range)
+        if frame_range is not None:
+            settings.frameRange(frame_range)
         settings.useResolution(True)
         settings.resolution(resolution)
         
