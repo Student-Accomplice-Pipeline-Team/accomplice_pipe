@@ -819,18 +819,17 @@ class HoudiniNodeUtils():
             self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
             self.fx_geo_node.setDisplayFlag(True)
             cache_node = self.create_cache_node()
-            # Bypass the cache node
-            cache_node.bypass(True)
             self.my_created_nodes.append(cache_node)
             HoudiniNodeUtils.insert_node_after(self.end_null, cache_node)
 
             self.import_layout()
             if self.fx_name == 'leaves_and_gravel':
                 HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
-                cache_node.bypass(False)
             elif self.fx_name == 'background_cop_cars':
                 HoudiniFXUtils.BackgroundCopCarsUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
-                cache_node.bypass(False)
+            elif self.fx_name == 'smoke':
+                # Bypass the cache node
+                cache_node.bypass(True)
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
