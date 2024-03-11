@@ -819,18 +819,17 @@ class HoudiniNodeUtils():
             self.fx_geo_node.parent().setColor(hou.Color((1, 0, 0)))
             self.fx_geo_node.setDisplayFlag(True)
             cache_node = self.create_cache_node()
-            # Bypass the cache node
-            cache_node.bypass(True)
             self.my_created_nodes.append(cache_node)
             HoudiniNodeUtils.insert_node_after(self.end_null, cache_node)
 
             self.import_layout()
             if self.fx_name == 'leaves_and_gravel':
                 HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
-                cache_node.bypass(False)
             elif self.fx_name == 'background_cop_cars':
                 HoudiniFXUtils.BackgroundCopCarsUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
-                cache_node.bypass(False)
+            elif self.fx_name == 'smoke':
+                # Bypass the cache node
+                cache_node.bypass(True)
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
@@ -898,7 +897,7 @@ class HoudiniNodeUtils():
             camera_geo_node = HoudiniNodeUtils.create_node(self.object_network, 'lopimportcam')
             camera_geo_node.setName('import_camera', unique_name=True)
             camera_geo_node.parm('loppath').set(self.load_department_layers_node.path()) # Get the path to the camera that's loaded here
-            camera_geo_node.parm('primpath').set('/scene/camera/camera_' + self.shot.get_name())
+            camera_geo_node.parm('primpath').set(HoudiniPathUtils.get_camera_prim_path(self.shot))
             return camera_geo_node
         
         def import_layout(self):
@@ -1192,7 +1191,7 @@ class HoudiniUtils:
         begin_null.setInput(0, connected_node)
     
     @staticmethod
-    def render_flipbook_to_video(output_directory, filename_base, frame_range=(0, 32), resolution=(1920, 1080),
+    def render_flipbook_to_video(output_directory, filename_base, frame_range=None, resolution=(1920, 1080),
                                 video_format='mov', codec='prores', profile='standard'):
         """
         Renders a flipbook in Houdini and saves it as a video file (MP4 or MOV), overwriting if the file already exists.
@@ -1214,7 +1213,8 @@ class HoudiniUtils:
         # Set up flipbook settings
         scene = toolutils.sceneViewer()
         settings = scene.flipbookSettings()
-        settings.frameRange(frame_range)
+        if frame_range is not None:
+            settings.frameRange(frame_range)
         settings.useResolution(True)
         settings.resolution(resolution)
         

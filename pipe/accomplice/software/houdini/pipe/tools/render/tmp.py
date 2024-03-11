@@ -62,7 +62,6 @@ class TractorSubmit:
         self.frame_ranges = []
         # Array of render override paths
         self.output_path_overrides = []
-        self.do_cryptomattes = []
         self.delete_usd = []
         self.blades = None
 
@@ -73,37 +72,43 @@ class TractorSubmit:
 
         # For loop for getting variables from dynamically changing parameters
         for source_num in range(1, num_sources + 1):
-            source_type = get_source_type(self.node, source_num)
+            # Ignore disabled sources
+            if get_parm_bool(self.node, 'fileenable', source_num):
+                source_type = get_source_type(self.node, source_num)
 
-            filepaths = []
-            if source_type == 'file':
-                # Get filepaths for the pattern
-                filepaths = validate_files(
-                    self.node, get_parm(self.node, 'filepath', source_num)
-                )
-                self.delete_usd.extend([False] * len(filepaths))
-            elif source_type == 'node':
-                # Prepare for and render the USD
-                usd_node = get_usd_node(self.node)
+                filepaths = []
+                if source_type == 'file':
+                    # Get filepaths for the pattern
+                    filepaths = validate_files(
+                        self.node, get_parm(self.node, 'filepath', source_num)
+                    )
+                    self.delete_usd.extend([False] * len(filepaths))
+                elif source_type == 'node':
+                    # Prepare for and render the USD
+                    usd_node = get_usd_node(self.node)
 
-                update_source_nodes(self.node, source_num)
+                    update_source_nodes(self.node, source_num)
 
-                num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
-                for layer_num in range(1, num_layers + 1):
-                    update_layer_nodes(self.node, source_num, layer_num)
-                    
-                    filepaths.append(get_parm_str(usd_node, 'lopoutput'))
-                    self.delete_usd.append(get_parm_bool(self.node, 'deleteusd', source_num, layer_num))
+                    num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
+                    for layer_num in range(1, num_layers + 1):
+                        # Ignore disabled layers
+                        if get_parm_bool(self.node, 'layerenable', source_num, layer_num):
+                            update_layer_nodes(self.node, source_num, layer_num)
+                            
+                            filepaths.append(get_parm_str(usd_node, 'lopoutput'))
+                            self.delete_usd.append(get_parm_bool(self.node, 'deleteusd', source_num, layer_num))
 
-                    usd_node.parm('execute').pressButton()
+                            # Make sure the internal nodes recook
+                            get_fetch_node(self.node).cook(force=True)
 
+                            usd_node.parm('execute').pressButton()
 
+                ## DEPRECATED, HERE FOR POSTERITY
                 # Create a lopimportcam node in /obj
                 # sop_cam_node = hou.node('/obj').createNode('lopimportcam')
                 # sop_cam_node.parm('loppath').set(self.node.path())
                 # sop_cam_node.parm('primpath').setFromParm(get_parm(self.node, 'nodecamera', source_num))
 
-                ## DEPRECATED, HERE FOR POSTERITY
                 # Prepare for and render the camera alembic
                 # alembic_node = update_alembic_node(self.node, source_num, sop_cam_node.path())
                 # alembic_node.parm('execute').pressButton()
@@ -121,7 +126,6 @@ class TractorSubmit:
 
                 # Get the output path overrides for file sources
                 output_path_override = None
-                do_cryptomatte = False
                 resolution = None
                 if source_type == 'file':
                     if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
@@ -136,11 +140,9 @@ class TractorSubmit:
                                 ).evalAtFrame(frame)
                             )
                 elif source_type == 'node':
-                    do_cryptomatte = get_parm_bool(self.node, source_type + 'cryptomatteenable', source_num)
                     resolution = get_resolution(self.node, source_num)
                 
                 self.resolutions.append(resolution)
-                self.do_cryptomattes.append(do_cryptomatte)
                 self.output_path_overrides.append(output_path_override)
 
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
@@ -170,7 +172,6 @@ class TractorSubmit:
 
         # Create all tasks for each USD file
         for file_num in range(0, len(self.filepaths)):
-            do_cryptomatte = self.do_cryptomattes[file_num]
             delete_usd = self.delete_usd[file_num]
             frame_start, frame_end, frame_increment = self.frame_ranges[file_num]
 
@@ -189,10 +190,10 @@ class TractorSubmit:
                 usd_file_task.addCleanup(delete_usd_command)
 
             # Open the USD file's stage
-            current_file_stage = Usd.Stage.Open(self.filepaths[file_num])
-            resolution_attr = current_file_stage.GetAttributeAtPath(
-                "/Render/Products/renderproduct.resolution"
+            current_file_stage: Usd.Stage = Usd.Stage.Open(
+                self.filepaths[file_num]
             )
+
             output_path_attr = current_file_stage.GetAttributeAtPath(
                 "/Render/Products/renderproduct.productName"
             )
@@ -201,7 +202,9 @@ class TractorSubmit:
             if self.resolutions[file_num] != None:
                 resolution = self.resolutions[file_num]
             else:
-                resolution = resolution_attr.Get(0)
+                resolution = current_file_stage.GetAttributeAtPath(
+                    "/Render/Products/renderproduct.resolution"
+                ).Get(0)
 
             # Create the output directory if necessary
             if self.output_path_overrides[file_num] != None:
@@ -209,47 +212,49 @@ class TractorSubmit:
             else:
                 output_dir = os.path.dirname(output_path_attr.Get(0))
             
-            if not os.path.exists(output_dir):
-                usd_file_task.addChild(create_directory_task(output_dir))
+            os.makedirs(output_dir, exist_ok=True)
 
             # Create denoise-specific directories if necessary
             aux_dir = os.path.join(output_dir, 'aux')
             if denoise:
                 # Create the denoised directory if necessary
                 denoised_exr_dir = os.path.join(aux_dir, 'denoised')
-                if not os.path.exists(denoised_exr_dir):
-                    usd_file_task.addChild(create_directory_task(denoised_exr_dir))
+                os.makedirs(denoised_exr_dir, exist_ok=True)
 
                 # Create the undenoised directory if necessary
                 undenoised_exr_dir = os.path.join(aux_dir, 'undenoised')
-                if not os.path.exists(undenoised_exr_dir):
-                    usd_file_task.addChild(create_directory_task(undenoised_exr_dir))
+                os.makedirs(undenoised_exr_dir, exist_ok=True)
             
             # Create the png directory if necessary
             if playblast:
                 png_dir = os.path.join(aux_dir, 'png')
-                if not os.path.exists(png_dir):
-                    usd_file_task.addChild(create_directory_task(png_dir))
+                os.makedirs(png_dir, exist_ok=True)
             
-            # Create the cryptomatte directory if necessary
-            cryptomatte_dir = None
-            if do_cryptomatte:
-                cryptomatte_dir = os.path.dirname(get_render_settings_node(self.node).parm('xn__risamplefilter0PxrCryptomattefilename_70bno').eval())
-
-                if not os.path.exists(cryptomatte_dir):
-                    usd_file_task.addChild(create_directory_task(cryptomatte_dir))
+            # Create the cryptomatte directories if necessary
+            cryptomatte_path_attrs = [
+                attr for attr in
+                current_file_stage.GetPrimAtPath('/Render/rendersettings').GetAttributes()
+                if attr.GetName().endswith('PxrCryptomatte:filename')
+            ]
+            if len(cryptomatte_path_attrs) > 0:
+                for cryptomatte_attr in cryptomatte_path_attrs:
+                    cryptomatte_dir = os.path.dirname(cryptomatte_attr.Get(0))
+                    os.makedirs(cryptomatte_dir, exist_ok=True)
             
             # Create any necessary base tasks
             render_task = author.Task(title='render')
             usd_file_task.addChild(render_task)
 
-            if denoise or playblast or do_cryptomatte:
+            if denoise:
+                denoise_task = author.Task(title='denoise')
+                render_task.addChild(denoise_task)
+
+            if playblast or len(cryptomatte_path_attrs) == 1:
                 post_task = author.Task(title='post')
                 usd_file_task.addChild(post_task)
 
                 if playblast:
                     framerate = 24. / frame_increment
-                    
 
                     # fmt: off
                     playblast_command = [
@@ -276,10 +281,6 @@ class TractorSubmit:
 
                     playblast_task = author.Task(title='playblast', argv=playblast_command)
                     post_task.addChild(playblast_task)
-
-                if denoise:
-                    denoise_task = author.Task(title='denoise')
-                    render_task.addChild(denoise_task)
 
             # Create the tasks for each frame
             for frame in range(frame_start, frame_end + 1, frame_increment):
@@ -335,9 +336,9 @@ class TractorSubmit:
                     denoise_task.addChild(denoise_frame_task)
                 
                 # Create post task to transfer the frame's cryptomattes
-                if do_cryptomatte:
-                    cryptomatte_path = get_render_settings_node(self.node).parm('xn__risamplefilter0PxrCryptomattefilename_70bno').evalAtFrame(frame)
-                    
+                if len(cryptomatte_path_attrs) == 1:
+                    cryptomatte_path = cryptomatte_path_attrs[0].Get(frame)
+                
                     # Get the dependencies for the cryptomatte transfer task
                     dependency_title = f"Frame {str(frame)} f{file_num}"
                     if denoise:
@@ -510,7 +511,7 @@ def create_render_frame_task(
         frame_increment: int,
         renderer: str,
         output_path: str = None,
-    ):
+    ) -> author.Task:
     # Build render command from USD info
     # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
     render_frame_command = [
@@ -535,10 +536,21 @@ def create_render_frame_task(
     # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
     #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
 
-    return author.Task(
-        title=title,
+    render_frame_task = author.Task(title=title)
+    
+    render_frame_task.newCommand(
         argv=render_frame_command,
+        retryrc=[
+            3,      # Can't get license
+            11,     # Segmentation fault
+            135,    # Bus error
+            139,    # Segmentation fault
+            222,    # Silent error
+            223,    # Silent error
+        ],
     )
+    
+    return render_frame_task
 
 
 def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
@@ -657,25 +669,7 @@ def create_denoise_frame_task(
         denoise_frame_task.addChild(dependency)
     
     return denoise_frame_task
-    
 
-def create_directory_task(directory: str) -> author.Task:
-    directory_task_title = f"{os.path.basename(directory)} directory"
-    directory_task = author.Task(title=directory_task_title)
-
-    mkdir = [
-        "/bin/bash",
-        "-c",
-        "/usr/bin/mkdir -p "
-        + f"'{directory}'"
-    ]
-
-    directory_command = author.Command()
-    directory_command.argv = mkdir
-    directory_command.envkey = [ENV_KEY]
-    directory_task.addCommand(directory_command)
-    return directory_task
-    
 
 def get_source_type_index(node: hou.Node, source_num: int) -> int:
     return get_parm_int(node, 'sourceoptions' + str(source_num) + '1')
@@ -913,6 +907,9 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomatteattribute_u2bno').setFromParm(cryptomatte_attr_parm)
+
+    # Set checkpoint interval
+    render_settings_node.parm('xn__richeckpointinterval_j8ak').set('1m')
     
     return render_settings_node
 
@@ -952,6 +949,7 @@ def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -
     
     return alembic_node
 
+
 def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Set the $LAYER variable to the layer name
     layer_name = get_parm_str(node, f'layername{str(source_num)}_{str(layer_num)}')
@@ -981,6 +979,7 @@ def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node
 
     return usd_node
 
+
 def execute_usd(node: hou.Node, parm: hou.Parm):
    # Get the number of the source to render a USD for
     source_num, layer_num = parm.name().removeprefix('usdexecute').split('_')
@@ -1008,9 +1007,8 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
     hou.hipFile.save()
     usd_node.parm('executebackground').pressButton()
 
+
 # Expands, validates, and returns the filepaths
-
-
 def validate_files(node: hou.Node, parm: hou.Parm) -> Sequence[str]:
     file_patterns = parm.evalAsString().split()
     filepaths: Sequence[str] = []
@@ -1195,7 +1193,10 @@ def update_layer_parms(
     source_num = script_multiparm_index2
 
     def invert_primitive_pattern(primitive_pattern: str) -> str:
-        return f'%children(%ancestors({primitive_pattern})) ^ {primitive_pattern}'
+        return f'%children(%ancestors({primitive_pattern})) ^ %ancestors({primitive_pattern}, strict=False)'
+
+    def include_primitive_materials(primitive_pattern: str) -> str:
+        return f'%minimalset(%matfromgeo({primitive_pattern}) {primitive_pattern})'
     
     def exclude_camera_from_pattern(primitive_pattern: str) -> str:
         return f"{primitive_pattern} ^ /scene/camera**"
@@ -1217,10 +1218,10 @@ def update_layer_parms(
             'primitive': '/scene/anim/studentcar',
         },
         'layout': {
-            'primitive': '/scene/layout',
+            'primitive': '/scene/layout /scene/fx/gravel /scene/fx/leaves',
         },
         'cops': {
-            'primitive': '/scene/anim/cops',
+            'primitive': '/scene/anim/copcar*',
         },
         'fx_sparks': {
             'primitive': '/scene/fx/sparks',
@@ -1238,7 +1239,9 @@ def update_layer_parms(
             if preset_name in LAYER_PRESETS.keys():
                 preset_pattern = exclude_camera_from_pattern(
                     invert_primitive_pattern(
-                        LAYER_PRESETS[preset_name]['primitive']
+                        include_primitive_materials(
+                            LAYER_PRESETS[preset_name]['primitive']
+                        )
                     )
                 )
 
