@@ -545,6 +545,8 @@ def create_render_frame_task(
             11,     # Segmentation fault
             135,    # Bus error
             139,    # Segmentation fault
+            222,    # Silent error
+            223,    # Silent error
         ],
     )
     
