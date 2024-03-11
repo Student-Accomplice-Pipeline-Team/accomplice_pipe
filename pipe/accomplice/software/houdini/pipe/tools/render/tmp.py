@@ -542,6 +542,7 @@ def create_render_frame_task(
         argv=render_frame_command,
         retryrc=[
             3,      # Can't get license
+            11,     # Segmentation fault
             135,    # Bus error
             139,    # Segmentation fault
         ],
