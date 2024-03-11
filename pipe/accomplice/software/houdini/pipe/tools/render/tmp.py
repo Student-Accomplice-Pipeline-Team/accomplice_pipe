@@ -511,7 +511,7 @@ def create_render_frame_task(
         frame_increment: int,
         renderer: str,
         output_path: str = None,
-    ):
+    ) -> author.Task:
     # Build render command from USD info
     # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
     render_frame_command = [
@@ -536,10 +536,18 @@ def create_render_frame_task(
     # renderCommand = ["/opt/hfs19.5/bin/husk", "--renderer", get_parm_str(self.node, "renderer"),
     #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
 
-    return author.Task(
-        title=title,
+    render_frame_task = author.Task(title=title)
+    
+    render_frame_task.newCommand(
         argv=render_frame_command,
+        retryrc=[
+            3,      # Can't get license
+            135,    # Bus error
+            139,    # Segmentation fault
+        ],
     )
+    
+    return render_frame_task
 
 
 def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
@@ -896,6 +904,9 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomatteattribute_u2bno').setFromParm(cryptomatte_attr_parm)
+
+    # Set checkpoint interval
+    render_settings_node.parm('xn__richeckpointinterval_j8ak').set('1m')
     
     return render_settings_node
 
