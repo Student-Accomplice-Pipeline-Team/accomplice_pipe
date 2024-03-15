@@ -187,7 +187,7 @@ class TractorSubmit:
                     "-c",
                     f"/usr/bin/rm '{self.filepaths[file_num]}'",
                 ])
-                usd_file_task.addCleanup(delete_usd_command)
+                usd_file_task.addCommand(delete_usd_command)
 
             # Open the USD file's stage
             current_file_stage: Usd.Stage = Usd.Stage.Open(
@@ -542,7 +542,7 @@ def create_render_frame_task(
         argv=render_frame_command,
         retryrc=[
             3,      # Can't get license
-            11,     # Segmentation fault
+            -11,     # Segmentation fault
             135,    # Bus error
             139,    # Segmentation fault
             222,    # Silent error
@@ -1205,6 +1205,9 @@ def update_layer_parms(
         'anim': {
             'primitive': '/scene/anim',
         },
+        'characters': {
+            'primitive': '/scene/anim/letty /scene/anim/vaughn /scene/anim/ed /scene/anim/studentcar',
+        },
         'letty': {
             'primitive': '/scene/anim/letty',
         },
@@ -1229,6 +1232,12 @@ def update_layer_parms(
         'fx_smoke': {
             'primitive': '/scene/fx/smoke',
         },
+        'fx_skidmarks': {
+            'primitive': '/scene/fx/skid_marks',
+        },
+        'fx_money': {
+            'primitive': '/scene/fx/money',
+        },
     }
 
     if script_value.startswith('preset:'):
@@ -1236,20 +1245,21 @@ def update_layer_parms(
         if preset_string.find('.') != -1:
             preset_name, preset_type = preset_string.split('.', 1)
 
+            preset_primitive = preset_name
             if preset_name in LAYER_PRESETS.keys():
-                preset_pattern = exclude_camera_from_pattern(
-                    invert_primitive_pattern(
-                        include_primitive_materials(
-                            LAYER_PRESETS[preset_name]['primitive']
-                        )
-                    )
+                preset_primitive = LAYER_PRESETS[preset_name]['primitive']
+            
+            preset_pattern = exclude_camera_from_pattern(
+                invert_primitive_pattern(
+                    include_primitive_materials(preset_primitive)
                 )
+            )
 
-                clear_type = 'phantom' if preset_type == 'matte' else 'matte'
+            clear_type = 'phantom' if preset_type == 'matte' else 'matte'
 
-                parm.set(preset_name)
-                get_parm(node, 'layer' + preset_type, source_num, layer_num).set(preset_pattern)
-                get_parm(node, 'layer' + clear_type, source_num, layer_num).set('')
+            parm.set(preset_name)
+            get_parm(node, 'layer' + preset_type, source_num, layer_num).set(preset_pattern)
+            get_parm(node, 'layer' + clear_type, source_num, layer_num).set('')
 
 
 
@@ -1257,6 +1267,8 @@ def get_layer_list():
     return [
         'preset:anim.matte', 'Anim (Matte)',
         'preset:anim.phantom', 'Anim (Phantom)',
+        'preset:characters.matte', 'Characters (Matte)',
+        'preset:characters.phantom', 'Characters (Phantom)',
         'preset:letty.matte', 'Letty (Matte)',
         'preset:letty.phantom', 'Letty (Phantom)',
         'preset:vaughn.matte', 'Vaughn (Matte)',
@@ -1273,6 +1285,10 @@ def get_layer_list():
         'preset:fx_sparks.phantom', 'FX Sparks (Phantom)',
         'preset:fx_smoke.matte', 'FX Smoke (Matte)',
         'preset:fx_smoke.phantom', 'FX Smoke (Phantom)',
+        'preset:fx_skidmarks.matte', 'FX Skid Marks (Matte)',
+        'preset:fx_skidmarks.phantom', 'FX Skid Marks (Phantom)',
+        'preset:fx_money.matte', 'FX Money (Matte)',
+        'preset:fx_money.phantom', 'FX Money (Phantom)',
         ]
 
 
