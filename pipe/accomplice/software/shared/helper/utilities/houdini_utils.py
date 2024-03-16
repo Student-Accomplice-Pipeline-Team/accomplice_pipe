@@ -536,6 +536,8 @@ class HoudiniNodeUtils():
                 return HoudiniNodeUtils.LightingSceneCreator(self.shot, self.stage)
             elif self.department_name == 'anim':
                 return HoudiniNodeUtils.AnimSceneCreator(self.shot, self.stage)
+            elif self.department_name == 'cfx':
+                return HoudiniNodeUtils.CFXSceneCreator(self.shot, self.stage)
             elif self.department_name == 'fx':
                 fx_name = HoudiniFXUtils.get_fx_name_from_working_file_path(HoudiniUtils.get_my_path())
                 if self.shot.name in fx_name:
@@ -589,12 +591,13 @@ class HoudiniNodeUtils():
     class DepartmentSceneCreator(NewSceneCreator):
         def __init__(self, shot: Shot, department_name: str, stage: hou.Node=hou.node('/stage')):
             self.department_name = department_name
+            self.import_layout_node = None
             super().__init__(shot, stage)
         
         # Override
         def add_nodes(self):
-            import_layout_node = self.create_import_layout_node()
-            load_shot_node = self.create_load_department_layers_node(import_layout_node)
+            self.import_layout_node = self.create_import_layout_node()
+            load_shot_node = self.create_load_department_layers_node(self.import_layout_node)
             if (self.department_name != 'lighting'): # Lighting is the only department that needs to see the CFX
                 load_shot_node.parm('include_cfx').set(0)
             layer_break_node = self.add_layer_break_node(load_shot_node)
@@ -731,11 +734,11 @@ class HoudiniNodeUtils():
     class AnimSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'anim', stage)
-        def post_add_department_specific_nodes(self):
-            add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
-            add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
-            HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
-            self.my_created_nodes.append(add_motion_vectors_node)
+        # def post_add_department_specific_nodes(self):
+            # add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
+            # add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
+            # HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
+            # self.my_created_nodes.append(add_motion_vectors_node)
     
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
@@ -775,6 +778,14 @@ class HoudiniNodeUtils():
             tractor_node.parm('createplayblasts').set(1)
             return tractor_node
         
+    
+    # As of right now, the CFXSceneCreator just bypasses the layout node by default
+    class CFXSceneCreator(DepartmentSceneCreator):
+        def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
+            super().__init__(shot, 'cfx', stage)
+        
+        def post_add_department_specific_nodes(self):
+            self.import_layout_node.bypass(True)
     
     class FXSceneCreator(DepartmentSceneCreator, ABC):
         pass
