@@ -734,11 +734,11 @@ class HoudiniNodeUtils():
     class AnimSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
             super().__init__(shot, 'anim', stage)
-        def post_add_department_specific_nodes(self):
-            add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
-            add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
-            HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
-            self.my_created_nodes.append(add_motion_vectors_node)
+        # def post_add_department_specific_nodes(self):
+            # add_motion_vectors_node = self.stage.createNode('accomp_add_motion_vectors_to_anim')
+            # add_motion_vectors_node.setComment("Please keep this node here, it will make exporting slower but it makes motion blur possible :)")
+            # HoudiniNodeUtils.insert_node_after(self.end_null, add_motion_vectors_node)
+            # self.my_created_nodes.append(add_motion_vectors_node)
     
     class LightingSceneCreator(DepartmentSceneCreator):
         def __init__(self, shot: Shot, stage: hou.Node=hou.node('/stage')):
