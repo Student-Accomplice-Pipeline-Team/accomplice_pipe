@@ -31,9 +31,6 @@ def import_layout():
             # Get the path to the selected shot's layout. With `anim=True`, the pipe will attempt return the path
             # to a layout file without instancing. (USD files with instancing crash Maya 2024.)
             layout_path = shot.get_layout_path(anim=True) or shot.get_layout_path()
-
-            print("Path:", layout_path)
-
             layout_filename = os.path.basename(layout_path).split('.')[0]
             new_layer_name = layout_filename + "_rlo"
 
