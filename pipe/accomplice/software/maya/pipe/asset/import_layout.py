@@ -15,21 +15,22 @@ def import_layout():
     layout_names = []
     for shot_name in shot_names:
         shot = pipe.server.get_shot(shot_name)
-        layout_path = shot.get_layout_path()
-        if os.path.isfile(layout_path):
+        if os.path.isfile(shot.get_layout_path(anim=True)) or os.path.isfile(shot.get_layout_path()):
             layout_names.append(shot_name)
-
+    
     layout = cmds.columnLayout(adjustableColumn=True)
-    layout_list = cmds.textScrollList(allowMultiSelection=False, numberOfRows=30, append=layout_names)
+    layout_list = cmds.textScrollList(allowMultiSelection=False, numberOfRows=30, append=sorted(layout_names))
     
     def _import(*args):
         selection = cmds.textScrollList(layout_list, q=1, si=1)
-
+        
         if selection and selection[0]:
             shot_name = selection[0]
             shot = pipe.server.get_shot(shot_name)
-            # Get the path to the selected shot's layout
-            layout_path = shot.get_layout_path()
+
+            # Get the path to the selected shot's layout. With `anim=True`, the pipe will attempt return the path
+            # to a layout file without instancing. (USD files with instancing crash Maya 2024.)
+            layout_path = shot.get_layout_path(anim=True) or shot.get_layout_path()
             layout_filename = os.path.basename(layout_path).split('.')[0]
             new_layer_name = layout_filename + "_rlo"
 
