@@ -63,7 +63,7 @@ class ListWithFilter(FilterableList):
 
 
 class ListWithCheckboxFilter(FilterableList):
-    def __init__(self, title: str, items: list, accept_button_name="OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None):
+    def __init__(self, title: str, items: list, accept_button_name="OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None, items_checked_by_default=False):
         super(ListWithCheckboxFilter, self).__init__(parent)
         self.setWindowTitle(title)
 
@@ -91,7 +91,7 @@ class ListWithCheckboxFilter(FilterableList):
         for item_text in items:
             item = QtWidgets.QListWidgetItem(item_text)
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Unchecked)
+            item.setCheckState(QtCore.Qt.Checked if items_checked_by_default else QtCore.Qt.Unchecked)
             self.list_widget.addItem(item)
         layout.addWidget(self.list_widget)
 
@@ -102,6 +102,10 @@ class ListWithCheckboxFilter(FilterableList):
         # Connect signals
         if include_filter_field:
             self.filter_field.textChanged.connect(self.filter_items)
+        
+        if items_checked_by_default:
+            self.select_all_checkbox.setCheckState(QtCore.Qt.Checked)
+
 
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
@@ -147,3 +151,32 @@ class InfoDialog(QtWidgets.QDialog):
             layout.addWidget(cancel_button)
 
         self.setLayout(layout)
+
+
+class TextEntryDialog(QtWidgets.QDialog):
+    def __init__(self, dialog_title, dialog_message, parent=None, is_password=False):
+        super(TextEntryDialog, self).__init__(parent)
+        self.setWindowTitle(dialog_title)
+        
+        layout = QtWidgets.QVBoxLayout()
+
+        message_label = QtWidgets.QLabel(dialog_message)  # Create a label for the message
+        layout.addWidget(message_label)  # Add the label to the layout
+
+        self.text_entry = QtWidgets.QLineEdit()
+        layout.addWidget(self.text_entry)
+        if is_password:
+            self.text_entry.setEchoMode(QtWidgets.QLineEdit.Password)
+
+        # OK and Cancel buttons
+        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        layout.addWidget(self.buttons)
+
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.setLayout(layout)
+
+    def get_text_entry(self):
+        text_entry = self.text_entry.text()
+        return text_entry

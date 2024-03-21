@@ -13,6 +13,9 @@
     <memberTool name="replace_substring_in_parms"/>
     <memberTool name="replace_substring_in_parm_expressions"/>
     <memberTool name="copy_path_to_clipboard"/>
+    <memberTool name="open_containing_folder"/>
+    <memberTool name="hyper_usd_rop"/>
+    <memberTool name="use_object_merges"/>
   </toolshelf>
 
   <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
@@ -26,6 +29,7 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node # Yes, I realize that setting a private member of this class is messed up and if I had more time, this functionality would be abstracted into another class (also I apologize for the code duplication.)
 working_file_fx_scene_creator.import_camera_geo()]]></script>
   </tool>
+
   <tool name="import_geo_animation" label="Import Animation to /obj" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[
 import hou
@@ -37,7 +41,8 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
 working_file_fx_scene_creator.import_animation_geo()]]></script>
   </tool>
-    <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
+
+  <tool name="import_geo_layout" label="Import Layout to /obj" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[
 import hou
 from pipe.shared.helper.utilities.houdini_utils import HoudiniNodeUtils, HoudiniUtils
@@ -48,6 +53,7 @@ working_file_fx_scene_creator = HoudiniNodeUtils.WorkingFileFXSceneCreator(Houdi
 working_file_fx_scene_creator.load_department_layers_node = load_department_layers_node
 working_file_fx_scene_creator.import_layout()]]></script>
   </tool>
+
   <tool name="full_screen" label="Full Screen" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[mw = hou.qt.mainWindow()
 if mw.isFullScreen():
@@ -151,6 +157,70 @@ file_path = hou.hipFile.path()
 
 # Copy to clipboard using xclip (make sure xclip is installed on your system)
 subprocess.run("echo -n '{}' | xclip -selection clipboard".format(file_path), shell=True)
+]]></script>
+  </tool>
+
+  <tool name="open_containing_folder" label="Open Containing Folder" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import hou
+import os
+
+# Get the current file path
+file_path = hou.hipFile.path()
+
+# Get the direcotry path
+directory_path = os.path.dirname(file_path)
+
+# Open the directory in the file explorer (caja)
+os.system(f"caja {directory_path}")]]></script>
+  </tool>
+
+  <tool name="hyper_usd_rop" label="Hyper USD ROP" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+HoudiniUtils.hyper_rop()
+
+# Display a completion message
+hou.ui.displayMessage('Tasks completed successfully!', title='Script Notification')]]></script>
+  </tool>
+
+  <tool name="use_object_merges" label="Use Object Merges" icon="PLASMA_App">
+    <helpText><![CDATA[ConnectReplaces the output connections with object merges for a cleaner and more organized node network.]]></helpText>
+    <script scriptType="python"><![CDATA[import hou
+
+# Get the selected nodes in the scene
+selected_nodes = hou.selectedNodes()
+
+# Check if there is exactly one node selected
+if len(selected_nodes) != 1:
+    print("Please select exactly one node.")
+else:
+    # Get the selected node
+    selected_node = selected_nodes[0]
+
+    # Loop through all output nodes of the selected node
+    for output_node in selected_node.outputs():
+        
+        # For each output, create an Object Merge node in the same network as the output node
+        obj_merge_node = output_node.parent().createNode("object_merge", node_name="MERGE_" + selected_node.name())
+
+        # Set the Object Merge node to point to the selected node using its relative path
+        obj_merge_node.parm("objpath1").set(output_node.relativePathTo(selected_node))
+        
+        # Find the input index where the selected node is connected to the output node
+        input_index = None
+        for index, input_node in enumerate(output_node.inputs()):
+            if input_node == selected_node:
+                input_index = index
+                break
+        
+        # If we found an input connection, replace it with the Object Merge node
+        if input_index is not None:
+            output_node.setInput(input_index, obj_merge_node)
+        
+        # Optionally, you can layout the nodes to keep the network tidy
+        obj_merge_node.moveToGoodPosition()
+
+    # Inform the user the process is complete
+    print("Object Merge nodes created and connected.")
 ]]></script>
   </tool>
 </shelfDocument>

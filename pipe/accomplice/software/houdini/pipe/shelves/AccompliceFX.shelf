@@ -8,11 +8,14 @@
   <toolshelf name="accomplice_fx" label="Accomplice FX">
     <memberTool name="create_lop_nodes"/>
     <memberTool name="create_output_nulls"/>
-    <memberTool name="compile_fx_usd"/>
+    <memberTool name="add_missing_sublayers_to_main_fx_file"/>
+    <memberTool name="add_missing_sublayers_to_multiple_main_fx_files"/>
     <memberTool name="configure_speedtree_leaves"/>
     <memberTool name="configure_speedtree_bark"/>
     <memberTool name="unlock_all_nodes"/>
     <memberTool name="open_fx_file"/>
+    <memberTool name="render_movs_from_lighting"/>
+    <memberTool name="render_flipbooks_to_edit"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -36,12 +39,21 @@ for selected_node in selected:
 ]]></script>
   </tool>
 
-  <tool name="compile_fx_usd" label="Compile FX USD" icon="PLASMA_App">
-    <script scriptType="python"><![CDATA[import os
+  <tool name="add_missing_sublayers_to_main_fx_file" label="Add Missing Sublayers to Main FX File" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
 import hou
 from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils, HoudiniUtils
 
-HoudiniFXUtils.create_sublayer_nodes_for_cached_fx(HoudiniUtils.get_shot_for_file())]]></script>
+shot = HoudiniUtils.get_shot_for_file()
+HoudiniFXUtils.insert_missing_cached_fx_into_main_fx_file(shot)
+]]></script>
+  </tool>
+
+  <tool name="add_missing_sublayers_to_multiple_main_fx_files" label="Add Missing Sublayers to Multiple Main FX File" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+from pipe.shared.helper.utilities.houdini_utils import HoudiniFXUtils
+HoudiniFXUtils.user_interface_for_resolving_missing_sublayers()
+]]></script>
   </tool>
 
   <tool name="create_lop_nodes" label="Create Lop Nodes" icon="PLASMA_App">
@@ -204,5 +216,86 @@ print('All nodes unlocked')]]></script>
 
 HoudiniFXUtils.open_houdini_fx_file()
 ]]></script>
+  </tool>
+
+  <tool name="render_movs_from_lighting" label="Render MOVs from Lighting" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+import pipe
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
+import datetime
+import os
+from pipe.shared import Shot
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
+
+def operation():
+    submit_for_real = True
+    stage = hou.node('/stage')
+    shot = HoudiniUtils.get_shot_for_file()
+    print(shot.name)
+    shot_usd_path = shot.get_shot_usd_path()
+    date_string = datetime.datetime.now().strftime('%m-%d-%Y')
+    destination_path = os.path.join(shot.get_shotfile_folder('fx'), 'render', date_string)
+    # if the destination path doesn't exist, create it, including any parent directories
+    if not os.path.exists(destination_path):
+        os.makedirs(destination_path, exist_ok=True)
+
+    # shot_rop_node = HoudiniNodeUtils.find_first_node_with_parm_value(stage, 'usd_rop', 'lopoutput', shot_usd_path)
+
+    # insert the accomp motion blur node before the shot_rop_node
+    end_lighting_node = hou.node('/stage/END_lighting')
+    motion_blur_node = end_lighting_node.createOutputNode('accomp_motion_blur')
+
+
+
+    stage.layoutChildren()
+
+    # After it finishes "ropping" make a new tractor submit node
+    tractor_node = motion_blur_node.createOutputNode('tractor_submit')
+
+    stage.layoutChildren()
+
+    # Set the title to be the name + MotionBlurTest + the date in two digits (e.g., for February 3, it would be 2-3-2024)
+    tractor_node.parm('jobtitle').set(shot.name + ' Beauty Submission from FX Convenience Shelf ' + date_string)
+    tractor_node.parm('createplayblasts').set(1)
+    tractor_node.parm('ui_notify_on_job_submission').set(0)
+    tractor_node.parm('sourceoptions11').set(1)
+    tractor_node.parm('nodecamera1').set(HoudiniPathUtils.get_camera_prim_path(shot))
+    tractor_node.parm('layername1_1').set("Beauty")
+    tractor_node.parm('denoise').set(1)
+    tractor_node.parm('nodeoutputpath1').set(destination_path + '/frame.$F4.exr')
+    # tractor_node.node('hdprmanrendersettings1').parm('xn__driverparametersopenexrasrgba_bobkh').set(0)
+
+    if submit_for_real:
+        tractor_node.parm('submit').pressButton()
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from Lighting", "lighting")
+]]>
+  </script>
+  </tool>
+
+  <tool name="render_flipbooks_to_edit" label="Render Flipbooks to Edit" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+import pipe
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
+
+def setCamera(camera_path, viewport='persp1'):
+    desktop = hou.ui.curDesktop()
+    viewer = desktop.paneTabOfType(hou.paneTabType.SceneViewer)
+    viewport = viewer.findViewport(viewport);       
+    viewport.setCamera(camera_path)
+
+
+def operation():
+    shot = HoudiniUtils.get_shot_for_file()
+    setCamera(HoudiniPathUtils.get_camera_prim_path(shot))
+    end_fx_node = hou.node('/stage/END_fx')
+    stage = hou.node('/stage')
+    HoudiniUtils.render_flipbook_to_video('/groups/accomplice/edit/shots/FX/' + shot.get_sequence(), shot.get_name())
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render Flipbooks to Edit", 'fx')
+  ]]>
+  </script>
   </tool>
 </shelfDocument>

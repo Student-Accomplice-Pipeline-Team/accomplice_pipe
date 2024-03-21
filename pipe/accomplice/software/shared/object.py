@@ -435,8 +435,8 @@ class Shot(JsonSerializable):
         assert houdini_file_path.endswith('hipnc')
         return houdini_file_path.replace('.hipnc', '.mb')
     
-    def get_layout_path(self):
-        return os.path.join(self.path, 'layout', f'{self.name}_layout.usda')
+    def get_layout_path(self, anim=False):
+        return os.path.join(self.path, 'layout', f'{self.name}_layout.usda' if not anim else f'{self.name}_layout_Anim.usda')
 
     def get_playblast_path(self, destination):
         sequence, shot = self.name.split('_')
@@ -444,3 +444,6 @@ class Shot(JsonSerializable):
     
     def get_name(self):
         return self.name
+    
+    def get_sequence(self):
+        return self.name.split('_')[0]
