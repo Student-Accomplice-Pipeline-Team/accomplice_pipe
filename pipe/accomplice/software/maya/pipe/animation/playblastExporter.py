@@ -7,6 +7,31 @@ import pipe.pipeHandlers.permissions as permissions
 import pipe.tools.python.stringUtilities as stringUtilities'''
 
 import maya.cmds as mc
+import maya.mel as mel
+
+def enable_hud():
+    # Get a list of all existing HUDs
+    hud_list = mc.headsUpDisplay(query=True, listHeadsUpDisplays=True)
+
+    # Set visibility of each HUD to False
+    for hud in hud_list:
+        mc.headsUpDisplay(hud, edit=True, visible=False)
+
+    # Turn on overall HUD
+    model_panels = cmds.getPanel(type="modelPanel")
+    for panel in model_panels:
+        mc.modelEditor(panel, e=True, hud=True)
+
+    # Turn on visibility for current frame HUD
+    mel.eval("setCurrentFrameVisibility(1);")
+
+    cams = mc.ls(ca=True)
+
+    for cam in cams:
+        parentCam = cmds.listRelatives(cam, parent=True)[0]
+        mc.camera(parentCam, edit=True, displayResolution=False)
+        mc.camera(parentCam, edit=True, displayGateMask=False)
+        mc.camera(parentCam, edit=True, displayFilmGate=False)
 
 
 class PlayblastExporter(QtWidgets.QMainWindow):

@@ -1,0 +1,59 @@
+import maya.cmds as cmds
+from pipe.animation.operation_runner import OperationRunner
+import maya.cmds as mc
+import maya.mel as mel
+import pipe
+from pipe.shared.helper.utilities.file_path_utils import FilePathUtils
+from pipe.animation.logger import SimpleLogger
+
+
+def enable_hud():
+    # Get a list of all existing HUDs
+    hud_list = mc.headsUpDisplay(query=True, listHeadsUpDisplays=True)
+
+    # Set visibility of each HUD to False
+    for hud in hud_list:
+        mc.headsUpDisplay(hud, edit=True, visible=False)
+
+    # Turn on overall HUD
+    model_panels = cmds.getPanel(type="modelPanel")
+    for panel in model_panels:
+        mc.modelEditor(panel, e=True, hud=True)
+
+    # Turn on visibility for current frame HUD
+    mel.eval("setCurrentFrameVisibility(1);")
+
+    cams = mc.ls(ca=True)
+
+    for cam in cams:
+        parentCam = cmds.listRelatives(cam, parent=True)[0]
+        mc.camera(parentCam, edit=True, displayResolution=False)
+        mc.camera(parentCam, edit=True, displayGateMask=False)
+        mc.camera(parentCam, edit=True, displayFilmGate=False)
+
+def playblast():
+    logger = SimpleLogger("PlayblastExporter")
+    fileName = ""
+    videoFormat = "qt"
+    videoScalePct = 100
+    videoCompression = "Animation"
+    videoOutputType = "qt"
+    width = 1920
+    height = 1080
+
+    shot = pipe.server.get_shot(FilePathUtils.get_shot_name_from_file_path(cmds.file(query=True, sceneName=True)))
+
+    fileName = shot.get_playblast_path('anim').replace(".mov", "_with_frame_number.mov")
+
+    print("EXPORT PATH:", fileName)
+    enable_hud()
+
+    try:
+        mc.playblast(f=fileName, forceOverwrite=True, viewer=False, percent=videoScalePct,
+                     format=videoFormat, compression=videoCompression, widthHeight = [width, height])
+
+    except Exception as e:
+        logger.error(f"Error exporting playblast: {str(e)}")
+
+playblaster_with_frame = OperationRunner(playblast)
+playblaster_with_frame.run()
