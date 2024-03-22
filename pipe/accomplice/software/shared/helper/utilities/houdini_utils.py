@@ -841,6 +841,7 @@ class HoudiniNodeUtils():
             elif self.fx_name == 'smoke':
                 # Bypass the cache node
                 cache_node.bypass(True)
+                HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
