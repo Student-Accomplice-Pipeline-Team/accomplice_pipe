@@ -984,6 +984,8 @@ def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node
 def execute_usd(node: hou.Node, parm: hou.Parm):
     # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecute').split('_')
+    source_num = int(source_num)
+    layer_num = int(layer_num)
 
     # Update the internal nodes
     update_source_nodes(node, source_num)
@@ -1008,6 +1010,8 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
 
     # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecutebackground').split('_')
+    source_num = int(source_num)
+    layer_num = int(layer_num)
 
     # Update the internal nodes
     update_source_nodes(node, source_num)
