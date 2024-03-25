@@ -16,8 +16,14 @@ if not cmds.about(batch=True):
 
 def postSceneCallback():
     # Set the default clipping plane of the perspective camera
-    cmds.setAttr('perspShape.nearClipPlane', 10)
-    cmds.setAttr('perspShape.farClipPlane', 3000000)
-    cmds.setAttr('hardwareRenderingGlobals.defaultLightIntensity', 1)
+    try:
+        cmds.setAttr('perspShape.nearClipPlane', 10)
+        cmds.setAttr('perspShape.farClipPlane', 3000000)
+    except:
+        print("Failed to set default clipping plane for perspective camera.")
+    try:
+        cmds.setAttr('hardwareRenderingGlobals.defaultLightIntensity', 1)
+    except:
+        print("Failed to set default light intensity.")
 
 cmds.scriptJob(event=["PostSceneRead", postSceneCallback], protected=True)
