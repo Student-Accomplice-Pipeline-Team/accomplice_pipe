@@ -101,6 +101,11 @@ class TractorSubmit:
                             # Make sure the internal nodes recook
                             get_fetch_node(self.node).cook(force=True)
 
+                            # Make sure the directory exists
+                            usd_dir = os.path.dirname(get_parm_str(self.node, 'usdpath', source_num, layer_num))
+                            if not os.path.exists(usd_dir):
+                                os.makedirs(usd_dir, exist_ok=True)
+
                             usd_node.parm('execute').pressButton()
 
                 ## DEPRECATED, HERE FOR POSTERITY
@@ -998,6 +1003,11 @@ def execute_usd(node: hou.Node, parm: hou.Parm):
     # Make sure the internal nodes recook
     get_fetch_node(node).cook(force=True)
 
+    # Make sure the directory exists
+    usd_dir = os.path.dirname(get_parm_str(node, 'usdpath', source_num, layer_num))
+    if not os.path.exists(usd_dir):
+        os.makedirs(usd_dir, exist_ok=True)
+
     # Render the USD
     get_usd_node(node).parm('execute').pressButton()
 
@@ -1023,6 +1033,11 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
     
     # Make sure the internal nodes recook
     get_fetch_node(node).cook(force=True)
+
+    # Make sure the directory exists
+    usd_dir = os.path.dirname(get_parm_str(node, 'usdpath', source_num, layer_num))
+    if not os.path.exists(usd_dir):
+        os.makedirs(usd_dir, exist_ok=True)
 
     # Render the USD
     get_usd_node(node).parm('executebackground').pressButton()
