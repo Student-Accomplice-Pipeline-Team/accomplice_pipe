@@ -116,34 +116,34 @@ class TractorSubmit:
                 # Destroy the lopimportcam node
                 # sop_cam_node.destroy()
 
-            for filepath in filepaths:
-                # Add the file to the filepaths
-                self.filepaths.append(filepath)
+                for filepath in filepaths:
+                    # Add the file to the filepaths
+                    self.filepaths.append(filepath)
 
-                # Get the frame range for the file
-                frame_range = get_frame_range(self.node, source_num)
-                self.frame_ranges.append(frame_range)
+                    # Get the frame range for the file
+                    frame_range = get_frame_range(self.node, source_num)
+                    self.frame_ranges.append(frame_range)
 
-                # Get the output path overrides for file sources
-                output_path_override = None
-                resolution = None
-                if source_type == 'file':
-                    if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
-                        output_path_override = []
-                        hou.hscript(
-                            f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
-                        )
-                        for frame in range(frame_range[0], frame_range[1] + 1):
-                            output_path_override.append(
-                                self.node.parm(
-                                    source_type + "outputoverride" + str(source_num)
-                                ).evalAtFrame(frame)
+                    # Get the output path overrides for file sources
+                    output_path_override = None
+                    resolution = None
+                    if source_type == 'file':
+                        if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
+                            output_path_override = []
+                            hou.hscript(
+                                f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
                             )
-                elif source_type == 'node':
-                    resolution = get_resolution(self.node, source_num)
-                
-                self.resolutions.append(resolution)
-                self.output_path_overrides.append(output_path_override)
+                            for frame in range(frame_range[0], frame_range[1] + 1):
+                                output_path_override.append(
+                                    self.node.parm(
+                                        source_type + "outputoverride" + str(source_num)
+                                    ).evalAtFrame(frame)
+                                )
+                    elif source_type == 'node':
+                        resolution = get_resolution(self.node, source_num)
+                    
+                    self.resolutions.append(resolution)
+                    self.output_path_overrides.append(output_path_override)
 
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
 
@@ -537,10 +537,13 @@ def create_render_frame_task(
     #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
 
     render_frame_task = author.Task(title=title)
+
+    # HACK: Make sure the blade is pointing to animlic
+    render_frame_command[2] = "/opt/hfs19.5/bin/hserver -S animlic.cs.byu.edu && " + render_frame_command[2]
     
     render_frame_task.newCommand(
-        argv=render_frame_command,
-        retryrc=[
+        argv = render_frame_command,
+        retryrc = [
             3,      # Can't get license
             -11,    # Segmentation fault
             135,    # Bus error
@@ -549,6 +552,7 @@ def create_render_frame_task(
             223,    # Silent error
             255,    # Decompression failure
         ],
+        maxrunsecs = 4 * 60 * 60,
     )
     
     return render_frame_task
