@@ -982,12 +982,18 @@ def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node
 
 
 def execute_usd(node: hou.Node, parm: hou.Parm):
-   # Get the number of the source to render a USD for
+    # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecute').split('_')
 
-    # Prepare for and render the USD
-    usd_node = update_usd_node(node, source_num, layer_num)
-    usd_node.parm('execute').pressButton()
+    # Update the internal nodes
+    update_source_nodes(node, source_num)
+    update_layer_nodes(node, source_num, layer_num)
+    
+    # Make sure the internal nodes recook
+    get_fetch_node(node).cook(force=True)
+
+    # Render the USD
+    get_usd_node(node).parm('execute').pressButton()
 
 
 def execute_usd_background(node: hou.Node, parm: hou.Parm):
@@ -1000,13 +1006,18 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
         )
         return
 
-    # Get the number of the source to render a USD for
+    # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecutebackground').split('_')
 
-    # Prepare for and render the USD
-    usd_node = update_usd_node(node, source_num)
-    hou.hipFile.save()
-    usd_node.parm('executebackground').pressButton()
+    # Update the internal nodes
+    update_source_nodes(node, source_num)
+    update_layer_nodes(node, source_num, layer_num)
+    
+    # Make sure the internal nodes recook
+    get_fetch_node(node).cook(force=True)
+
+    # Render the USD
+    get_usd_node(node).parm('executebackground').pressButton()
 
 
 # Expands, validates, and returns the filepaths
@@ -1225,7 +1236,7 @@ def update_layer_parms(
             'primitive': '/scene/layout /scene/fx/gravel /scene/fx/leaves',
         },
         'cops': {
-            'primitive': '/scene/anim/copcar*',
+            'primitive': '/scene/anim/copcar* /scene/fx/background_cop_cars',
         },
         'fx_sparks': {
             'primitive': '/scene/fx/sparks',
