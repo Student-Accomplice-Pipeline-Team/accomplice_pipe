@@ -30,20 +30,24 @@ class LoadShotUsds: # TODO: note that this node has been updated to be called 'a
         return reference
 
     def update_department_reference_node_paths(myself:hou.Node, shot: Shot):
-        # department_reference_nodes = []
         for department in shot.available_departments:
             if department == 'main' or department == 'layout':
                 continue
-            # Get the reference nodes
-            # reference = LoadShotUsds.get_reference_node(myself, department)
 
             usd_path = shot.get_shot_usd_path(department)
             if not os.path.exists(usd_path):
                 UsdUtils.create_usd_with_department_prim(usd_path, department)
             
-            # reference.parm('filepath1').set(shot.get_shot_usd_path(department))
-            # department_reference_nodes.append(reference)
-            myself.parm(department + '_usd_path').set(usd_path)
+            script_template = """
+            from pipe.shared.object import Shot
+            from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
+            shot = HoudiniUtils.get_shot_for_file()
+            department = '{}'
+            return shot.get_shot_usd_path(department)
+            """
+            script_filled = script_template.format(department)
+
+            myself.parm(department + '_usd_path').setExpression(script_filled, language=hou.exprLanguage.Python, replace_expression=True)
 
     def set_current_department(myself: hou.Node, department=None):
         if department is None:
