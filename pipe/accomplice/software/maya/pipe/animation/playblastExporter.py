@@ -18,7 +18,7 @@ def enable_hud():
         mc.headsUpDisplay(hud, edit=True, visible=False)
 
     # Turn on overall HUD
-    model_panels = cmds.getPanel(type="modelPanel")
+    model_panels = mc.getPanel(type="modelPanel")
     for panel in model_panels:
         mc.modelEditor(panel, e=True, hud=True)
 
@@ -28,7 +28,7 @@ def enable_hud():
     cams = mc.ls(ca=True)
 
     for cam in cams:
-        parentCam = cmds.listRelatives(cam, parent=True)[0]
+        parentCam = mc.listRelatives(cam, parent=True)[0]
         mc.camera(parentCam, edit=True, displayResolution=False)
         mc.camera(parentCam, edit=True, displayGateMask=False)
         mc.camera(parentCam, edit=True, displayFilmGate=False)
