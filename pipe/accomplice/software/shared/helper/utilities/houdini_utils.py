@@ -1038,6 +1038,7 @@ class FXSceneOpener(HoudiniShotOpener):
 
 
         self.open_file_path(file_path)
+        hou.setUpdateMode(hou.updateMode.Manual)
         
 
 
