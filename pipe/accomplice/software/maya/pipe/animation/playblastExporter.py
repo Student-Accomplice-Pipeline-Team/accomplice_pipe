@@ -149,6 +149,8 @@ class PlayblastExporter(QtWidgets.QMainWindow):
 
         print(fileName)
 
+        enable_hud()
+
         try:
             mc.playblast(f=fileName, forceOverwrite=True, viewer=False, percent=self.videoScalePct,
                          format=self.videoFormat, compression=self.videoCompression, widthHeight = [self.width, self.height])
