@@ -377,7 +377,7 @@ class Shot(JsonSerializable):
         else:
             return os.path.join(self.path, department)
     
-    def get_shot_frames(self, global_start_frame=1001, handle_frames=5):
+    def get_shot_frames(self, global_start_frame=0, handle_frames=0):
             """
             Returns the start and end frames for a shot, along with extra frames for handles.
 

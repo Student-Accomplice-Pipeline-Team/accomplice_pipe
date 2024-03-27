@@ -1166,7 +1166,7 @@ class HoudiniUtils:
         return None
 
     @staticmethod
-    def set_frame_range_from_shot(shot: Shot, global_start_frame=1001, handle_frames=5):
+    def set_frame_range_from_shot(shot: Shot, global_start_frame=0, handle_frames=0):
         if shot.cut_in is None or shot.cut_out is None:
             shot = pipe.server.get_shot(shot.name, retrieve_from_shotgrid=True)
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)

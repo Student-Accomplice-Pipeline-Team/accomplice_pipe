@@ -26,7 +26,7 @@ if shot is None:
     exit()
 
 # Set default values
-default_values = ('1001', '5')
+default_values = ('0', '0')
 
 # Create a dialog to get user input with default values
 dialog = hou.ui.readMultiInput("Set Frame Range", ["Global Start Frame", "Handle Frames"], initial_contents=default_values, buttons=("OK", "Cancel"))
