@@ -1,7 +1,18 @@
 from PySide2 import QtWidgets, QtCore
 
 class FilterableList(QtWidgets.QDialog):
+    """
+    A QDialog that provides functionality to filter items in a QListWidget based on user input.
+    
+    Attributes:
+        filter_field (QtWidgets.QLineEdit): Input field for filter text.
+        list_widget (QtWidgets.QListWidget): Widget displaying a list of items that can be filtered.
+    """
     def filter_items(self):
+        """
+        Filters items in the list_widget based on the text in filter_field. Only items containing
+        the filter text will be shown; others will be hidden.
+        """
         filter_text = self.filter_field.text().lower()
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
@@ -13,6 +24,19 @@ class FilterableList(QtWidgets.QDialog):
 
 
 class ListWithFilter(FilterableList):
+    """
+    Extends FilterableList to add user interface elements for a list dialog with filtering capability,
+    including a label above the list, and OK/Cancel buttons.
+
+    Parameters:
+        title (str): The window title.
+        items (list): The list of items to be displayed in the list widget.
+        accept_button_name (str): The text for the accept button. Defaults to "OK".
+        cancel_button_name (str): The text for the cancel button. Defaults to "Cancel".
+        list_label (str, optional): Optional label to display above the list. Defaults to None.
+        include_filter_field (bool): Whether to include a filter field. Defaults to True.
+        parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+    """
     def __init__(self, title:str, items:list, accept_button_name = "OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None):
         super(ListWithFilter, self).__init__(parent)
         self.setWindowTitle(title)
@@ -55,14 +79,44 @@ class ListWithFilter(FilterableList):
         self.buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText(cancel_name)
 
     def get_selected_item(self):
+        """
+        Returns the text of the currently selected item in the list, if any.
+
+        Returns:
+            str or None: The text of the selected item, or None if no item is selected.
+        """
+
         selected_items = self.list_widget.selectedItems()
         if selected_items:
             return selected_items[0].text()
         return None
 
 
+class ListWithFilterAndCheckbox(ListWithFilter):
+    """
+    Extends ListWithFilter to add a checkbox at the bottom of the dialog.
+
+    Parameters:
+        checkbox_text (str): The label text for the checkbox.
+        Other parameters are inherited from ListWithFilter.
+    """
+    def __init__(self, title: str, items: list, checkbox_text: str, accept_button_name="OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None):
+        super().__init__(title, items, accept_button_name, cancel_button_name, list_label, include_filter_field, parent)
+        self.checkbox = QtWidgets.QCheckBox(checkbox_text)
+        self.layout().addWidget(self.checkbox)
+
+    def is_checkbox_checked(self):
+        return self.checkbox.isChecked()
+
 
 class ListWithCheckboxFilter(FilterableList):
+    """
+    A variant of FilterableList that includes a "Select All" checkbox to toggle the selection state of all visible items.
+
+    Parameters:
+        items_checked_by_default (bool): Whether items should be checked by default. Defaults to False.
+        Other parameters are inherited from FilterableList.
+    """
     def __init__(self, title: str, items: list, accept_button_name="OK", cancel_button_name="Cancel", list_label=None, include_filter_field=True, parent=None, items_checked_by_default=False):
         super(ListWithCheckboxFilter, self).__init__(parent)
         self.setWindowTitle(title)
@@ -117,6 +171,10 @@ class ListWithCheckboxFilter(FilterableList):
         self.buttons.button(QtWidgets.QDialogButtonBox.Cancel).setText(cancel_name)
     
     def select_all_items(self):
+        """
+        Toggles the check state of all visible items in the list based on the "Select All" checkbox state.
+        """
+
         check_state = self.select_all_checkbox.checkState()
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
@@ -124,6 +182,13 @@ class ListWithCheckboxFilter(FilterableList):
                 item.setCheckState(check_state)
 
     def get_selected_items(self):
+        """
+        Returns a list of the text of all checked items.
+
+        Returns:
+            list of str: The texts of all checked items.
+        """
+
         selected_items = []
         for row in range(self.list_widget.count()):
             item = self.list_widget.item(row)
@@ -132,6 +197,16 @@ class ListWithCheckboxFilter(FilterableList):
         return selected_items
 
 class InfoDialog(QtWidgets.QDialog):
+    """
+    A simple informational dialog displaying a message and an OK button, optionally with a Cancel button.
+
+    Parameters:
+        dialog_title (str): The title of the dialog.
+        dialog_message (str): The message to be displayed.
+        include_cancel_button (bool): Whether to include a Cancel button alongside the OK button. Defaults to False.
+        parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+    """
+
     def __init__(self, dialog_title, dialog_message, include_cancel_button = False, parent=None):
         super(InfoDialog, self).__init__(parent)
         self.setWindowTitle(dialog_title)
@@ -154,6 +229,16 @@ class InfoDialog(QtWidgets.QDialog):
 
 
 class TextEntryDialog(QtWidgets.QDialog):
+    """
+    A dialog for text entry, supporting both plain text and password modes.
+
+    Parameters:
+        dialog_title (str): The title of the dialog.
+        dialog_message (str): The prompt message above the text entry field.
+        is_password (bool): Whether the text entry should hide the text as it is entered (password mode). Defaults to False.
+        parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+    """
+
     def __init__(self, dialog_title, dialog_message, parent=None, is_password=False):
         super(TextEntryDialog, self).__init__(parent)
         self.setWindowTitle(dialog_title)
@@ -178,5 +263,12 @@ class TextEntryDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def get_text_entry(self):
+        """
+        Returns the text entered by the user.
+
+        Returns:
+            str: The entered text.
+        """
+
         text_entry = self.text_entry.text()
         return text_entry

@@ -988,19 +988,22 @@ class HoudiniShotOpener:
         hou.hipFile.save(file_path)
     
     
-    def open_shot(self):
+    def open_shot(self, open_in_manual_mode=False):
         if self.department_name is None:
             return
 
         file_path = self.shot.get_shotfile(self.department_name)
         self.open_file_path(file_path)
+
+        if open_in_manual_mode:
+            hou.setUpdateMode(hou.updateMode.Manual)
         
     
 class FXSceneOpener(HoudiniShotOpener):
     def __init__(self, shot):
         super().__init__(shot, 'fx')
     
-    def open_shot(self):
+    def open_shot(self, open_in_manual_mode=True):
         # See which subfile the user wants to open, first by prompting the user with the existing files in the working directory
         fx_file_names = ['main'] + HoudiniFXUtils.get_names_of_fx_files_in_working_directory(self.shot)
         fx_subfile_dialog = ListWithFilter("Open FX File for Shot " + self.shot.name, fx_file_names, accept_button_name="Open", cancel_button_name="Create New", list_label="Select the FX file you'd like to open. If you don't see the file you want, click 'Create New' to create a new FX file.", include_filter_field=False)
@@ -1038,7 +1041,8 @@ class FXSceneOpener(HoudiniShotOpener):
 
 
         self.open_file_path(file_path)
-        hou.setUpdateMode(hou.updateMode.Manual)
+        if open_in_manual_mode:
+            hou.setUpdateMode(hou.updateMode.Manual)
         
 
 
