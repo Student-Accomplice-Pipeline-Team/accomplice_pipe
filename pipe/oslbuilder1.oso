@@ -1,0 +1,65 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.0@OPROJECT_VERSION_RELEASE_TYPE@
+# options: -q -I/groups/accomplice/shading/hGeoPatterns/osl/include -I/opt/hfs19.5/houdini/osl/include -o /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9bc6.oso -IC:/Pixar/PixarRenderMan-Examples-25.2/plugins/include/osl
+shader oslbuilder1_9bc6
+param	color	lightPos	0 0 0		%read{1,1} %write{2147483647,-1}
+param	float	Ks	0		%read{11,11} %write{2147483647,-1}
+param	float	exponent	0		%read{10,10} %write{2147483647,-1}
+oparam	float	out_emissive	0		%read{2147483647,-1} %write{12,12}
+param	float	parm	0		%read{2147483647,-1} %write{2147483647,-1}
+global	point	P	%read{0,0} %write{2147483647,-1}
+global	vector	I	%read{4,4} %write{2147483647,-1}
+global	normal	N	%read{8,8} %write{2147483647,-1}
+local	color	result	%read{1,1} %write{0,0}
+local	color	diff	%read{2,2} %write{1,1}
+local	vector	result1	%read{3,3} %write{2,2}
+local	vector	nvec	%read{6,6} %write{3,3}
+local	vector	negated	%read{5,5} %write{4,4}
+local	vector	nvec1	%read{6,6} %write{5,5}
+local	vector	diff1	%read{7,7} %write{6,6}
+local	vector	nvec2	%read{8,8} %write{7,7}
+local	float	dotprod	%read{10,10} %write{8,8}
+local	float	pow1	%read{11,11} %write{10,10}
+local	float	product	%read{12,12} %write{11,11}
+const	string	$const1	"vop_pow"		%read{9,9} %write{2147483647,-1}
+code ___main___
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:43
+#       result = vector(P);
+	assign		result P 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl"} %line{43} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:47
+#     diff = lightPos - result;
+	sub		diff lightPos result 	%line{47} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:53
+#       result1 = vector(diff);
+	assign		result1 diff 	%line{53} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:57
+#     nvec = normalize(result1);
+	normalize	nvec result1 	%line{57} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:60
+#     negated = I;
+	assign		negated I 	%line{60} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:63
+#     nvec1 = normalize(negated);
+	normalize	nvec1 negated 	%line{63} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:66
+#     diff1 = nvec - nvec1;
+	sub		diff1 nvec nvec1 	%line{66} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:69
+#     nvec2 = normalize(diff1);
+	normalize	nvec2 diff1 	%line{69} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:72
+#     dotprod = vop_dot(N, nvec2);
+	dot		dotprod N nvec2 	%line{72} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:75
+#     pow1 = vop_pow((dotprod), exponent);
+	functioncall	$const1 11 	%line{75} %argrw{"r"}
+# /opt/hfs19.5/houdini/osl/include/voplib.h:131
+# VOP_VECTOR_BIN_FUNCTIONS(pow)
+	pow		pow1 dotprod exponent 	%filename{"/opt/hfs19.5/houdini/osl/include/voplib.h"} %line{131} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:78
+#     product = pow1 * Ks;
+	mul		product pow1 Ks 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl"} %line{78} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/catchlight_shader/oslbuilder1/oslbuilder1_9cbd1116765.osl:81
+#     out_emissive = product;
+	assign		out_emissive product 	%line{81} %argrw{"wr"}
+	end
