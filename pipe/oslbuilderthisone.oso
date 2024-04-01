@@ -1,7 +1,7 @@
 OpenShadingLanguage 1.00
 # Compiled by oslc 1.11.0@OPROJECT_VERSION_RELEASE_TYPE@
-# options: -q -I/groups/accomplice/shading/hGeoPatterns/osl/include -I/opt/hfs19.5/houdini/osl/include -o /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d.oso -IC:/Pixar/PixarRenderMan-Examples-25.2/plugins/include/osl
-shader oslbuilder8_6b7d
+# options: -q -I/groups/accomplice/shading/hGeoPatterns/osl/include -I/opt/hfs19.5/houdini/osl/include -o /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da.oso -IC:/Pixar/PixarRenderMan-Examples-25.2/plugins/include/osl
+shader oslbuilderthisone_a7da
 param	color	pos	0 0 0		%read{0,0} %write{2147483647,-1}
 param	color	dir	0 0 0		%read{69,69} %write{2147483647,-1}
 param	struct ClosestData	in			%read{2147483647,-1} %write{2147483647,-1} %struct{"ClosestData"} %structfields{meshID,prim,u,v} %structfieldtypes{"iiff"} %structnfields{4}
@@ -129,66 +129,66 @@ temp	float	$tmp37	%read{143,143} %write{142,142}
 temp	float	$tmp38	%read{145,145} %write{144,144}
 const	string	$const22	"vop_floattovec"		%read{148,148} %write{2147483647,-1}
 code ___main___
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:102
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:102
 #       result = color(pos);
-	assign		result pos 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{102} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:106
+	assign		result pos 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{102} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:106
 #     if (0 != 0)
 	neq		$tmp1 $const1 $const1 	%line{106} %argrw{"wrr"}
 	if		$tmp1 5 6 	%argrw{"r"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:107
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:107
 #          xformed = transform(matrix(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1), P);
 	matrix		$tmp2 $const3 $const4 $const4 $const4 $const4 $const3 $const4 $const4 $const4 $const4 $const3 $const4 $const4 $const4 $const4 $const3 	%line{107} %argrw{"wrrrrrrrrrrrrrrrr"}
 	transform	xformed $tmp2 P 	%argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:108
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:108
 #     else xformed = transform("common", "object", P);
 	transform	xformed $const5 $const6 P 	%line{108} %argrw{"wrrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:111
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:111
 #     diff = result - xformed;
 	sub		diff result xformed 	%line{111} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:114
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:114
 #     len = length(diff);
 	length		len diff 	%line{114} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:117
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:117
 #     div = len / maxdist;
 	div		div len maxdist 	%line{117} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:120
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:120
 #     bool1 = (div < 0.99990000000000001) ? 1 : 0;
 	lt		$tmp3 div $const7 	%line{120} %argrw{"wrr"}
 	if		$tmp3 12 13 	%argrw{"r"}
 	assign		bool1 $const2 	%argrw{"wr"}
 	assign		bool1 $const1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:123
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:123
 #     bool2 = (trimends != 0) ? 1 : 0;
 	neq		$tmp4 trimends $const1 	%line{123} %argrw{"wrr"}
 	if		$tmp4 16 17 	%argrw{"r"}
 	assign		bool2 $const2 	%argrw{"wr"}
 	assign		bool2 $const1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:126
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:126
 #     out_struct = in;
 	assign		out_struct.meshID in.meshID 	%line{126} %argrw{"wr"}
 	assign		out_struct.prim in.prim 	%argrw{"wr"}
 	assign		out_struct.u in.u 	%argrw{"wr"}
 	assign		out_struct.v in.v 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:127
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:127
 #     out_u = out_struct.u;
 	assign		out_u out_struct.u 	%line{127} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:128
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:128
 #     out_v = out_struct.v;
 	assign		out_v out_struct.v 	%line{128} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:131
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:131
 #     bool3 = (out_u < 0.5) ? 1 : 0;
 	lt		$tmp5 out_u $const8 	%line{131} %argrw{"wrr"}
 	if		$tmp5 26 27 	%argrw{"r"}
 	assign		bool3 $const2 	%argrw{"wr"}
 	assign		bool3 $const1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:134
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:134
 #     complem = -out_u;
 	neg		complem out_u 	%line{134} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:135
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:135
 #     complem += 1;
 	add		complem complem $const3 	%line{135} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:139
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:139
 #       result1 = (0 != 0 ? (bool3 != 0 ? complem : out_u)
 	neq		$tmp6 $const1 $const1 	%line{139} %argrw{"wrr"}
 	if		$tmp6 35 39 	%argrw{"r"}
@@ -196,13 +196,13 @@ code ___main___
 	if		$tmp7 34 35 	%argrw{"r"}
 	assign		result1 complem 	%argrw{"wr"}
 	assign		result1 out_u 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:140
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:140
 #                                 : (bool3 != 0 ? out_u : complem));
 	neq		$tmp8 bool3 $const1 	%line{140} %argrw{"wrr"}
 	if		$tmp8 38 39 	%argrw{"r"}
 	assign		result1 out_u 	%argrw{"wr"}
 	assign		result1 complem 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:153
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:153
 #     shift = vop_fit(result1, 0, trimends, 0, 1);
 	functioncall	$const9 48 	%line{153} %argrw{"r"}
 # /opt/hfs19.5/houdini/osl/include/voplib.h:199
@@ -221,21 +221,21 @@ code ___main___
 # /opt/hfs19.5/houdini/osl/include/voplib.h:194
 #     return mix(nmin, nmax, t);
 	mix		shift $const4 $const3 ___492_t 	%filename{"/opt/hfs19.5/houdini/osl/include/voplib.h"} %line{194} %argrw{"wrrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:157
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:157
 #       result2 = (0 != 0 ? (bool2 != 0 ? 1 : shift)
-	neq		$tmp13 $const1 $const1 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{157} %argrw{"wrr"}
+	neq		$tmp13 $const1 $const1 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{157} %argrw{"wrr"}
 	if		$tmp13 54 58 	%argrw{"r"}
 	neq		$tmp14 bool2 $const1 	%argrw{"wrr"}
 	if		$tmp14 53 54 	%argrw{"r"}
 	assign		result2 $const2 	%argrw{"wr"}
 	assign		result2 shift 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:158
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:158
 #                                 : (bool2 != 0 ? shift : 1));
 	neq		$tmp15 bool2 $const1 	%line{158} %argrw{"wrr"}
 	if		$tmp15 57 58 	%argrw{"r"}
 	assign		result2 shift 	%argrw{"wr"}
 	assign		result2 $const2 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:172
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:172
 #       result3 = (0 != 0 ? (bool1 != 0 ? 0 : result2)
 	neq		$tmp16 $const1 $const1 	%line{172} %argrw{"wrr"}
 	if		$tmp16 64 68 	%argrw{"r"}
@@ -243,52 +243,52 @@ code ___main___
 	if		$tmp17 63 64 	%argrw{"r"}
 	assign		result3 $const1 	%argrw{"wr"}
 	assign		result3 result2 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:173
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:173
 #                                 : (bool1 != 0 ? result2 : 0));
 	neq		$tmp18 bool1 $const1 	%line{173} %argrw{"wrr"}
 	if		$tmp18 67 68 	%argrw{"r"}
 	assign		result3 result2 	%argrw{"wr"}
 	assign		result3 $const1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:186
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:186
 #     Alpha = result3;
 	assign		Alpha result3 	%line{186} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:192
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:192
 #       result4 = color(dir);
 	assign		result4 dir 	%line{192} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:196
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:196
 #     crossprod = vop_cross(result4, diff);
 	cross		crossprod result4 diff 	%line{196} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:199
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:199
 #     if (0 != 0)
 	neq		$tmp19 $const1 $const1 	%line{199} %argrw{"wrr"}
 	if		$tmp19 75 76 	%argrw{"r"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:200
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:200
 #          xformed1 = transform(matrix(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1), N);
 	matrix		$tmp20 $const3 $const4 $const4 $const4 $const4 $const3 $const4 $const4 $const4 $const4 $const3 $const4 $const4 $const4 $const4 $const3 	%line{200} %argrw{"wrrrrrrrrrrrrrrrr"}
 	transformn	xformed1 $tmp20 N 	%argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:201
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:201
 #     else xformed1 = transform("common", "object", N);
 	transformn	xformed1 $const5 $const6 N 	%line{201} %argrw{"wrrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:204
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:204
 #     dotprod = vop_dot(crossprod, xformed1);
 	dot		dotprod crossprod xformed1 	%line{204} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:207
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:207
 #     if (dotprod == 0) sign1 = 0;
 	eq		$tmp21 dotprod $const1 	%line{207} %argrw{"wrr"}
 	if		$tmp21 80 84 	%argrw{"r"}
 	assign		sign1 $const1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:208
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:208
 #     else if (dotprod > 0) sign1 = 1;
 	gt		$tmp22 dotprod $const1 	%line{208} %argrw{"wrr"}
 	if		$tmp22 83 84 	%argrw{"r"}
 	assign		sign1 $const2 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:209
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:209
 #     else sign1 = -1;
 	assign		sign1 $const12 	%line{209} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:212
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:212
 #     product = sign1 * div;
 	mul		product sign1 div 	%line{212} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:216
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:216
 #       result5 = (0 != 0 ? (mirror != 0 ? product : div)
 	neq		$tmp23 $const1 $const1 	%line{216} %argrw{"wrr"}
 	if		$tmp23 91 95 	%argrw{"r"}
@@ -296,19 +296,19 @@ code ___main___
 	if		$tmp24 90 91 	%argrw{"r"}
 	assign		result5 product 	%argrw{"wr"}
 	assign		result5 div 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:217
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:217
 #                                 : (mirror != 0 ? div : product));
 	neq		$tmp25 mirror $const1 	%line{217} %argrw{"wrr"}
 	if		$tmp25 94 95 	%argrw{"r"}
 	assign		result5 div 	%argrw{"wr"}
 	assign		result5 product 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:230
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:230
 #     input2 = 0;
 	assign		input2 $const1 	%line{230} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:233
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:233
 #     input1 = -1;
 	assign		input1 $const12 	%line{233} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:237
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:237
 #       result6 = (0 != 0 ? (mirror != 0 ? input1 : input2)
 	neq		$tmp26 $const1 $const1 	%line{237} %argrw{"wrr"}
 	if		$tmp26 103 107 	%argrw{"r"}
@@ -316,13 +316,13 @@ code ___main___
 	if		$tmp27 102 103 	%argrw{"r"}
 	assign		result6 input1 	%argrw{"wr"}
 	assign		result6 input2 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:238
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:238
 #                                 : (mirror != 0 ? input2 : input1));
 	neq		$tmp28 mirror $const1 	%line{238} %argrw{"wrr"}
 	if		$tmp28 106 107 	%argrw{"r"}
 	assign		result6 input2 	%argrw{"wr"}
 	assign		result6 input1 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:251
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:251
 #     shift1 = vop_fit(result5, result6, 1, cropfrom, cropto);
 	functioncall	$const9 116 	%line{251} %argrw{"r"}
 # /opt/hfs19.5/houdini/osl/include/voplib.h:199
@@ -341,9 +341,9 @@ code ___main___
 # /opt/hfs19.5/houdini/osl/include/voplib.h:194
 #     return mix(nmin, nmax, t);
 	mix		shift1 cropfrom cropto ___492_t 	%filename{"/opt/hfs19.5/houdini/osl/include/voplib.h"} %line{194} %argrw{"wrrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:254
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:254
 #     vop_vectofloat(l, fval1, fval2, fval3);
-	functioncall	$const13 126 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{254} %argrw{"r"}
+	functioncall	$const13 126 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{254} %argrw{"r"}
 # /opt/hfs19.5/houdini/osl/include/voplib.h:184
 # VOP_CONVERSION_FUNCTIONS(color)
 	functioncall	$const14 120 	%filename{"/opt/hfs19.5/houdini/osl/include/voplib.h"} %line{184} %argrw{"r"}
@@ -365,13 +365,13 @@ code ___main___
 # VOP_COMP_FUNCTIONS(color)
 	functioncall	$const15 126 	%line{74} %argrw{"r"}
 	compref		fval3 l $const18 	%argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:257
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:257
 #     product1 = out_v * fval1;
-	mul		product1 out_v fval1 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{257} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:260
+	mul		product1 out_v fval1 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{257} %argrw{"wrr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:260
 #     scaled = maxdist * 2;
 	mul		scaled maxdist $const19 	%line{260} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:264
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:264
 #       result7 = (0 != 0 ? (mirror != 0 ? scaled : maxdist)
 	neq		$tmp33 $const1 $const1 	%line{264} %argrw{"wrr"}
 	if		$tmp33 134 138 	%argrw{"r"}
@@ -379,19 +379,19 @@ code ___main___
 	if		$tmp34 133 134 	%argrw{"r"}
 	assign		result7 scaled 	%argrw{"wr"}
 	assign		result7 maxdist 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:265
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:265
 #                                 : (mirror != 0 ? maxdist : scaled));
 	neq		$tmp35 mirror $const1 	%line{265} %argrw{"wrr"}
 	if		$tmp35 137 138 	%argrw{"r"}
 	assign		result7 maxdist 	%argrw{"wr"}
 	assign		result7 scaled 	%argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:278
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:278
 #     product2 = result7 * aspect;
 	mul		product2 result7 aspect 	%line{278} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:281
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:281
 #     div1 = product1 / product2;
 	div		div1 product1 product2 	%line{281} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:287
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:287
 #     mod1 = vop_mod(div1, 1);
 	functioncall	$const20 146 	%line{287} %argrw{"r"}
 # /opt/hfs19.5/houdini/osl/include/voplib.h:130
@@ -403,22 +403,22 @@ code ___main___
 	floor		$tmp36 $tmp37 	%argrw{"wr"}
 	mul		$tmp38 $const3 $tmp36 	%argrw{"wrr"}
 	sub		mod1 div1 $tmp38 	%argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:291
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:291
 #     complem1 = -mod1;
-	neg		complem1 mod1 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{291} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:292
+	neg		complem1 mod1 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{291} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:292
 #     complem1 += 1;
 	add		complem1 complem1 $const3 	%line{292} %argrw{"wrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:295
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:295
 #     vec = vop_floattovec(shift1, complem1, 0);
 	functioncall	$const22 150 	%line{295} %argrw{"r"}
 # /opt/hfs19.5/houdini/osl/include/voplib.h:182
 # VOP_CONVERSION_FUNCTIONS(point)
 	point		vec shift1 complem1 $const4 	%filename{"/opt/hfs19.5/houdini/osl/include/voplib.h"} %line{182} %argrw{"wrrr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:298
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:298
 #     out_struct1.Q = vec;
-	assign		out_struct1.Q vec 	%filename{"/tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl"} %line{298} %argrw{"wr"}
-# /tmp/houdini_temp/dh477/vop_OSL/F_000_layout_DALLINS_TEST/oslbuilder8/oslbuilder8_6b7d1273982.osl:301
+	assign		out_struct1.Q vec 	%filename{"/tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl"} %line{298} %argrw{"wr"}
+# /tmp/houdini_temp/ccm64/vop_OSL/F_000_layout/oslbuilderthisone/oslbuilderthisone_a7da431017.osl:301
 #     out_manifold = out_struct1;
 	assign		out_manifold.Q out_struct1.Q 	%line{301} %argrw{"wr"}
 	assign		out_manifold.QN out_struct1.QN 	%argrw{"wr"}
