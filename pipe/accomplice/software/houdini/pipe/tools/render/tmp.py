@@ -549,13 +549,15 @@ def create_render_frame_task(
     render_frame_task.newCommand(
         argv = render_frame_command,
         retryrc = [
-            3,      # Can't get license
             -11,    # Segmentation fault
+            -9,     # Unknown
+            3,      # Can't get license
             135,    # Bus error
             139,    # Segmentation fault
             222,    # Silent error
             223,    # Silent error
             255,    # Decompression failure
+            10111,  # Exceeded maximum time
         ],
         maxrunsecs = 4 * 60 * 60,
     )
