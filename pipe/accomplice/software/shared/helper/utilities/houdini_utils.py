@@ -1151,6 +1151,7 @@ class HoudiniUtils:
                 user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
         else:
             user_selected_department = selected_department
+            open_in_manual_mode = True
 
         if ask_for_manual_mode:
             return shot, user_selected_department, open_in_manual_mode
