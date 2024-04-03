@@ -8,7 +8,7 @@ from .file_path_utils import FilePathUtils
 from .ui_utils import ListWithCheckboxFilter
 from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
-from .ui_utils import ListWithFilter
+from .ui_utils import ListWithFilter, ListWithFilterAndCheckbox
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 import os
 import subprocess
@@ -1084,9 +1084,9 @@ class HoudiniUtils:
             return
     
         if shot is None:
-            shot, department = HoudiniUtils.prompt_user_for_shot_and_department(department_name)
+            shot, department, open_in_manual_mode = HoudiniUtils.prompt_user_for_shot_and_department(department_name, True)
         shot_opener = HoudiniSceneOpenerFactory(shot, department).get_shot_opener()
-        shot_opener.open_shot()
+        shot_opener.open_shot(open_in_manual_mode=open_in_manual_mode)
 
 
     @staticmethod
@@ -1126,7 +1126,7 @@ class HoudiniUtils:
         return 0
 
     @staticmethod
-    def prompt_user_for_shot_and_department(selected_department=None):
+    def prompt_user_for_shot_and_department(selected_department=None, ask_for_manual_mode=False):
         """
         Prompts the user to select a shot and department.
 
@@ -1143,11 +1143,19 @@ class HoudiniUtils:
         shot = HoudiniUtils.prompt_user_for_shot()
         if shot is None:
             return None, None
+
         if selected_department is None:
-            user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+            if ask_for_manual_mode:
+                user_selected_department, open_in_manual_mode = HoudiniUtils.prompt_user_for_subfile_type(ask_for_manual_mode=ask_for_manual_mode)
+            else:
+                user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
         else:
             user_selected_department = selected_department
-        return shot, user_selected_department
+
+        if ask_for_manual_mode:
+            return shot, user_selected_department, open_in_manual_mode
+        else:
+            return shot, user_selected_department
 
     @staticmethod
     def prompt_user_for_shot():
@@ -1162,13 +1170,26 @@ class HoudiniUtils:
         return None
         
     @staticmethod
-    def prompt_user_for_subfile_type() -> str or None:
+    def prompt_user_for_subfile_type(ask_for_manual_mode=False) -> tuple:
+        """
+        Prompts the user to select a subfile type.
+        
+        Returns the selected subfile type, or None if the user cancels the dialog, as well as whether the user wants to open the shot in manual update mode.
+        """
         subfile_types = FilePathUtils.subfile_types
-        dialog = ListWithFilter("Open Shot Subfile", subfile_types, list_label="Select the Shot Subfile that you'd like to open.")
-        if dialog.exec_():
-            selected_subfile_type = dialog.get_selected_item()
-            return selected_subfile_type
-        return None
+        if ask_for_manual_mode:
+            dialog = ListWithFilterAndCheckbox("Open Shot Subfile", subfile_types, checkbox_text="Open shot in manual update mode", list_label="Select the Shot Subfile that you'd like to open.")
+            if dialog.exec_():
+                selected_subfile_type = dialog.get_selected_item()
+                open_in_manual_mode = dialog.is_checkbox_checked()
+                return selected_subfile_type, open_in_manual_mode
+            return None, False
+        else:
+            dialog = ListWithFilter("Open Shot Subfile", subfile_types, list_label="Select the Shot Subfile that you'd like to open.")
+            if dialog.exec_():
+                selected_subfile_type = dialog.get_selected_item()
+                return selected_subfile_type
+            return None
 
     @staticmethod
     def set_frame_range_from_shot(shot: Shot, global_start_frame=0, handle_frames=0):
