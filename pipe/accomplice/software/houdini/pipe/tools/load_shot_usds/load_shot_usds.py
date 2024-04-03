@@ -71,7 +71,7 @@ class LoadShotUsds: # TODO: note that this node has been updated to be called 'a
         user_selected_department = None
         if shot is None:
             hou.ui.displayMessage("It appears that you are not using a shot file. To simulate being in a shot file, you can select a shot with the following menu.")
-            shot, user_selected_department = HoudiniUtils.prompt_user_for_shot_and_department()
+            shot, user_selected_department = HoudiniUtils.prompt_user_for_shot_and_department_and_update_mode()
         
         LoadShotUsds.update_department_reference_node_paths(myself, shot)
         if user_selected_department is not None:
