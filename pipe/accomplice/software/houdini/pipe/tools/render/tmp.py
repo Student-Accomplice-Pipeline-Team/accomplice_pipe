@@ -230,11 +230,6 @@ class TractorSubmit:
                 undenoised_exr_dir = os.path.join(aux_dir, 'undenoised')
                 os.makedirs(undenoised_exr_dir, exist_ok=True)
             
-            # Create the png directory if necessary
-            if playblast:
-                png_dir = os.path.join(aux_dir, 'png')
-                os.makedirs(png_dir, exist_ok=True)
-            
             # Create the cryptomatte directories if necessary
             cryptomatte_path_attrs = [
                 attr for attr in
@@ -358,32 +353,6 @@ class TractorSubmit:
                     )
                     post_task.addChild(transfer_cryptomatte_task)
                     
-
-                # Create post task to convert to PNG
-                if playblast:
-                    frame_filename = os.path.basename(final_frame_path)
-                    png_filename = os.path.splitext(frame_filename)[0] + '.png'
-                    png_path = os.path.join(png_dir, png_filename)
-
-                    # Get the dependencies for the conversion task
-                    dependency_title = f"Frame {str(frame)} f{file_num}"
-                    if denoise:
-                        dependency_title = "Denoise " + dependency_title
-                    dependencies = [author.Instance(title=dependency_title)]
-
-                    # Determine the channel names for the conversion
-                    channels = ['Ci.r', 'Ci.g', 'Ci.b', 'a']
-                    if denoise:
-                        channels = ['r', 'g', 'b', 'a']
-                    
-                    convert_frame_task = create_convert_frame_task(
-                        title = f"Convert Frame {str(frame)} f{file_num}",
-                        exr_path = final_frame_path,
-                        output_path = png_path,
-                        dependencies = dependencies,
-                        channels = channels,
-                    )
-                    playblast_task.addChild(convert_frame_task)
 
             # Add task to job
             self.job.addChild(usd_file_task)

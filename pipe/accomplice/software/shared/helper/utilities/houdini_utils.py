@@ -33,13 +33,13 @@ class HoudiniFXUtils():
             selected_shots = [Shot(shot) for shot in selected_shots]
 
             for shot in selected_shots:
-                lighting_file_path = shot.get_shotfile(shot_file_type)
-                if not os.path.exists(lighting_file_path):
+                shot_file_path = shot.get_shotfile(shot_file_type)
+                if not os.path.exists(shot_file_path):
                     missing_shots.append(shot.name)
                     continue
                 try:
                     HoudiniUtils.perform_operation_on_houdini_file(
-                        lighting_file_path,
+                        shot_file_path,
                         save_after_operation,
                         operation
                     )
@@ -1210,11 +1210,14 @@ class HoudiniUtils:
         rop_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'usd_rop')
 
         # Check if the BEGIN_ node exists and has an input
-        if begin_null and begin_null.inputs():
-            # Store the connected node for reconnection later
-            connected_node = begin_null.inputs()[0]
-            # Disconnect the connected node from the BEGIN_ node
-            begin_null.setInput(0, None)
+        did_disconnect_inputs = False
+        if begin_null:
+            if begin_null.inputs():
+                # Store the connected node for reconnection later
+                connected_node = begin_null.inputs()[0]
+                # Disconnect the connected node from the BEGIN_ node
+                begin_null.setInput(0, None)
+                did_disconnect_inputs = True
         else:
             raise Exception('No "BEGIN_" null in scene!')
 
@@ -1226,8 +1229,9 @@ class HoudiniUtils:
             raise Exception('No ROP node in scene!')
 
         # Reconnect the BEGIN_ node with the previously connected node
-        assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
-        begin_null.setInput(0, connected_node)
+        if did_disconnect_inputs:
+            assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
+            begin_null.setInput(0, connected_node)
     
     @staticmethod
     def render_flipbook_to_video(output_directory, filename_base, frame_range=None, resolution=(1920, 1080),
