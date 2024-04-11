@@ -44,6 +44,16 @@ def make_null():
         end_comp_node = nuke.createNode('NoOp', 'name END_COMP')
         return end_comp_node
 
+def make_reformat(null_node):
+    reformat_node = nuke.createNode('Reformat')
+    reformat_node['type'].setValue('to box')  # Set to 'scale' or other types as needed
+    reformat_node['box_fixed'].setValue(True)
+    reformat_node['box_width'].setValue(1920)
+    reformat_node['box_height'].setValue(1080)
+    reformat_node.setInput(0, null_node)
+    reformat_node.setName('render_reformat')
+    return reformat_node
+
 
 
 def make_metadata(null_node):
@@ -93,9 +103,10 @@ def make_merge(null_node, dropshadow_node):
 
 def make_tree():
     null_node = make_null()
-    metadata_node = make_metadata(null_node)
+    reformat_node = make_reformat(null_node)  # Adding reformat node after END_COMP
+    metadata_node = make_metadata(reformat_node)
     dropshadow_node = make_dropshadow(metadata_node)
-    merge_node = make_merge(null_node, dropshadow_node)
+    merge_node = make_merge(reformat_node, dropshadow_node)
 
 
 
@@ -162,6 +173,27 @@ def movExport(file_name, first_frame, last_frame):
 
 
         
+def movExportToSpecificDestination(file_destination, first_frame, last_frame):
+    """
+    Similar to movExport, but allows the user to specify the file destination. Does not perform any versioning.
+    """
+    make_tree()  # Assuming you want to include the same node setup (null, metadata, dropshadow, merge)
 
+    write_node = nuke.createNode('Write')
+    write_node.setName('render_writeMOV_specific')
 
+    # Set the file path to the user specified destination
+    write_node['file'].setValue(file_destination)
+
+    # Assuming color space and other settings are similar to the movExport
+    dropdown_index = 1  # Example: assuming this corresponds to the correct colorspace
+    write_node['colorspace'].setValue(dropdown_index)
+
+    # Option to create directories if they don't exist
+    write_node['create_directories'].setValue(1)
+
+    # Execute the node to render the sequence
+    nuke.execute(write_node, first_frame, last_frame, 1)
+
+    print("Successfully rendered to " + file_destination)
 
