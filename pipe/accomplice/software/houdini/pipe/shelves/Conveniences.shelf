@@ -242,29 +242,26 @@ def operation():
     print("Submitting ", shot.name)
     shot_usd_path = shot.get_shot_usd_path()
     date_string = datetime.datetime.now().strftime('%m-%d-%Y')
-    destination_path = os.path.join(shot.get_shotfile_folder('fx'), 'render', date_string)
+    destination_path = os.path.join(shot.get_shotfile_folder(), "render", "automated_beauty_renders", date_string)
     # if the destination path doesn't exist, create it, including any parent directories
     if not os.path.exists(destination_path):
         os.makedirs(destination_path, exist_ok=True)
-
-    # shot_rop_node = HoudiniNodeUtils.find_first_node_with_parm_value(stage, 'usd_rop', 'lopoutput', shot_usd_path)
 
     # insert the accomp motion blur node before the shot_rop_node
     end_lighting_node = hou.node('/stage/END_lighting')
     motion_blur_node = end_lighting_node.createOutputNode('accomp_motion_blur')
 
 
-
-    stage.layoutChildren()
-
-    # After it finishes "ropping" make a new tractor submit node
     tractor_node = motion_blur_node.createOutputNode('tractor_submit')
 
     stage.layoutChildren()
 
+    mov_destination_path = os.path.join('/groups/accomplice/edit/shots/Lighting/automated_beauty_renders', shot.get_sequence(), shot.get_name() + '.mov')
+
     # Set the title to be the name + MotionBlurTest + the date in two digits (e.g., for February 3, it would be 2-3-2024)
-    tractor_node.parm('jobtitle').set(shot.name + ' Beauty Submission from FX Convenience Shelf ' + date_string)
+    tractor_node.parm('jobtitle').set(shot.name + ' Beauty Submission from Conveniences Shelf ' + date_string)
     tractor_node.parm('createplayblasts').set(1)
+    tractor_node.parm('playblast_location').set(mov_destination_path)
     tractor_node.parm('ui_notify_on_job_submission').set(0)
     tractor_node.parm('sourceoptions11').set(1)
     tractor_node.parm('nodecamera1').set(HoudiniPathUtils.get_camera_prim_path(shot))
