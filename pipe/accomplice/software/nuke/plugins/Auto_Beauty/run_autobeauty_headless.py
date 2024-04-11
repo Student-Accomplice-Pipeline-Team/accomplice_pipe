@@ -1,23 +1,7 @@
 import nuke
-import sys
 import os
 import re
 import argparse
-
-# Use the directory of the current script
-current_dir = os.path.dirname(os.path.abspath(__file__))
-script_path = os.path.join(current_dir, 'writeNodes_autoBeauty.py')
-
-# Add the directory containing the script to sys.path if not already included
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
-import writeNodes_autoBeauty
-
-
-import nuke
-import os
-import re
 import getpass
 from datetime import datetime
 
