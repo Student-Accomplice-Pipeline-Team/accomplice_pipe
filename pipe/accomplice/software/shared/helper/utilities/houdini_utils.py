@@ -406,26 +406,32 @@ class HoudiniNodeUtils():
         return None
     
     @staticmethod
-    def find_nodes_of_type(parent_node, node_type):
+    def find_nodes_of_type(parent_node, node_type, strict=False):
         """
         Searches for all child nodes of a specific type under a given parent node in Houdini.
 
         Args:
-        - parent_path (str): The path of the parent node where the search will begin.
+        - parent_node (hou.Node): The node whose children will be searched.
         - node_type (str): The type of nodes to search for.
+        - strict (bool): If True, looks for an exact match; if False, matches the beginning of the type name.
 
         Returns:
         - list of hou.Node: A list of nodes of the specified type.
         """
-
-        # Find all child nodes of the specified type
-        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().split('::')[0] == node_type]
+        nodes_of_type = []
+        if strict:
+            # Exact match of the node type
+            nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
+        else:
+            # Match nodes where the type name starts with the given node_type
+            nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().startswith(node_type)]
 
         return nodes_of_type
 
+
     @staticmethod
-    def find_first_node_of_type(parent, node_type):
-        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+    def find_first_node_of_type(parent, node_type, strict=False):
+        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type, strict)
         if len(matching_nodes) == 0:
             return None
         return matching_nodes[0]

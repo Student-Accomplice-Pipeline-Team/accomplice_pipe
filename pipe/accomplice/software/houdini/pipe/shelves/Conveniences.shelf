@@ -238,8 +238,19 @@ from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 def operation():
     submit_for_real = True
     stage = hou.node('/stage')
-    shot = HoudiniUtils.get_shot_for_file()
+
+    # bypass the cfx node
+    cfx_node = HoudiniNodeUtils.find_first_node_of_type(stage, 'Jamesbaker::main::Hair_Subdivide_Fix')
+    cfx_node.bypass(True)
+
+
+    shot = HoudiniUtils.get_shot_for_file(retrieve_from_shotgrid=True)
     print("Submitting ", shot.name)
+
+    # Set the frame range
+    HoudiniUtils.set_frame_range_from_shot(shot)
+
+
     shot_usd_path = shot.get_shot_usd_path()
     date_string = datetime.datetime.now().strftime('%m-%d-%Y')
     destination_path = os.path.join(shot.get_shotfile_folder(), "render", "automated_beauty_renders", date_string)
