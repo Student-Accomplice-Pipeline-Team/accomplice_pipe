@@ -4,7 +4,7 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence, Iterable, Mapping, Any
+from typing import Sequence, Iterable, Mapping, Any, Optional
 
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
@@ -74,7 +74,7 @@ class TractorSubmit:
         for source_num in range(1, num_sources + 1):
             # Ignore disabled sources
             if get_parm_bool(self.node, 'fileenable', source_num):
-                source_type = get_source_type(self.node, source_num)
+                source_type = get_source_type_name(self.node, source_num)
 
                 filepaths = []
                 if source_type == 'file':
@@ -89,7 +89,7 @@ class TractorSubmit:
 
                     update_source_nodes(self.node, source_num)
 
-                    num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
+                    num_layers = get_parm_int(self.node, 'nodelayers', source_num)
                     for layer_num in range(1, num_layers + 1):
                         # Ignore disabled layers
                         if get_parm_bool(self.node, 'layerenable', source_num, layer_num):
@@ -271,6 +271,7 @@ class TractorSubmit:
 
 
                     playblast_task = author.Task(title='playblast', argv=playblast_command)
+                    playblast_task.addChild(author.Instance(title=f"render"))
                     post_task.addChild(playblast_task)
 
             # Create the tasks for each frame
@@ -532,13 +533,19 @@ def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
         """
             src_exr_path='%(src_exr_path)s'
             dest_exr_path='%(dest_exr_path)s'
+            
             og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$src_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             og_channels_newlines=\"$(/usr/bin/echo \"$og_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            
             denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             denoised_channels_newlines=\"$(/usr/bin/echo \"$denoised_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            
             shared_channels=\"$(comm -12 <(/usr/bin/echo \"$og_channels_newlines\" | /usr/bin/sort) <(/usr/bin/echo \"$denoised_channels_newlines\" | /usr/bin/tr [:upper:] [:lower:] | /usr/bin/sort))\"
             transfer_channels_commas=\"$(/usr/bin/grep -vxf <(/usr/bin/echo -e \"$shared_channels\\nCi.r\\nCi.g\\nCi.b\") <(/usr/bin/echo \"$og_channels_newlines\") | /usr/bin/tr '\\n' ',')\"
-            /opt/hfs19.5/bin/hoiiotool --metamerge \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+            
+            if [ ! -z \"$transfer_channels_commas\" ]; then
+                /opt/hfs19.5/bin/hoiiotool --metamerge \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+            fi
         """ % {'src_exr_path':src_exr_path, 'dest_exr_path':dest_exr_path},
     ]
 
@@ -643,15 +650,32 @@ def create_denoise_frame_task(
     return denoise_frame_task
 
 
-def get_source_type_index(node: hou.Node, source_num: int) -> int:
+SOURCE_TYPES = [
+        'file',
+        'node',
+]
+
+
+def get_source_type(node: hou.Node, source_num: int) -> int:
     return get_parm_int(node, 'sourceoptions' + str(source_num) + '1')
 
 
-def get_source_type(node: hou.Node, source_num: int) -> str:
-    return [
-        'file',
-        'node',
-    ][get_source_type_index(node, source_num)]
+def get_source_type_name(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> str:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    return SOURCE_TYPES[source_type]
+
+
+def get_source_type_label(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> str:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    
+    source_type_labels = get_parm(
+        node, 'sourceoptions' + str(source_num) + '1'
+    ).parmTemplate().folderNames()
+    
+    return source_type_labels[source_type]
+
 
 def get_resolution(node: hou.Node, source_num: int) -> Sequence[int]:
     resolution_ctl = get_parm_str(node, 'noderesolutionctl', source_num)
@@ -663,8 +687,9 @@ def get_resolution(node: hou.Node, source_num: int) -> Sequence[int]:
     
     return [resolution_x, resolution_y]
 
+
 def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
-    source_type = get_source_type(node, source_num)
+    source_type = get_source_type_name(node, source_num)
     trange = node.parm(
         source_type + 'trange' + str(source_num)
     ).evalAsString()
@@ -1095,6 +1120,65 @@ def check_issues(node: hou.Node, **kwargs):
         pass
 
 
+def update_source_label(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> None:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    
+    source_label = get_source_type_label(node, source_num, source_type)
+    if get_source_type_name(node, source_num, source_type) == 'node':
+        # Add the input's index to the label
+        input_index = get_parm_str(node, 'nodeindex', source_num)
+
+        # Get the frame start/end/inc as a string
+        start_frame, end_frame, increment = get_frame_range(node, source_num)
+        frame_range = f"{start_frame}-{end_frame}"
+        if increment != 1:
+            frame_range +=f", {increment}"
+
+        # Get the resolution
+        res_x, res_y = get_resolution(node, source_num)
+        
+        # Get the layer list as a string
+        num_layers = get_parm_int(node, 'nodelayers', source_num)
+        layer_list = ''
+        disabled_layer_list = ''
+        for layer_num in range(1, num_layers + 1):
+            layer_str = get_parm_str(node, 'layername', source_num, layer_num) + ", "
+            if get_parm_bool(node, 'layerenable', source_num, layer_num):
+                layer_list += layer_str
+            else:
+                disabled_layer_list += layer_str
+        layer_list = layer_list[:-2]
+        if len(disabled_layer_list) > 0:
+            disabled_layer_list = disabled_layer_list[:-2]
+            layer_list += ' [' + disabled_layer_list + ']'
+        
+        # Build the source label
+        source_label += f" {input_index} ({frame_range} | {res_x}x{res_y}): {layer_list}"
+        
+    filepath_parm: hou.Parm = get_parm(node, 'filepath', source_num)
+
+    filepath_parm.deleteAllKeyframes()
+    filepath_parm.set(source_label)
+
+
+def layer_name_update(
+        node: hou.Node,
+        parm: hou.Parm,
+        script_value: str,
+        script_multiparm_index: int,
+        script_multiparm_index2: int,
+        **kwargs
+    ):
+    new_layer_name = script_value
+    layer_num = script_multiparm_index
+    source_num = script_multiparm_index2
+
+
+    update_layer_parms(node, parm, source_num, layer_num, new_layer_name)
+    update_source_label(node, source_num)
+    
+
 def switch_source_type(
     node: hou.Node,
     parm: hou.Parm,
@@ -1103,19 +1187,11 @@ def switch_source_type(
     **kwargs
 ) -> None:
     source_num = script_multiparm_index
-
-    SOURCE_TYPES = [
-        'file',
-        'node',
-    ]
-
-    source_type_labels = node.parm(
-        'sourceoptions' + source_num + '1'
-    ).parmTemplate().folderNames()
+    new_source_type = int(script_value)
 
     type_parm: hou.Parm = get_parm(node, 'sourcetype', source_num)
 
-    curr_type = SOURCE_TYPES[int(script_value)]
+    curr_type = SOURCE_TYPES[new_source_type]
     prev_type = SOURCE_TYPES[type_parm.evalAsInt()]
 
     PARMTUPLE_BASE_NAMES = [
@@ -1135,15 +1211,8 @@ def switch_source_type(
         filepathholder_parm.deleteAllKeyframes()
         filepathholder_parm.setFromParm(filepath_parm)
 
-        # Set filepath# to the label of the current source type's tab
-        source_label = source_type_labels[int(script_value)]
-
-        if curr_type == 'node':
-            # If the source is node input, add the index to the label
-            source_label += ' ' + get_parm_str(node, 'nodeindex', source_num)
-        
-        filepath_parm.deleteAllKeyframes()
-        filepath_parm.set(source_label)
+        # Update the source's label
+        update_source_label(node, source_num, new_source_type)
 
     for parmtuple_base in PARMTUPLE_BASE_NAMES:
         prev_option_parmtuple: hou.ParmTuple = node.parmTuple(
@@ -1159,7 +1228,7 @@ def switch_source_type(
             new_option_parm.setFromParm(prev_option_parm)
 
     # Update the sourcetype# parameter
-    type_parm.setExpression(script_value)
+    type_parm.setExpression(str(new_source_type))
 
     # Commented out because warnings should occur at cook time
     # Warn the user if the source is set to Node Input but no input is connected
@@ -1180,14 +1249,10 @@ def get_render_camera_path(node: hou.Node) -> str:
 def update_layer_parms(
         node: hou.Node,
         parm: hou.Parm,
-        script_value: str,
-        script_multiparm_index: int,
-        script_multiparm_index2: int,
-        **kwargs
+        source_num: int,
+        layer_num: int,
+        new_layer_name: str,
     ):
-
-    layer_num = script_multiparm_index
-    source_num = script_multiparm_index2
 
     def invert_primitive_pattern(primitive_pattern: str) -> str:
         return f'%children(%ancestors({primitive_pattern})) ^ %ancestors({primitive_pattern}, strict=False)'
@@ -1237,8 +1302,8 @@ def update_layer_parms(
         },
     }
 
-    if script_value.startswith('preset:'):
-        preset_string = script_value.split(':', 1)[-1]
+    if new_layer_name.startswith('preset:'):
+        preset_string = new_layer_name.split(':', 1)[-1]
         if preset_string.find('.') != -1:
             preset_name, preset_type = preset_string.split('.', 1)
 
