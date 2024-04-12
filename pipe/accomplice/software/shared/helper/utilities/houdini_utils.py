@@ -22,6 +22,7 @@ class HoudiniFXUtils():
     @staticmethod
     def perform_operation_on_selected_shots(operation: callable, title: str, shot_file_type:str, save_after_operation = False):
         all_shots = sorted(pipe.server.get_shot_list())
+        all_shots = [shot for shot in all_shots if '000' not in shot]
         shot_selector = ListWithCheckboxFilter(title, all_shots)
 
         missing_shots = []
