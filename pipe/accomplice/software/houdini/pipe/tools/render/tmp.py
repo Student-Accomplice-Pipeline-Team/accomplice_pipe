@@ -254,30 +254,16 @@ class TractorSubmit:
                 usd_file_task.addChild(post_task)
 
                 if playblast:
-                    framerate = 24. / frame_increment
+                    playblast_location = get_parm_str(self.node, 'playblast_location')
 
-                    # fmt: off
                     playblast_command = [
-                        "/usr/bin/ffmpeg",
-                        "-y",
-                        "-r", framerate,
-                        "-f", "image2",
-                        "-pattern_type", "glob",
-                        "-i", os.path.join(png_dir, "*.png"),
-                        "-s", 'x'.join(resolution),
-                        # "-vcodec", "dnxhd",
-                        "-vcodec", "libx264",
-                        "-pix_fmt", "yuv422p",
-                        "-colorspace:v", "bt709",
-                        "-color_primaries:v", "bt709",
-                        "-color_trc:v", "bt709",
-                        "-color_range:v", "tv",
-                        # "-b:v", "440M",
-                        "-crf", "25",
-                        # png_dir + os.path.sep + "playblast.mov",
-                        aux_dir + os.path.sep + "playblast.mp4",
+                        "/bin/bash", "-c",  # Using bash to process the inline command
+                        "export NUKE_PATH='/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins' && " +
+                        "/opt/Nuke14.0v5/Nuke14.0 --nukex -t " +
+                        "/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins/Auto_Beauty/run_autobeauty_headless.py " +
+                        final_frame_path + " " + playblast_location
                     ]
-                    # fmt: on
+
 
                     playblast_task = author.Task(title='playblast', argv=playblast_command)
                     post_task.addChild(playblast_task)
