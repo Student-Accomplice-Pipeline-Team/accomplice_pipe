@@ -256,12 +256,17 @@ class TractorSubmit:
                 if playblast:
                     playblast_location = get_parm_str(self.node, 'playblast_location')
 
+                    if self.output_path_overrides[file_num] != None:
+                        frame_output_path = self.output_path_overrides[file_num][frame_start]
+                    else:
+                        frame_output_path = output_path_attr.Get(frame_start)
+
                     playblast_command = [
                         "/bin/bash", "-c",  # Using bash to process the inline command
                         "export NUKE_PATH='/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins' && " +
                         "/opt/Nuke14.0v5/Nuke14.0 --nukex -t " +
                         "/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins/Auto_Beauty/run_autobeauty_headless.py " +
-                        final_frame_path + " " + playblast_location
+                        frame_output_path + " " + playblast_location
                     ]
 
 
