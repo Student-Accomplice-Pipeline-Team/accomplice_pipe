@@ -114,7 +114,7 @@ def main(exr_sequence_directory, output_file_path):
     # Find all EXR files in the directory
     exr_files = [f for f in os.listdir(exr_sequence_directory) if f.endswith('.exr')]
 
-    exr_sequence_path = os.path.join(exr_sequence_directory, os.path.commonprefix(exr_files) + '####.exr')
+    exr_sequence_path = os.path.join(exr_sequence_directory, 'frame.####.exr')
 
     # Extract frame numbers
     frame_numbers = [int(file.split('.')[1]) for file in exr_files]
