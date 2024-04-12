@@ -1133,7 +1133,7 @@ def update_source_label(node: hou.Node, source_num: int, source_type: Optional[i
         start_frame, end_frame, increment = get_frame_range(node, source_num)
         frame_range = f"{start_frame}-{end_frame}"
         if increment != 1:
-            frame_range +=f", {increment}"
+            frame_range +=f" on {increment}s"
 
         # Get the resolution
         res_x, res_y = get_resolution(node, source_num)
