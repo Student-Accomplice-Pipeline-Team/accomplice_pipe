@@ -110,10 +110,12 @@ def movExportToSpecificDestination(file_destination, first_frame, last_frame):
 
 
 
-def main(exr_sequence_path, file_name):    
+def main(exr_sequence_directory, output_file_path):    
     # Find all EXR files in the directory
-    exr_files = [f for f in os.listdir(os.path.dirname(exr_sequence_path))
-                 if re.match(os.path.basename(exr_sequence_path).replace('%04d', '\d{4}'), f)]
+    exr_files = [f for f in os.listdir(exr_sequence_directory) if f.endswith('.exr')]
+
+    exr_sequence_path = os.path.join(exr_sequence_directory, os.path.commonprefix(exr_files) + '%04d.exr')
+
     # Extract frame numbers
     frame_numbers = [int(file.split('.')[1]) for file in exr_files]
     
@@ -133,13 +135,13 @@ def main(exr_sequence_path, file_name):
 
 
     # Call the function to export to mov
-    movExportToSpecificDestination(file_name, first_frame, last_frame)
+    movExportToSpecificDestination(output_file_path, first_frame, last_frame)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process EXR files and export a movie")
-    parser.add_argument('exr_sequence_path', type=str, help='The path to the EXR sequence')
+    parser.add_argument('exr_sequence_directory', type=str, help='The path to the directory containing the EXR sequence')
     parser.add_argument('file_name', type=str, help='The file name for the exported movie')
 
     args = parser.parse_args()
 
-    main(args.exr_sequence_path, args.file_name)
+    main(args.exr_sequence_directory, args.file_name)
