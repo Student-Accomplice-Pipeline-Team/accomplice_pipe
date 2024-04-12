@@ -257,9 +257,9 @@ class TractorSubmit:
                     playblast_location = get_parm_str(self.node, 'playblast_location')
 
                     if self.output_path_overrides[file_num] != None:
-                        frame_output_path = self.output_path_overrides[file_num][frame_start]
+                        frame_output_path = os.path.dirname(self.output_path_overrides[file_num][frame_start])
                     else:
-                        frame_output_path = output_path_attr.Get(frame_start)
+                        frame_output_path = os.path.dirname(output_path_attr.Get(frame_start))
 
                     playblast_command = [
                         "/bin/bash", "-c",  # Using bash to process the inline command
