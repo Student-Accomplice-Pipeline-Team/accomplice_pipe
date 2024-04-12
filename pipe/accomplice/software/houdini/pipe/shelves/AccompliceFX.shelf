@@ -15,6 +15,7 @@
     <memberTool name="unlock_all_nodes"/>
     <memberTool name="open_fx_file"/>
     <memberTool name="render_flipbooks_to_edit"/>
+    <memberTool name="Run CFX"/>
   </toolshelf>
 
   <tool name="create_output_nulls" label="Create Output Nulls" icon="PLASMA_App">
@@ -238,7 +239,134 @@ def operation():
     HoudiniUtils.render_flipbook_to_video('/groups/accomplice/edit/shots/FX/' + shot.get_sequence(), shot.get_name())
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render Flipbooks to Edit", 'fx')
-  ]]>
-  </script>
+  ]]></script>
+  </tool>
+
+  <tool name="Run CFX" label="Run CFX" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[import pipe
+import hou
+from pipe.shared import Shot
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniFXUtils
+import os
+import csv
+
+def add_node_below_specified_node(specified_node, new_node_type):
+    """
+    Adds a new node of specified type directly below a specified node.
+    
+    Args:
+        specified_node (hou.Node): The node below which the new node will be added.
+        new_node_type (str): The type of the new node to be added.
+        
+    Returns:
+        hou.Node: The newly added node.
+    """
+    parent_node = specified_node.parent()
+    new_node = parent_node.createNode(new_node_type)
+    new_node.setPosition(specified_node.position() + hou.Vector2(0, -1))  # Adjust the offset as needed
+    new_node.setInput(0, specified_node)
+    return new_node
+
+def check_which_cfx(file_path,shot_name):
+    actions_array = []
+    with open(file_path, 'r') as file:
+        reader = csv.DictReader(file)
+        
+        for row_number, row in enumerate(reader, start=1):
+            curr_shot_name = row.get('Shot',0)
+            if(curr_shot_name == shot_name):
+                print("shotname: " + curr_shot_name)
+                action_1 = int(row.get('Ed_CFX', 0))
+                action_2 = int(row.get('Letty_CFX', 0))
+                action_3 = int(row.get('Vaughn_CFX', 0))
+                action_4 = int(row.get('Seatbelt_CFX', 0))
+                actions_array = [action_1, action_2, action_3, action_4]
+
+    return actions_array
+
+def find_first_child_of_type(node, node_type):
+    """
+    Finds the first child node of a specified type for a given node.
+    
+    Args:
+        node (hou.Node): The parent node to search within.
+        node_type (str): The type of node to search for.
+        
+    Returns:
+        hou.Node or None: The first child node of the specified type, or None if not found.
+    """
+    for child in node.children():
+        if child.type().name() == node_type:
+            return child
+    return None
+    
+all_shots = [Shot(shot) for shot in pipe.server.get_shot_list()]
+
+cfx_shot_file_paths = sorted([shot.get_shotfile('cfx') for shot in all_shots])
+
+ed_cfx_node = "jbake007::dev::accomplice_ed_cfx_setup_FIX"
+letty_cfx_node = "kiaras17::dev::accomplice_Letty_cfx_setup_FIX"
+vaughn_cfx_node = "kiaras17::dev::accomplice_Vaughn_cfx_setup_FIX"
+letty_seatbelt_node = "James_Baker::accomplice_letty_seatbelt_experimental"
+
+subdivide_fix_node = "Jamesbaker::main::Hair_Subdivide_Fix"
+csv_file = "/groups/accomplice/pipeline/production/sequences/A/shots/000/cfx/shot_cfx.csv"
+
+def operation1():
+    stage_node = hou.node('/stage')
+    begin_CFX_node = hou.node('/stage/BEGIN_cfx')
+    end_CFX_node = hou.node('/stage/END_cfx')
+
+
+    if begin_CFX_node is not None:
+        shot_name = HoudiniUtils.get_shot_name()
+        usd_ropname = "OUT_"+shot_name+"_cfx"
+        usd_rop = hou.node(usd_ropname)
+        which_cfx = check_which_cfx(csv_file,shot_name)
+        currnode = begin_CFX_node
+        
+        if(not which_cfx or (which_cfx[0] == 0 and which_cfx[1] == 0 and which_cfx[2] == 0 and which_cfx[3] == 0)):
+            print("No shot info for " + shot_name + " in csv!")
+            
+        else:
+            if(which_cfx[0]):
+                ed_node = add_node_below_specified_node(currnode,ed_cfx_node)
+                currnode = ed_node
+            if(which_cfx[1]):
+                letty_node = add_node_below_specified_node(currnode,letty_cfx_node)
+                currnode = letty_node
+            if(which_cfx[2]):
+                vaughn_node = add_node_below_specified_node(currnode,vaughn_cfx_node)
+                currnode = vaughn_node
+            if(which_cfx[3]):
+                seatbelt_node = add_node_below_specified_node(currnode,letty_seatbelt_node)
+                currnode = seatbelt_node
+            
+            end_CFX_node.setPosition(currnode.position() + hou.Vector2(0, -1))  # Adjust the offset as needed
+            end_CFX_node.setInput(0, currnode)
+            
+    
+            if(which_cfx[0]):
+                ed_node.parm("cache_all").pressButton()
+            if(which_cfx[1]):
+                letty_node.parm("cache_all").pressButton()
+            if(which_cfx[2]):
+                vaughn_node.parm("execute").pressButton()
+            if(which_cfx[3]):
+                seatbelt_node.parm("cookall").pressButton()
+            usd_rop_node.parm("execute").pressButton()
+
+    else:
+        print("missing BEGIN_cfx node")
+
+
+shots = []
+exceptions = []
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation1,"Cook CFX in Shots","cfx",save_after_operation=True)
+
+
+
+print(str(list(zip(shots, exceptions))))]]></script>
   </tool>
 </shelfDocument>
