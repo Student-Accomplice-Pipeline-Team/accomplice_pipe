@@ -253,7 +253,7 @@ def operation():
 
     shot_usd_path = shot.get_shot_usd_path()
     date_string = datetime.datetime.now().strftime('%m-%d-%Y')
-    destination_path = os.path.join(shot.get_shotfile_folder(), "render", "automated_beauty_renders", date_string)
+    destination_path = os.path.join(shot.get_shotfile_folder(), "render", "automated_beauty_renders")
     # if the destination path doesn't exist, create it, including any parent directories
     if not os.path.exists(destination_path):
         os.makedirs(destination_path, exist_ok=True)
