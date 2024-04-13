@@ -241,7 +241,8 @@ def operation():
 
     # bypass the cfx node
     cfx_node = HoudiniNodeUtils.find_first_node_of_type(stage, 'Jamesbaker::main::Hair_Subdivide_Fix')
-    cfx_node.bypass(True)
+    if cfx_node is not None:
+      cfx_node.bypass(True)
 
 
     shot = HoudiniUtils.get_shot_for_file(retrieve_from_shotgrid=True)
