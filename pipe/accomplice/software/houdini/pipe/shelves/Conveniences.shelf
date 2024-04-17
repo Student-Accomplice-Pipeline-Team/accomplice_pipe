@@ -18,6 +18,7 @@
     <memberTool name="use_object_merges"/>
     <memberTool name="render_movs_from_lighting"/>
     <memberTool name="add_shrink_camera_node"/>
+    <memberTool name="re_export_cameras"/>
   </toolshelf>
 
   <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
@@ -295,8 +296,6 @@ HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from 
 import hou
 import pipe
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
-import datetime
-import os
 from pipe.shared import Shot
 from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 
@@ -325,6 +324,32 @@ def operation():
     HoudiniUtils.hyper_rop()
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Add Shrink Camera Node", "camera", True)
+]]></script>
+  </tool>
+
+  <tool name="re_export_cameras" label="Re-Export Cameras" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+import pipe
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils 
+from pipe.shared import Shot
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
+
+def operation():
+    stage_node = hou.node('/stage')
+    transform_node = HoudiniNodeUtils.find_first_node_with_parm_value(stage_node, 'xform', 'scale', 0.01)
+    if transform_node is not None:
+        transform_node.bypass(True) # bypass the transform node
+    else:
+        raise Exception("No transform node found with scale of 0.01")
+    
+    reference_node = HoudiniNodeUtils.find_first_node_of_type(stage_node, 'reference')
+    
+    stage = hou.node("/stage")
+
+    HoudiniUtils.hyper_rop()
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras", "camera", False)
 ]]></script>
   </tool>
 </shelfDocument>
