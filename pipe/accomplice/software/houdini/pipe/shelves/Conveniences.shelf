@@ -287,9 +287,9 @@ def operation():
         tractor_node.parm('submit').pressButton()
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from Lighting", "lighting")
-]]>
-  </script>
+]]></script>
   </tool>
+
   <tool name="add_shrink_camera_node" label="Add Shrink Camera Node" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[
 import hou
@@ -309,6 +309,12 @@ def operation():
         raise Exception("No transform node found with scale of 0.01")
     
     reference_node = HoudiniNodeUtils.find_first_node_of_type(stage_node, 'reference')
+    
+    stage = hou.node("/stage")
+    shrink_nodes = stage.glob("shrink_camera*")
+    
+    for node in shrink_nodes:
+        node.destroy()
 
     shrink_camera_node = stage_node.createNode('shrink_camera')
 
@@ -319,9 +325,6 @@ def operation():
     HoudiniUtils.hyper_rop()
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Add Shrink Camera Node", "camera", True)
-]]>
-  </script>
+]]></script>
   </tool>
-
-def operation():
 </shelfDocument>
