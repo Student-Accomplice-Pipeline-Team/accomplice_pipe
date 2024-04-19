@@ -817,7 +817,7 @@ def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
 
     # Set the options on the fetch node
     fetch_expression: str = fetch_node.parm('loppath').rawValue()
-    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(source_num - 1), fetch_expression)[0]
+    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(input_index), fetch_expression)[0]
     fetch_node.parm('loppath').setExpression(new_fetch, hou.exprLanguage.Python)
 
     return fetch_node
@@ -882,7 +882,7 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     
     # Get rendered image settings
     denoise = get_parm_bool(node, 'denoise')
-    output_path_parm = get_parm(node, 'nodeoutputpath', source_num)
+    output_path = get_parm_str(node, 'nodeoutputpath', source_num)
 
     sample_filter = 'PxrCryptomatte' if get_parm_bool(node, 'nodecryptomatteenable', source_num) else 'None'
     cryptomatte_layer_parm = get_parm(node, 'nodecryptomatteproperty', source_num)
@@ -899,7 +899,7 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     # Set rendered image settings
     render_settings_node.parm('enableDenoise').set(denoise)
     render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
-    render_settings_node.parm('picture').setFromParm(output_path_parm)
+    render_settings_node.parm('picture').set(output_path)
 
     render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
@@ -949,14 +949,14 @@ def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -
 
 def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Set the $LAYER variable to the layer name
-    layer_name = get_parm_str(node, f'layername{str(source_num)}_{str(layer_num)}')
+    layer_name = get_parm_str(node, 'layername', source_num, layer_num)
     hou.hscript(
         f"set -g LAYER={layer_name}"
     )
 
     # Get the relevant options for the source
-    usd_path = get_parm_str(node, f'usdpath{str(source_num)}_{str(layer_num)}')
-    f1, f2, f3 = get_frame_range(node, str(source_num))
+    usd_path = get_parm_str(node, 'usdpath', source_num, layer_num)
+    f1, f2, f3 = get_frame_range(node, source_num)
     strip_layer_breaks_parm = get_parm(node, 'striplayerbreaks', source_num, layer_num)
     error_saving_implicit_paths_parm = get_parm(node, 'errorsavingimplicitpaths', source_num, layer_num)
 
