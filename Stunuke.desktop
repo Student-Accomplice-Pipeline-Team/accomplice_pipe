@@ -1,11 +1,10 @@
 [Desktop Entry]
-Version=0.1
-Name=Stunuke
-Name[en_US]=Stunuke
-Comment=Student Accomplice's Nuke environment
-Comment[en_US.UTF-8]=Student Accomplice's Nuke environment
-Exec=/groups/accomplice/pipeline/pipe/main.py --pipe=accomplice nuke
-Icon=/opt/Nuke14.0v5/plugins/icons/NukeXApp48.png
-Terminal=false
 Type=Application
-Categories=Utility;Application;
+Version=1.5
+Name=Stunuke
+Comment=Student Accomplice's Nuke environment
+Icon=/groups/accomplice/pipeline/icons/accomplice/stunuke.png
+Exec=/groups/accomplice/pipeline/pipe/main.py --pipe=accomplice nuke
+Terminal=false
+Categories=Graphics;2DGraphics;RasterGraphics;X-FLTK;
+Keywords=Foundry;14.0v5;NukeX;

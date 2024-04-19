@@ -8,7 +8,7 @@ from .file_path_utils import FilePathUtils
 from .ui_utils import ListWithCheckboxFilter
 from .usd_utils import UsdUtils
 from abc import ABC, abstractmethod
-from .ui_utils import ListWithFilter
+from .ui_utils import ListWithFilter, ListWithFilterAndCheckbox
 from pipe.shared.helper.utilities.dcc_version_manager import DCCVersionManager
 import os
 import subprocess
@@ -22,6 +22,7 @@ class HoudiniFXUtils():
     @staticmethod
     def perform_operation_on_selected_shots(operation: callable, title: str, shot_file_type:str, save_after_operation = False):
         all_shots = sorted(pipe.server.get_shot_list())
+        all_shots = [shot for shot in all_shots if '000' not in shot]
         shot_selector = ListWithCheckboxFilter(title, all_shots)
 
         missing_shots = []
@@ -33,13 +34,13 @@ class HoudiniFXUtils():
             selected_shots = [Shot(shot) for shot in selected_shots]
 
             for shot in selected_shots:
-                lighting_file_path = shot.get_shotfile(shot_file_type)
-                if not os.path.exists(lighting_file_path):
+                shot_file_path = shot.get_shotfile(shot_file_type)
+                if not os.path.exists(shot_file_path):
                     missing_shots.append(shot.name)
                     continue
                 try:
                     HoudiniUtils.perform_operation_on_houdini_file(
-                        lighting_file_path,
+                        shot_file_path,
                         save_after_operation,
                         operation
                     )
@@ -406,26 +407,32 @@ class HoudiniNodeUtils():
         return None
     
     @staticmethod
-    def find_nodes_of_type(parent_node, node_type):
+    def find_nodes_of_type(parent_node, node_type, strict=False):
         """
         Searches for all child nodes of a specific type under a given parent node in Houdini.
 
         Args:
-        - parent_path (str): The path of the parent node where the search will begin.
+        - parent_node (hou.Node): The node whose children will be searched.
         - node_type (str): The type of nodes to search for.
+        - strict (bool): If True, looks for an exact match; if False, matches the beginning of the type name.
 
         Returns:
         - list of hou.Node: A list of nodes of the specified type.
         """
-
-        # Find all child nodes of the specified type
-        nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().split('::')[0] == node_type]
+        nodes_of_type = []
+        if strict:
+            # Exact match of the node type
+            nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name() == node_type]
+        else:
+            # Match nodes where the type name starts with the given node_type
+            nodes_of_type = [node for node in parent_node.allSubChildren() if node.type().name().startswith(node_type)]
 
         return nodes_of_type
 
+
     @staticmethod
-    def find_first_node_of_type(parent, node_type):
-        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type)
+    def find_first_node_of_type(parent, node_type, strict=False):
+        matching_nodes = HoudiniNodeUtils.find_nodes_of_type(parent, node_type, strict)
         if len(matching_nodes) == 0:
             return None
         return matching_nodes[0]
@@ -841,6 +848,7 @@ class HoudiniNodeUtils():
             elif self.fx_name == 'smoke':
                 # Bypass the cache node
                 cache_node.bypass(True)
+                HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             else:
                 HoudiniFXUtils.USDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             self.object_network.layoutChildren()
@@ -987,19 +995,22 @@ class HoudiniShotOpener:
         hou.hipFile.save(file_path)
     
     
-    def open_shot(self):
+    def open_shot(self, open_in_manual_mode=False):
         if self.department_name is None:
             return
 
         file_path = self.shot.get_shotfile(self.department_name)
         self.open_file_path(file_path)
+
+        if open_in_manual_mode:
+            hou.setUpdateMode(hou.updateMode.Manual)
         
     
 class FXSceneOpener(HoudiniShotOpener):
     def __init__(self, shot):
         super().__init__(shot, 'fx')
     
-    def open_shot(self):
+    def open_shot(self, open_in_manual_mode=True):
         # See which subfile the user wants to open, first by prompting the user with the existing files in the working directory
         fx_file_names = ['main'] + HoudiniFXUtils.get_names_of_fx_files_in_working_directory(self.shot)
         fx_subfile_dialog = ListWithFilter("Open FX File for Shot " + self.shot.name, fx_file_names, accept_button_name="Open", cancel_button_name="Create New", list_label="Select the FX file you'd like to open. If you don't see the file you want, click 'Create New' to create a new FX file.", include_filter_field=False)
@@ -1037,6 +1048,8 @@ class FXSceneOpener(HoudiniShotOpener):
 
 
         self.open_file_path(file_path)
+        if open_in_manual_mode:
+            hou.setUpdateMode(hou.updateMode.Manual)
         
 
 
@@ -1078,9 +1091,9 @@ class HoudiniUtils:
             return
     
         if shot is None:
-            shot, department = HoudiniUtils.prompt_user_for_shot_and_department(department_name)
+            shot, department, open_in_manual_mode = HoudiniUtils.prompt_user_for_shot_and_department(department_name, True)
         shot_opener = HoudiniSceneOpenerFactory(shot, department).get_shot_opener()
-        shot_opener.open_shot()
+        shot_opener.open_shot(open_in_manual_mode=open_in_manual_mode)
 
 
     @staticmethod
@@ -1120,7 +1133,7 @@ class HoudiniUtils:
         return 0
 
     @staticmethod
-    def prompt_user_for_shot_and_department(selected_department=None):
+    def prompt_user_for_shot_and_department(selected_department=None, ask_for_manual_mode=False):
         """
         Prompts the user to select a shot and department.
 
@@ -1137,11 +1150,20 @@ class HoudiniUtils:
         shot = HoudiniUtils.prompt_user_for_shot()
         if shot is None:
             return None, None
+
         if selected_department is None:
-            user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
+            if ask_for_manual_mode:
+                user_selected_department, open_in_manual_mode = HoudiniUtils.prompt_user_for_subfile_type(ask_for_manual_mode=ask_for_manual_mode)
+            else:
+                user_selected_department = HoudiniUtils.prompt_user_for_subfile_type()
         else:
             user_selected_department = selected_department
-        return shot, user_selected_department
+            open_in_manual_mode = True
+
+        if ask_for_manual_mode:
+            return shot, user_selected_department, open_in_manual_mode
+        else:
+            return shot, user_selected_department
 
     @staticmethod
     def prompt_user_for_shot():
@@ -1156,16 +1178,29 @@ class HoudiniUtils:
         return None
         
     @staticmethod
-    def prompt_user_for_subfile_type() -> str or None:
+    def prompt_user_for_subfile_type(ask_for_manual_mode=False) -> tuple:
+        """
+        Prompts the user to select a subfile type.
+        
+        Returns the selected subfile type, or None if the user cancels the dialog, as well as whether the user wants to open the shot in manual update mode.
+        """
         subfile_types = FilePathUtils.subfile_types
-        dialog = ListWithFilter("Open Shot Subfile", subfile_types, list_label="Select the Shot Subfile that you'd like to open.")
-        if dialog.exec_():
-            selected_subfile_type = dialog.get_selected_item()
-            return selected_subfile_type
-        return None
+        if ask_for_manual_mode:
+            dialog = ListWithFilterAndCheckbox("Open Shot Subfile", subfile_types, checkbox_text="Open shot in manual update mode", list_label="Select the Shot Subfile that you'd like to open.")
+            if dialog.exec_():
+                selected_subfile_type = dialog.get_selected_item()
+                open_in_manual_mode = dialog.is_checkbox_checked()
+                return selected_subfile_type, open_in_manual_mode
+            return None, False
+        else:
+            dialog = ListWithFilter("Open Shot Subfile", subfile_types, list_label="Select the Shot Subfile that you'd like to open.")
+            if dialog.exec_():
+                selected_subfile_type = dialog.get_selected_item()
+                return selected_subfile_type
+            return None
 
     @staticmethod
-    def set_frame_range_from_shot(shot: Shot, global_start_frame=1001, handle_frames=5):
+    def set_frame_range_from_shot(shot: Shot, global_start_frame=0, handle_frames=0):
         if shot.cut_in is None or shot.cut_out is None:
             shot = pipe.server.get_shot(shot.name, retrieve_from_shotgrid=True)
         handle_start, shot_start, shot_end, handle_end = shot.get_shot_frames(global_start_frame=global_start_frame, handle_frames=handle_frames)
@@ -1182,11 +1217,14 @@ class HoudiniUtils:
         rop_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'usd_rop')
 
         # Check if the BEGIN_ node exists and has an input
-        if begin_null and begin_null.inputs():
-            # Store the connected node for reconnection later
-            connected_node = begin_null.inputs()[0]
-            # Disconnect the connected node from the BEGIN_ node
-            begin_null.setInput(0, None)
+        did_disconnect_inputs = False
+        if begin_null:
+            if begin_null.inputs():
+                # Store the connected node for reconnection later
+                connected_node = begin_null.inputs()[0]
+                # Disconnect the connected node from the BEGIN_ node
+                begin_null.setInput(0, None)
+                did_disconnect_inputs = True
         else:
             raise Exception('No "BEGIN_" null in scene!')
 
@@ -1198,8 +1236,9 @@ class HoudiniUtils:
             raise Exception('No ROP node in scene!')
 
         # Reconnect the BEGIN_ node with the previously connected node
-        assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
-        begin_null.setInput(0, connected_node)
+        if did_disconnect_inputs:
+            assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
+            begin_null.setInput(0, connected_node)
     
     @staticmethod
     def render_flipbook_to_video(output_directory, filename_base, frame_range=None, resolution=(1920, 1080),

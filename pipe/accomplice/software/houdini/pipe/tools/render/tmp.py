@@ -4,7 +4,7 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence, Iterable, Mapping, Any
+from typing import Sequence, Iterable, Mapping, Any, Optional
 
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
@@ -74,7 +74,7 @@ class TractorSubmit:
         for source_num in range(1, num_sources + 1):
             # Ignore disabled sources
             if get_parm_bool(self.node, 'fileenable', source_num):
-                source_type = get_source_type(self.node, source_num)
+                source_type = get_source_type_name(self.node, source_num)
 
                 filepaths = []
                 if source_type == 'file':
@@ -89,7 +89,7 @@ class TractorSubmit:
 
                     update_source_nodes(self.node, source_num)
 
-                    num_layers: hou.Parm = get_parm_int(self.node, 'nodelayers', source_num)
+                    num_layers = get_parm_int(self.node, 'nodelayers', source_num)
                     for layer_num in range(1, num_layers + 1):
                         # Ignore disabled layers
                         if get_parm_bool(self.node, 'layerenable', source_num, layer_num):
@@ -100,6 +100,11 @@ class TractorSubmit:
 
                             # Make sure the internal nodes recook
                             get_fetch_node(self.node).cook(force=True)
+
+                            # Make sure the directory exists
+                            usd_dir = os.path.dirname(get_parm_str(self.node, 'usdpath', source_num, layer_num))
+                            if not os.path.exists(usd_dir):
+                                os.makedirs(usd_dir, exist_ok=True)
 
                             usd_node.parm('execute').pressButton()
 
@@ -116,34 +121,34 @@ class TractorSubmit:
                 # Destroy the lopimportcam node
                 # sop_cam_node.destroy()
 
-            for filepath in filepaths:
-                # Add the file to the filepaths
-                self.filepaths.append(filepath)
+                for filepath in filepaths:
+                    # Add the file to the filepaths
+                    self.filepaths.append(filepath)
 
-                # Get the frame range for the file
-                frame_range = get_frame_range(self.node, source_num)
-                self.frame_ranges.append(frame_range)
+                    # Get the frame range for the file
+                    frame_range = get_frame_range(self.node, source_num)
+                    self.frame_ranges.append(frame_range)
 
-                # Get the output path overrides for file sources
-                output_path_override = None
-                resolution = None
-                if source_type == 'file':
-                    if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
-                        output_path_override = []
-                        hou.hscript(
-                            f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
-                        )
-                        for frame in range(frame_range[0], frame_range[1] + 1):
-                            output_path_override.append(
-                                self.node.parm(
-                                    source_type + "outputoverride" + str(source_num)
-                                ).evalAtFrame(frame)
+                    # Get the output path overrides for file sources
+                    output_path_override = None
+                    resolution = None
+                    if source_type == 'file':
+                        if get_parm_bool(self.node, source_type + 'useoutputoverride' + str(source_num)):
+                            output_path_override = []
+                            hou.hscript(
+                                f"set -g FILE={os.path.splitext(os.path.basename(filepath))[0]}"
                             )
-                elif source_type == 'node':
-                    resolution = get_resolution(self.node, source_num)
-                
-                self.resolutions.append(resolution)
-                self.output_path_overrides.append(output_path_override)
+                            for frame in range(frame_range[0], frame_range[1] + 1):
+                                output_path_override.append(
+                                    self.node.parm(
+                                        source_type + "outputoverride" + str(source_num)
+                                    ).evalAtFrame(frame)
+                                )
+                    elif source_type == 'node':
+                        resolution = get_resolution(self.node, source_num)
+                    
+                    self.resolutions.append(resolution)
+                    self.output_path_overrides.append(output_path_override)
 
         print(self.filepaths, self.frame_ranges, self.output_path_overrides)
 
@@ -225,11 +230,6 @@ class TractorSubmit:
                 undenoised_exr_dir = os.path.join(aux_dir, 'undenoised')
                 os.makedirs(undenoised_exr_dir, exist_ok=True)
             
-            # Create the png directory if necessary
-            if playblast:
-                png_dir = os.path.join(aux_dir, 'png')
-                os.makedirs(png_dir, exist_ok=True)
-            
             # Create the cryptomatte directories if necessary
             cryptomatte_path_attrs = [
                 attr for attr in
@@ -254,32 +254,24 @@ class TractorSubmit:
                 usd_file_task.addChild(post_task)
 
                 if playblast:
-                    framerate = 24. / frame_increment
+                    playblast_location = get_parm_str(self.node, 'playblast_location')
 
-                    # fmt: off
+                    if self.output_path_overrides[file_num] != None:
+                        frame_output_path = os.path.dirname(self.output_path_overrides[file_num][frame_start])
+                    else:
+                        frame_output_path = os.path.dirname(output_path_attr.Get(frame_start))
+
                     playblast_command = [
-                        "/usr/bin/ffmpeg",
-                        "-y",
-                        "-r", framerate,
-                        "-f", "image2",
-                        "-pattern_type", "glob",
-                        "-i", os.path.join(png_dir, "*.png"),
-                        "-s", 'x'.join(resolution),
-                        # "-vcodec", "dnxhd",
-                        "-vcodec", "libx264",
-                        "-pix_fmt", "yuv422p",
-                        "-colorspace:v", "bt709",
-                        "-color_primaries:v", "bt709",
-                        "-color_trc:v", "bt709",
-                        "-color_range:v", "tv",
-                        # "-b:v", "440M",
-                        "-crf", "25",
-                        # png_dir + os.path.sep + "playblast.mov",
-                        aux_dir + os.path.sep + "playblast.mp4",
+                        "/bin/bash", "-c",  # Using bash to process the inline command
+                        "export NUKE_PATH='/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins' && " +
+                        "/opt/Nuke14.0v5/Nuke14.0 --nukex -t " +
+                        "/groups/accomplice/pipeline/pipe/accomplice/software/nuke/plugins/Auto_Beauty/run_autobeauty_headless.py " +
+                        frame_output_path + " " + playblast_location
                     ]
-                    # fmt: on
+
 
                     playblast_task = author.Task(title='playblast', argv=playblast_command)
+                    playblast_task.addChild(author.Instance(title=f"render"))
                     post_task.addChild(playblast_task)
 
             # Create the tasks for each frame
@@ -353,32 +345,6 @@ class TractorSubmit:
                     )
                     post_task.addChild(transfer_cryptomatte_task)
                     
-
-                # Create post task to convert to PNG
-                if playblast:
-                    frame_filename = os.path.basename(final_frame_path)
-                    png_filename = os.path.splitext(frame_filename)[0] + '.png'
-                    png_path = os.path.join(png_dir, png_filename)
-
-                    # Get the dependencies for the conversion task
-                    dependency_title = f"Frame {str(frame)} f{file_num}"
-                    if denoise:
-                        dependency_title = "Denoise " + dependency_title
-                    dependencies = [author.Instance(title=dependency_title)]
-
-                    # Determine the channel names for the conversion
-                    channels = ['Ci.r', 'Ci.g', 'Ci.b', 'a']
-                    if denoise:
-                        channels = ['r', 'g', 'b', 'a']
-                    
-                    convert_frame_task = create_convert_frame_task(
-                        title = f"Convert Frame {str(frame)} f{file_num}",
-                        exr_path = final_frame_path,
-                        output_path = png_path,
-                        dependencies = dependencies,
-                        channels = channels,
-                    )
-                    playblast_task.addChild(convert_frame_task)
 
             # Add task to job
             self.job.addChild(usd_file_task)
@@ -537,18 +503,24 @@ def create_render_frame_task(
     #                  "--frame", str(j), "--frame-count", "1", "--frame-inc", str(self.frame_ranges[i][2]), "--make-output-path"]
 
     render_frame_task = author.Task(title=title)
+
+    # HACK: Make sure the blade is pointing to animlic
+    render_frame_command[2] = "/opt/hfs19.5/bin/hserver -S animlic.cs.byu.edu && " + render_frame_command[2]
     
     render_frame_task.newCommand(
-        argv=render_frame_command,
-        retryrc=[
-            3,      # Can't get license
+        argv = render_frame_command,
+        retryrc = [
             -11,    # Segmentation fault
+            -9,     # Unknown
+            3,      # Can't get license
             135,    # Bus error
             139,    # Segmentation fault
             222,    # Silent error
             223,    # Silent error
             255,    # Decompression failure
+            10111,  # Exceeded maximum time
         ],
+        maxrunsecs = 4 * 60 * 60,
     )
     
     return render_frame_task
@@ -561,13 +533,19 @@ def create_aov_transfer_argv(src_exr_path: str, dest_exr_path: str) -> str:
         """
             src_exr_path='%(src_exr_path)s'
             dest_exr_path='%(dest_exr_path)s'
+            
             og_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$src_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             og_channels_newlines=\"$(/usr/bin/echo \"$og_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            
             denoised_channels_commas=\"$(/opt/hfs19.5/bin/hoiiotool \"$dest_exr_path\" --printinfo | /usr/bin/awk '/channel list/{ $1 = \"\"; $2 = \"\"; gsub(/^[ \\t]+/, \"\", $0); gsub(\" \", \"\", $0); print $0; exit }')\"
             denoised_channels_newlines=\"$(/usr/bin/echo \"$denoised_channels_commas\" | /usr/bin/tr ',' '\\n')\"
+            
             shared_channels=\"$(comm -12 <(/usr/bin/echo \"$og_channels_newlines\" | /usr/bin/sort) <(/usr/bin/echo \"$denoised_channels_newlines\" | /usr/bin/tr [:upper:] [:lower:] | /usr/bin/sort))\"
             transfer_channels_commas=\"$(/usr/bin/grep -vxf <(/usr/bin/echo -e \"$shared_channels\\nCi.r\\nCi.g\\nCi.b\") <(/usr/bin/echo \"$og_channels_newlines\") | /usr/bin/tr '\\n' ',')\"
-            /opt/hfs19.5/bin/hoiiotool --metamerge \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+            
+            if [ ! -z \"$transfer_channels_commas\" ]; then
+                /opt/hfs19.5/bin/hoiiotool --metamerge \"$dest_exr_path\" --ch \"$denoised_channels_commas\" \"$src_exr_path\" --ch \"$transfer_channels_commas\" --chappend -o \"$dest_exr_path\"
+            fi
         """ % {'src_exr_path':src_exr_path, 'dest_exr_path':dest_exr_path},
     ]
 
@@ -672,15 +650,32 @@ def create_denoise_frame_task(
     return denoise_frame_task
 
 
-def get_source_type_index(node: hou.Node, source_num: int) -> int:
+SOURCE_TYPES = [
+        'file',
+        'node',
+]
+
+
+def get_source_type(node: hou.Node, source_num: int) -> int:
     return get_parm_int(node, 'sourceoptions' + str(source_num) + '1')
 
 
-def get_source_type(node: hou.Node, source_num: int) -> str:
-    return [
-        'file',
-        'node',
-    ][get_source_type_index(node, source_num)]
+def get_source_type_name(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> str:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    return SOURCE_TYPES[source_type]
+
+
+def get_source_type_label(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> str:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    
+    source_type_labels = get_parm(
+        node, 'sourceoptions' + str(source_num) + '1'
+    ).parmTemplate().folderNames()
+    
+    return source_type_labels[source_type]
+
 
 def get_resolution(node: hou.Node, source_num: int) -> Sequence[int]:
     resolution_ctl = get_parm_str(node, 'noderesolutionctl', source_num)
@@ -692,8 +687,9 @@ def get_resolution(node: hou.Node, source_num: int) -> Sequence[int]:
     
     return [resolution_x, resolution_y]
 
+
 def get_frame_range(node: hou.Node, source_num: int) -> Sequence[int]:
-    source_type = get_source_type(node, source_num)
+    source_type = get_source_type_name(node, source_num)
     trange = node.parm(
         source_type + 'trange' + str(source_num)
     ).evalAsString()
@@ -821,7 +817,7 @@ def update_fetch_node(node: hou.Node, source_num: int) -> hou.Node:
 
     # Set the options on the fetch node
     fetch_expression: str = fetch_node.parm('loppath').rawValue()
-    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(source_num - 1), fetch_expression)[0]
+    new_fetch = re.subn(r'(input_index\s*=\s*)(\d+|None)', r'\g<1>' + str(input_index), fetch_expression)[0]
     fetch_node.parm('loppath').setExpression(new_fetch, hou.exprLanguage.Python)
 
     return fetch_node
@@ -886,7 +882,7 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     
     # Get rendered image settings
     denoise = get_parm_bool(node, 'denoise')
-    output_path_parm = get_parm(node, 'nodeoutputpath', source_num)
+    output_path = get_parm_str(node, 'nodeoutputpath', source_num)
 
     sample_filter = 'PxrCryptomatte' if get_parm_bool(node, 'nodecryptomatteenable', source_num) else 'None'
     cryptomatte_layer_parm = get_parm(node, 'nodecryptomatteproperty', source_num)
@@ -903,7 +899,7 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
     # Set rendered image settings
     render_settings_node.parm('enableDenoise').set(denoise)
     render_settings_node.parm('xn__driverparametersopenexrasrgba_bobkh').set(not denoise)
-    render_settings_node.parm('picture').setFromParm(output_path_parm)
+    render_settings_node.parm('picture').set(output_path)
 
     render_settings_node.parm('xn__risamplefilter0name_w6an').set(sample_filter)
     render_settings_node.parm('xn__risamplefilter0PxrCryptomattelayer_cwbno').setFromParm(cryptomatte_layer_parm)
@@ -953,14 +949,14 @@ def update_alembic_node(node: hou.Node, source_num: int, camera_sop_path: str) -
 
 def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node:
     # Set the $LAYER variable to the layer name
-    layer_name = get_parm_str(node, f'layername{str(source_num)}_{str(layer_num)}')
+    layer_name = get_parm_str(node, 'layername', source_num, layer_num)
     hou.hscript(
         f"set -g LAYER={layer_name}"
     )
 
     # Get the relevant options for the source
-    usd_path = get_parm_str(node, f'usdpath{str(source_num)}_{str(layer_num)}')
-    f1, f2, f3 = get_frame_range(node, str(source_num))
+    usd_path = get_parm_str(node, 'usdpath', source_num, layer_num)
+    f1, f2, f3 = get_frame_range(node, source_num)
     strip_layer_breaks_parm = get_parm(node, 'striplayerbreaks', source_num, layer_num)
     error_saving_implicit_paths_parm = get_parm(node, 'errorsavingimplicitpaths', source_num, layer_num)
 
@@ -982,12 +978,25 @@ def update_usd_node(node: hou.Node, source_num: int, layer_num: int) -> hou.Node
 
 
 def execute_usd(node: hou.Node, parm: hou.Parm):
-   # Get the number of the source to render a USD for
+    # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecute').split('_')
+    source_num = int(source_num)
+    layer_num = int(layer_num)
 
-    # Prepare for and render the USD
-    usd_node = update_usd_node(node, source_num, layer_num)
-    usd_node.parm('execute').pressButton()
+    # Update the internal nodes
+    update_source_nodes(node, source_num)
+    update_layer_nodes(node, source_num, layer_num)
+    
+    # Make sure the internal nodes recook
+    get_fetch_node(node).cook(force=True)
+
+    # Make sure the directory exists
+    usd_dir = os.path.dirname(get_parm_str(node, 'usdpath', source_num, layer_num))
+    if not os.path.exists(usd_dir):
+        os.makedirs(usd_dir, exist_ok=True)
+
+    # Render the USD
+    get_usd_node(node).parm('execute').pressButton()
 
 
 def execute_usd_background(node: hou.Node, parm: hou.Parm):
@@ -1000,13 +1009,25 @@ def execute_usd_background(node: hou.Node, parm: hou.Parm):
         )
         return
 
-    # Get the number of the source to render a USD for
+    # Get the number of the source and layer to render the USD for
     source_num, layer_num = parm.name().removeprefix('usdexecutebackground').split('_')
+    source_num = int(source_num)
+    layer_num = int(layer_num)
 
-    # Prepare for and render the USD
-    usd_node = update_usd_node(node, source_num)
-    hou.hipFile.save()
-    usd_node.parm('executebackground').pressButton()
+    # Update the internal nodes
+    update_source_nodes(node, source_num)
+    update_layer_nodes(node, source_num, layer_num)
+    
+    # Make sure the internal nodes recook
+    get_fetch_node(node).cook(force=True)
+
+    # Make sure the directory exists
+    usd_dir = os.path.dirname(get_parm_str(node, 'usdpath', source_num, layer_num))
+    if not os.path.exists(usd_dir):
+        os.makedirs(usd_dir, exist_ok=True)
+
+    # Render the USD
+    get_usd_node(node).parm('executebackground').pressButton()
 
 
 # Expands, validates, and returns the filepaths
@@ -1099,6 +1120,65 @@ def check_issues(node: hou.Node, **kwargs):
         pass
 
 
+def update_source_label(node: hou.Node, source_num: int, source_type: Optional[int] = None) -> None:
+    if source_type == None:
+        source_type = get_source_type(node, source_num)
+    
+    source_label = get_source_type_label(node, source_num, source_type)
+    if get_source_type_name(node, source_num, source_type) == 'node':
+        # Add the input's index to the label
+        input_index = get_parm_str(node, 'nodeindex', source_num)
+
+        # Get the frame start/end/inc as a string
+        start_frame, end_frame, increment = get_frame_range(node, source_num)
+        frame_range = f"{start_frame}-{end_frame}"
+        if increment != 1:
+            frame_range +=f" on {increment}s"
+
+        # Get the resolution
+        res_x, res_y = get_resolution(node, source_num)
+        
+        # Get the layer list as a string
+        num_layers = get_parm_int(node, 'nodelayers', source_num)
+        layer_list = ''
+        disabled_layer_list = ''
+        for layer_num in range(1, num_layers + 1):
+            layer_str = get_parm_str(node, 'layername', source_num, layer_num) + ", "
+            if get_parm_bool(node, 'layerenable', source_num, layer_num):
+                layer_list += layer_str
+            else:
+                disabled_layer_list += layer_str
+        layer_list = layer_list[:-2]
+        if len(disabled_layer_list) > 0:
+            disabled_layer_list = disabled_layer_list[:-2]
+            layer_list += ' [' + disabled_layer_list + ']'
+        
+        # Build the source label
+        source_label += f" {input_index} ({frame_range} | {res_x}x{res_y}): {layer_list}"
+        
+    filepath_parm: hou.Parm = get_parm(node, 'filepath', source_num)
+
+    filepath_parm.deleteAllKeyframes()
+    filepath_parm.set(source_label)
+
+
+def layer_name_update(
+        node: hou.Node,
+        parm: hou.Parm,
+        script_value: str,
+        script_multiparm_index: int,
+        script_multiparm_index2: int,
+        **kwargs
+    ):
+    new_layer_name = script_value
+    layer_num = script_multiparm_index
+    source_num = script_multiparm_index2
+
+
+    update_layer_parms(node, parm, source_num, layer_num, new_layer_name)
+    update_source_label(node, source_num)
+    
+
 def switch_source_type(
     node: hou.Node,
     parm: hou.Parm,
@@ -1107,19 +1187,11 @@ def switch_source_type(
     **kwargs
 ) -> None:
     source_num = script_multiparm_index
-
-    SOURCE_TYPES = [
-        'file',
-        'node',
-    ]
-
-    source_type_labels = node.parm(
-        'sourceoptions' + source_num + '1'
-    ).parmTemplate().folderNames()
+    new_source_type = int(script_value)
 
     type_parm: hou.Parm = get_parm(node, 'sourcetype', source_num)
 
-    curr_type = SOURCE_TYPES[int(script_value)]
+    curr_type = SOURCE_TYPES[new_source_type]
     prev_type = SOURCE_TYPES[type_parm.evalAsInt()]
 
     PARMTUPLE_BASE_NAMES = [
@@ -1139,15 +1211,8 @@ def switch_source_type(
         filepathholder_parm.deleteAllKeyframes()
         filepathholder_parm.setFromParm(filepath_parm)
 
-        # Set filepath# to the label of the current source type's tab
-        source_label = source_type_labels[int(script_value)]
-
-        if curr_type == 'node':
-            # If the source is node input, add the index to the label
-            source_label += ' ' + get_parm_str(node, 'nodeindex', source_num)
-        
-        filepath_parm.deleteAllKeyframes()
-        filepath_parm.set(source_label)
+        # Update the source's label
+        update_source_label(node, source_num, new_source_type)
 
     for parmtuple_base in PARMTUPLE_BASE_NAMES:
         prev_option_parmtuple: hou.ParmTuple = node.parmTuple(
@@ -1163,7 +1228,7 @@ def switch_source_type(
             new_option_parm.setFromParm(prev_option_parm)
 
     # Update the sourcetype# parameter
-    type_parm.setExpression(script_value)
+    type_parm.setExpression(str(new_source_type))
 
     # Commented out because warnings should occur at cook time
     # Warn the user if the source is set to Node Input but no input is connected
@@ -1184,14 +1249,10 @@ def get_render_camera_path(node: hou.Node) -> str:
 def update_layer_parms(
         node: hou.Node,
         parm: hou.Parm,
-        script_value: str,
-        script_multiparm_index: int,
-        script_multiparm_index2: int,
-        **kwargs
+        source_num: int,
+        layer_num: int,
+        new_layer_name: str,
     ):
-
-    layer_num = script_multiparm_index
-    source_num = script_multiparm_index2
 
     def invert_primitive_pattern(primitive_pattern: str) -> str:
         return f'%children(%ancestors({primitive_pattern})) ^ %ancestors({primitive_pattern}, strict=False)'
@@ -1225,7 +1286,7 @@ def update_layer_parms(
             'primitive': '/scene/layout /scene/fx/gravel /scene/fx/leaves',
         },
         'cops': {
-            'primitive': '/scene/anim/copcar*',
+            'primitive': '/scene/anim/copcar* /scene/fx/background_cop_cars',
         },
         'fx_sparks': {
             'primitive': '/scene/fx/sparks',
@@ -1241,8 +1302,8 @@ def update_layer_parms(
         },
     }
 
-    if script_value.startswith('preset:'):
-        preset_string = script_value.split(':', 1)[-1]
+    if new_layer_name.startswith('preset:'):
+        preset_string = new_layer_name.split(':', 1)[-1]
         if preset_string.find('.') != -1:
             preset_name, preset_type = preset_string.split('.', 1)
 
