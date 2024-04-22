@@ -226,7 +226,7 @@ class CameraExporter:
         try:
                 mel.eval('file -force -options ";exportUVs=0;exportSkels=none;exportSkin=none;'
                          + 'exportBlendShapes=0;exportDisplayColor=0;exportColorSets=0;'
-                         + 'defaultMeshScheme=none;animation=1;eulerFilter=0;staticSingleSample=0;startTime='
+                         + 'defaultMeshScheme=none;animation=1;eulerFilter=1;staticSingleSample=0;startTime='
                          + str(self.startFrame)+';endTime='+str(self.endFrame)+';'
                          + 'frameStride=1;frameSample=0.0;defaultUSDFormat=usdc;parentScope=;'
                          + 'shadingMode=useRegistry;convertMaterialsTo=[UsdPreviewSurface];exportInstances=1;'
