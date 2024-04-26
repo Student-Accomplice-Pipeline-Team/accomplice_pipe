@@ -4,7 +4,9 @@ import os
 import re
 import functools
 import glob
-from typing import Sequence, Iterable, Mapping, Any, Optional
+from typing import Sequence, Iterable, Mapping, Any, Optional, Literal
+import inspect
+import string
 
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
@@ -73,7 +75,7 @@ class TractorSubmit:
         # For loop for getting variables from dynamically changing parameters
         for source_num in range(1, num_sources + 1):
             # Ignore disabled sources
-            if get_parm_bool(self.node, 'fileenable', source_num):
+            if source_is_enabled(self.node, source_num):
                 source_type = get_source_type_name(self.node, source_num)
 
                 filepaths = []
@@ -1354,12 +1356,12 @@ def get_layer_list():
         ]
 
 
-def is_valid_aov_name(aov_name: str):
+def is_valid_aov_name(aov_name: str) -> bool:
     return len(aov_name) > 1 or aov_name == 'a'
 
 
 def get_invalid_aov_paths(stage) -> Sequence[str]:
-    ls = hou.LopSelectionRule(pattern="%rendervars ~ (/* ^ /Render)")
+    ls = hou.LopSelectionRule(pattern=r"%rendervars ~ (/* ^ /Render)")
     render_vars = ls.expandedPaths(stage=stage)
     invalid_aov_paths = [
         path.pathString for path in render_vars
@@ -1382,8 +1384,8 @@ def check_aov_names_error() -> int:
 def get_parm(
         node: hou.Node,
         parm_name: str,
-        source_num: int = None,
-        layer_num: int = None,
+        source_num: Optional[int] = None,
+        layer_num: Optional[int] = None,
     ) -> hou.Parm:
     if source_num != None:
         parm_name += str(source_num)
@@ -1397,8 +1399,8 @@ def get_parm(
 def get_parm_bool(
         node: hou.Node,
         parm_name: str,
-        source_num: int = None,
-        layer_num: int = None,
+        source_num: Optional[int] = None,
+        layer_num: Optional[int] = None,
     ) -> bool:
     parm = get_parm(node, parm_name, source_num, layer_num)
     return bool(parm.evalAsInt())
@@ -1407,8 +1409,8 @@ def get_parm_bool(
 def get_parm_float(
         node: hou.Node,
         parm_name: str,
-        source_num: int = None,
-        layer_num: int = None,
+        source_num: Optional[int] = None,
+        layer_num: Optional[int] = None,
     ) -> float:
     parm = get_parm(node, parm_name, source_num, layer_num)
     return float(parm.eval())
@@ -1417,8 +1419,8 @@ def get_parm_float(
 def get_parm_int(
         node: hou.Node,
         parm_name: str,
-        source_num: int = None,
-        layer_num: int = None,
+        source_num: Optional[int] = None,
+        layer_num: Optional[int] = None,
     ) -> int:
     parm = get_parm(node, parm_name, source_num, layer_num)
     return int(parm.evalAsInt())
@@ -1427,8 +1429,194 @@ def get_parm_int(
 def get_parm_str(
         node: hou.Node,
         parm_name: str,
-        source_num: int = None,
-        layer_num: int = None,
+        source_num: Optional[int] = None,
+        layer_num: Optional[int] = None,
     ) -> str:
     parm = get_parm(node, parm_name, source_num, layer_num)
     return parm.evalAsString()
+
+
+def source_is_enabled(node: hou.Node, source_num: int) -> bool:
+    return get_parm_bool(node, 'fileenable', source_num)
+
+
+def layer_is_enabled(node: hou.Node, source_num: int, layer_num: int) -> bool:
+    return get_parm_bool(node, 'layerenable', source_num, layer_num)
+
+
+def create_human_readable_list(items: Iterable[Any], sep: Literal[',', ';'] = ',', oxford_comma: bool = True, trailing_and: bool = True) -> str:
+    items = [str(item) for item in items]
+    list_str = f'{sep} '.join(items[:-1])
+    if len(items) > 1:
+        if oxford_comma and len(items) > 2:
+            list_str += sep
+        if trailing_and:
+            list_str += ' and '
+    
+    return list_str + items[-1]
+
+
+def get_error_status(evaluating_parm: hou.Parm):
+    parm_index = list(map(str, evaluating_parm.multiParmInstanceIndices()))[0]
+    return not hou.ch(f"errormsg{parm_index}").startswith(('warn_', 'error_'))
+
+
+def warn_empty_jobtitle(node: hou.Node) -> Optional[str]:
+    if get_parm_str(node, 'jobtitle') == '':
+        return "Job title is empty"
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def warn_missing_inputs(node: hou.Node) -> Optional[str]:
+    missing_inputs = set()
+    node_inputs: tuple = node.inputs()
+    for source_num in get_active_sources(node):
+        if get_source_type_name(node, source_num) == 'node':
+            input_index = get_parm_int(node, 'nodeindex', source_num)
+            if len(node_inputs) <= input_index or node_inputs[input_index] == None:
+                missing_inputs.add(input_index)
+    
+    if len(missing_inputs) > 1:
+        return "Inputs " + create_human_readable_list(sorted(missing_inputs)) + " are disconnected"
+    if len(missing_inputs) == 1:
+        return "Input " + create_human_readable_list(missing_inputs) + " is disconnected"
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def warn_unnamed_layers(node: hou.Node) -> Optional[str]:
+    unnamed_layers = []
+    for source_num in get_active_sources(node):
+        for layer_num in get_active_layers(node, source_num):
+            layer_name = get_parm_str(node, 'layername', source_num, layer_num)
+            if layer_name == '':
+                unnamed_layers.append(f"{source_num}-{layer_num}")
+
+    if len(unnamed_layers) > 1:
+        return 'Layers ' + create_human_readable_list(unnamed_layers) + ' are unnamed'
+    elif len(unnamed_layers) == 1:
+        return 'Layer ' + unnamed_layers[0] + ' is unnamed'
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def warn_duplicate_layers(node: hou.Node) -> Optional[str]:
+    seen_layer_names = {}
+    duplicate_layer_names = {}
+    for source_num in get_active_sources(node):
+        for layer_num in get_active_layers(node, source_num):
+            layer_id = f"{source_num}-{layer_num}"
+            layer_name = get_parm_str(node, 'layername', source_num, layer_num)
+            if layer_name != '':
+                if layer_name not in seen_layer_names.keys():
+                    seen_layer_names.update({layer_name: layer_id})
+                elif layer_name not in duplicate_layer_names.keys():
+                    duplicate_layer_names.update({layer_name: [seen_layer_names.get(layer_name), layer_id]})
+                else:
+                    duplicate_layer_names.get(layer_name).append(layer_id)
+    
+    if len(duplicate_layer_names) > 0:
+        name_strings = []
+        for layer_name, layers in duplicate_layer_names.items():
+            name_strings.append(f"{create_human_readable_list(layers)} ('{layer_name}')")
+        return "The following layers have duplicate names: " + create_human_readable_list(name_strings, sep = ';')
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def warn_single_character_aovs(node: hou.Node) -> Optional[str]:
+    if node.parm('denoise') and len(hou.hscriptExpression("lopinputprims('.', 0)")) > 0:
+        return "Cannot denoise with single-character AOV names (excluding 'a'). '_' will be prepended to the AOV names of the following render vars: " + str(hou.hscriptExpression("lopinputprims('.', 0)").split(' '))
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def error_no_enabled_sources(node: hou.Node) -> Optional[str]:
+    if len(get_active_sources(node)) < 1:
+        return "No sources are enabled"
+    else:
+        return inspect.currentframe().f_code.co_name
+
+
+def get_active_sources(node: hou.Node) -> Iterable[int]:
+    sources_parm: hou.Parm = node.parm('sources')
+    source_offset: int = sources_parm.multiParmStartOffset()
+    num_sources: int = int(sources_parm.evalAsInt())
+
+    active_sources = []
+    for source_num in range(source_offset, source_offset + num_sources):
+        if source_is_enabled(node, source_num):
+            active_sources.append(source_num)
+    
+    return active_sources
+
+
+def get_active_layers(node: hou.Node, source_num: int) -> Iterable[Sequence[int]]:
+    active_layers = []
+    if get_source_type_name(node, source_num) == 'node':
+        layers_parm = get_parm(node, 'nodelayers', source_num)
+        layer_offset: int = layers_parm.multiParmStartOffset()
+        num_layers: int = int(layers_parm.evalAsInt())
+
+        # Iterate over enabled node sources
+        for layer_num in range(layer_offset, layer_offset + num_layers):
+            if layer_is_enabled(node, source_num, layer_num):
+                active_layers.append(layer_num)
+    
+    return active_layers
+
+
+def dump_node(node: hou.Node, file_path: str) -> None:
+    # Expand user home directories
+    file_path = os.path.expanduser(file_path)
+
+    # saveItemsToFile crashes if run from the shell, so create a parm to run it from instead
+    node_tg: hou.ParmTemplateGroup = node.parmTemplateGroup()
+    dump_button = hou.ButtonParmTemplate('dumpchildren', 'Dump Children', script_callback=f"hou.pwd().saveItemsToFile(hou.pwd().children(), '{file_path}')", script_callback_language=hou.scriptLanguage.Python)
+    node_tg.insertBefore('jobtitle', dump_button)
+    node.setParmTemplateGroup(node_tg)
+
+    # Dump the children of the node
+    node.parm(dump_button.name()).pressButton()
+
+    # Remove the dump children parm
+    node_tg.remove(dump_button)
+    node.setParmTemplateGroup(node_tg)
+
+    # Read the dumped children text for editing
+    with open(file_path, 'r') as file:
+        plain_text = file.read()
+
+    # Remove node UUIDs
+    plain_text = re.sub(r'(HouNC\x1a)[0-9a-z]{28}', '\\1', plain_text)
+    
+    # Replace non-printable characters with their abbreviations
+    clean_text = ''
+    cursor = 0
+    unicode_abbreviations = {
+        '\\x00': '<NUL>',
+        '\\x01': '<SOH>',
+        '\\x02': '<STX>',
+        '\\x03': '<ETX>',
+        '\\x04': '<EOT>',
+        '\\x08': '<BS>',
+        '\\x1a': '<SUB>',
+    }
+    unprintable_chars = re.compile('([^' + re.escape(string.printable) + '])')
+    control_char_indexes = [i.start() for i in unprintable_chars.finditer(plain_text)]
+    for index in control_char_indexes:
+        char_code_point = r'\x{0:02x}'.format(ord(plain_text[index]))
+        sub = '<ERR>'
+
+        if char_code_point in unicode_abbreviations.keys():
+            sub = unicode_abbreviations[char_code_point]
+        
+        clean_text += plain_text[cursor:index] + sub
+        cursor = index + 1
+
+    # Dump the cleaned text and the node itself to the file
+    with open(file_path, 'wt') as file:
+        file.write(clean_text)
+        file.write("\n\n\n\n\n")
+        file.write(node.asCode())
