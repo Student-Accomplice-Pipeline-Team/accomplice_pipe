@@ -16,7 +16,7 @@ import toolutils
 
 
 class HoudiniFXUtils():
-    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel', 'background_cop_cars']
+    supported_FX_names = ['sparks', 'smoke', 'money', 'skid_marks', 'leaves_and_gravel', 'background_cop_cars', 'animated_cop_car_lights']
     FX_PREFIX = "/scene/fx"
 
     @staticmethod
@@ -354,6 +354,15 @@ class HoudiniFXUtils():
 
         def configure_sop_import_lop(self, lop_node: hou.Node):
             return # It's already configured so do nothing :)
+    
+    class AnimatedCopCarLightsUSDGeometryCacheEffectWrapper(USDGeometryCacheEffectWrapper):
+        def __init__(self, null_node: hou.Node):
+            super().__init__(null_node)
+
+        def get_materials_node(self): # This is a little bit different, the animated cop car lights node is acting as the materials
+            materials_node = HoudiniNodeUtils.create_node(hou.node('/stage'), 'dh477::dev::animated_cop_car_lights')
+            return materials_node
+
     
     class BackgroundCopCarsUSDGeometryCacheEffectWrapper(USDGeometryCacheEffectWrapper):
         def __init__(self, null_node: hou.Node):
@@ -845,6 +854,8 @@ class HoudiniNodeUtils():
                 HoudiniFXUtils.LeavesAndGravelUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             elif self.fx_name == 'background_cop_cars':
                 HoudiniFXUtils.BackgroundCopCarsUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
+            elif self.fx_name == 'animated_cop_car_lights':
+                HoudiniFXUtils.AnimatedCopCarLightsUSDGeometryCacheEffectWrapper(self.fx_geo_node).wrap()
             elif self.fx_name == 'smoke':
                 # Bypass the cache node
                 cache_node.bypass(True)
