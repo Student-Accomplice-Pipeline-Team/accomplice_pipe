@@ -18,8 +18,8 @@
     <memberTool name="use_object_merges"/>
     <memberTool name="render_movs_from_lighting"/>
     <memberTool name="add_shrink_camera_node"/>
-    <memberTool name="re_export_cameras"/>
     <memberTool name="toggle_manual_mode"/>
+    <memberTool name="re_export_cameras"/>
   </toolshelf>
 
   <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
@@ -351,7 +351,8 @@ def operation():
     HoudiniUtils.hyper_rop()
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras", "camera", False)
-]]></script>
+]]>
+    </script>
   </tool>
   <tool name="toggle_manual_mode" label="Toggle Manual Mode" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
@@ -359,6 +360,7 @@ mode = hou.updateModeSetting().name()
 if mode == 'AutoUpdate':
     hou.setUpdateMode(hou.updateMode.Manual)
 if mode == 'Manual':
-    hou.setUpdateMode(hou.updateMode.AutoUpdate)]]></script>
+    hou.setUpdateMode(hou.updateMode.AutoUpdate)]]>
+    </script>
   </tool>
 </shelfDocument>
