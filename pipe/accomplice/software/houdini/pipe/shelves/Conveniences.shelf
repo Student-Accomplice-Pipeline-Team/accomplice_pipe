@@ -352,6 +352,7 @@ def operation():
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras", "camera", False)
 ]]></script>
+  </tool>
   <tool name="toggle_manual_mode" label="Toggle Manual Mode" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 mode = hou.updateModeSetting().name()
