@@ -222,11 +222,13 @@ class TractorSubmit:
                             subprocess.run(["usdcat", "-o", file_path, usdnc_file_path], check=True)
                         except subprocess.CalledProcessError as e:
                             print(e)
+                            raise e
                     else:
                         print(e)
-                        return
-                except:
+                        raise e
+                except Exception as e:
                     print("An unexpected error occurred:", sys.exc_info()[0])
+                    raise e
             
             if number_of_attempts >= 20:
                 print("Failed to convert all USD files to USDNC after " + str(number_of_attempts) + " attempts")
