@@ -201,7 +201,8 @@ class TractorSubmit:
 
             # Open the USD file's stage
             are_usdnc_errors = True
-            while are_usdnc_errors:
+            number_of_attempts = 0
+            while are_usdnc_errors and number_of_attempts < 20:
                 try:
                     current_file_stage: Usd.Stage = Usd.Stage.Open(
                         self.filepaths[file_num]
@@ -210,13 +211,14 @@ class TractorSubmit:
                 except pxr.Tf.ErrorException as e:
                     exception_string = str(e)
                     if ".usd" in exception_string:
-                        start_index = start_index = exception_string.find("@/") + 2
+                        start_index = start_index = exception_string.find("@/") + 1 # include the first / sybmol
                         end_index = exception_string.find(".usd") + 4
                         file_path = exception_string[start_index:end_index]
                         usdnc_file_path = file_path.replace('.usd', '.usdnc')
 
                         print(f"Converting {file_path} to {usdnc_file_path}")
                         try:
+                            number_of_attempts += 1
                             subprocess.run(["usdcat", "-o", file_path, usdnc_file_path], check=True)
                         except subprocess.CalledProcessError as e:
                             print(e)
@@ -225,6 +227,9 @@ class TractorSubmit:
                         return
                 except:
                     print("An unexpected error occurred:", sys.exc_info()[0])
+            
+            if number_of_attempts >= 20:
+                print("Failed to convert all USD files to USDNC after " + str(number_of_attempts) + " attempts")
 
 
 
