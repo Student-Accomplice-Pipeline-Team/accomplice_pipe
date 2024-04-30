@@ -7,7 +7,10 @@ import glob
 from typing import Sequence, Iterable, Mapping, Any, Optional, Literal
 import inspect
 import string
+import subprocess
+import sys
 
+import pxr
 from pxr import Usd
 from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils
 from pipe.shared.object import JsonSerializable
@@ -197,9 +200,39 @@ class TractorSubmit:
                 usd_file_task.addCommand(delete_usd_command)
 
             # Open the USD file's stage
-            current_file_stage: Usd.Stage = Usd.Stage.Open(
-                self.filepaths[file_num]
-            )
+            are_usdnc_errors = True
+            number_of_attempts = 0
+            while are_usdnc_errors and number_of_attempts < 20:
+                try:
+                    current_file_stage: Usd.Stage = Usd.Stage.Open(
+                        self.filepaths[file_num]
+                    )
+                    are_usdnc_errors = False
+                except pxr.Tf.ErrorException as e:
+                    exception_string = str(e)
+                    if ".usd" in exception_string:
+                        start_index = start_index = exception_string.find("@/") + 1 # include the first / sybmol
+                        end_index = exception_string.find(".usd") + 4
+                        file_path = exception_string[start_index:end_index]
+                        usdnc_file_path = file_path.replace('.usd', '.usdnc')
+
+                        print(f"Converting {file_path} to {usdnc_file_path}")
+                        try:
+                            number_of_attempts += 1
+                            subprocess.run(["usdcat", "-o", file_path, usdnc_file_path], check=True)
+                        except subprocess.CalledProcessError as e:
+                            print(e)
+                    else:
+                        print(e)
+                        return
+                except:
+                    print("An unexpected error occurred:", sys.exc_info()[0])
+            
+            if number_of_attempts >= 20:
+                print("Failed to convert all USD files to USDNC after " + str(number_of_attempts) + " attempts")
+
+
+
 
             output_path_attr = current_file_stage.GetAttributeAtPath(
                 "/Render/Products/renderproduct.productName"
