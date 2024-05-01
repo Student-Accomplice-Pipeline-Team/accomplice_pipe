@@ -1219,7 +1219,7 @@ class HoudiniUtils:
         hou.playbar.setPlaybackRange(shot_start, shot_end)
     
     @staticmethod
-    def hyper_rop():
+    def hyper_rop(should_disconnect_above_begin_null=True):
         # This is intended to disconnect things from above the begin null, rop, and then reconnect them to the begin null. For some reason this is a lot faster and the results seem to be *mostly* the same
         # Get the BEGIN_ node using the custom helper function
         begin_null = HoudiniNodeUtils.find_first_node_name_starts_with(hou.node('/stage'), 'BEGIN_')
@@ -1228,16 +1228,17 @@ class HoudiniUtils:
         rop_node = HoudiniNodeUtils.find_first_node_of_type(hou.node('/stage'), 'usd_rop')
 
         # Check if the BEGIN_ node exists and has an input
-        did_disconnect_inputs = False
-        if begin_null:
-            if begin_null.inputs():
-                # Store the connected node for reconnection later
-                connected_node = begin_null.inputs()[0]
-                # Disconnect the connected node from the BEGIN_ node
-                begin_null.setInput(0, None)
-                did_disconnect_inputs = True
-        else:
-            raise Exception('No "BEGIN_" null in scene!')
+        if should_disconnect_above_begin_null:
+            did_disconnect_inputs = False
+            if begin_null:
+                if begin_null.inputs():
+                    # Store the connected node for reconnection later
+                    connected_node = begin_null.inputs()[0]
+                    # Disconnect the connected node from the BEGIN_ node
+                    begin_null.setInput(0, None)
+                    did_disconnect_inputs = True
+            else:
+                raise Exception('No "BEGIN_" null in scene!')
 
         # Check if the USD ROP node exists
         if rop_node:
@@ -1246,10 +1247,11 @@ class HoudiniUtils:
         else:
             raise Exception('No ROP node in scene!')
 
-        # Reconnect the BEGIN_ node with the previously connected node
-        if did_disconnect_inputs:
-            assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
-            begin_null.setInput(0, connected_node)
+        if should_disconnect_above_begin_null:
+            # Reconnect the BEGIN_ node with the previously connected node
+            if did_disconnect_inputs:
+                assert begin_null and connected_node, "BEGIN_ node and connected node must be defined."
+                begin_null.setInput(0, connected_node)
     
     @staticmethod
     def render_flipbook_to_video(output_directory, filename_base, frame_range=None, resolution=(1920, 1080),
