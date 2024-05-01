@@ -368,7 +368,7 @@ from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
 def operation():
     HoudiniUtils.hyper_rop()
 
-HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras", "cfx", False)
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export CFX", "cfx", False)
 ]]>
     </script>
   </tool>
