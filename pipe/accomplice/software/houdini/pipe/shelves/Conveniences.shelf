@@ -20,6 +20,7 @@
     <memberTool name="add_shrink_camera_node"/>
     <memberTool name="toggle_manual_mode"/>
     <memberTool name="re_export_cameras"/>
+    <memberTool name="re_export_cfx"/>
   </toolshelf>
 
   <tool name="import_geo_camera" label="Import Camera to /obj" icon="PLASMA_App">
