@@ -355,6 +355,23 @@ HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras
 ]]>
     </script>
   </tool>
+
+  <tool name="re_export_cfx" label="Re-Export CFX" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+import pipe
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils 
+from pipe.shared import Shot
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
+
+def operation():
+    HoudiniUtils.hyper_rop()
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Re-Export Cameras", "cfx", False)
+]]>
+    </script>
+  </tool>
+
   <tool name="toggle_manual_mode" label="Toggle Manual Mode" icon="PLASMA_App">
     <script scriptType="python"><![CDATA[import hou
 mode = hou.updateModeSetting().name()
