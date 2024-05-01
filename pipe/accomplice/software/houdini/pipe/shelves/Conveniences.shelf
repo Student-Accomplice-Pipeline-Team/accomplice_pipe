@@ -282,6 +282,7 @@ def operation():
     tractor_node.parm('nodecamera1').set(HoudiniPathUtils.get_camera_prim_path(shot))
     tractor_node.parm('layername1_1').set("Beauty")
     tractor_node.parm('denoise').set(1)
+    tractor_node.parm('noderesolutionctl1').set('640x360')
     tractor_node.parm('nodeoutputpath1').set(destination_path + '/frame.$F4.exr')
     # tractor_node.node('hdprmanrendersettings1').parm('xn__driverparametersopenexrasrgba_bobkh').set(0)
 
