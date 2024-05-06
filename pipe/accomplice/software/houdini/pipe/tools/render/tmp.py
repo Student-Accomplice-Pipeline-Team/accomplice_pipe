@@ -946,6 +946,10 @@ def update_render_settings_node(node: hou.Node, source_num: int) -> hou.Node:
 
     # Set checkpoint interval
     render_settings_node.parm('xn__richeckpointinterval_j8ak').set('1m')
+
+    # Set memory limits
+    render_settings_node.parm('xn__rilimitsgeocachememory_scbg').set(4194300)
+    render_settings_node.parm('xn__rilimitsopacitycachememory_bjbg').set(2097160)
     
     return render_settings_node
 
