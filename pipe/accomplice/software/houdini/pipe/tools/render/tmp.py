@@ -316,10 +316,8 @@ class TractorSubmit:
                 # Get the output path of the frame
                 frame_output_path = None
                 final_frame_path = None
-                output_path_overridden = False
                 if self.output_path_overrides[file_num] != None:
                     frame_output_path = self.output_path_overrides[file_num][frame - frame_start]
-                    output_path_overridden = True
                 else:
                     frame_output_path = output_path_attr.Get(frame)
                 
@@ -327,6 +325,10 @@ class TractorSubmit:
 
                 if denoise:
                     frame_output_path = os.path.join(undenoised_exr_dir, os.path.basename(frame_output_path))
+                
+                # Set the output path for the frame
+                output_path_attr.Set(frame_output_path, frame)
+                current_file_stage.Save()
 
                 # Create and add the render frame task
                 render_frame_task = create_render_frame_task(
@@ -335,7 +337,6 @@ class TractorSubmit:
                     frame = frame,
                     frame_increment = frame_increment,
                     renderer = get_parm_str(self.node, 'renderer'),
-                    output_path = frame_output_path if output_path_overridden or denoise else None,
                 )
                 render_task.addChild(render_frame_task)
 
@@ -516,7 +517,6 @@ def create_render_frame_task(
         output_path: str = None,
     ) -> author.Task:
     # Build render command from USD info
-    # renderCommand = ["/bin/bash", "-c", "/opt/hfs19.5/bin/husk --help &> /tmp/test.log"]
     render_frame_command = [
         "/bin/bash",
         "-c",
@@ -529,8 +529,10 @@ def create_render_frame_task(
         + str(frame)
         + " --frame-inc "
         + str(frame_increment)
-        + " --make-output-path -V2",
+        + " --make-output-path -Vaet2",
     ]
+
+    # NOTE: Setting the output path this way will prevent checkpointing
     if output_path != None:
         render_frame_command[-1] += f" --output '{str(output_path)}'"
     
@@ -557,7 +559,7 @@ def create_render_frame_task(
             255,    # Decompression failure
             10111,  # Exceeded maximum time
         ],
-        maxrunsecs = 4 * 60 * 60,
+        maxrunsecs = 1 * 60 * 60,
     )
     
     return render_frame_task
