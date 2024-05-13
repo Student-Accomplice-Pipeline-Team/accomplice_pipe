@@ -317,7 +317,7 @@ def operation():
         prune_node.parm('excludeprimpattern1').set(exclusion_primitive_pattern)
 
 
-HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Fix Pruned FX", "lighting")
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Fix Pruned FX", "lighting", True)
 ]]></script>
   </tool>
 
