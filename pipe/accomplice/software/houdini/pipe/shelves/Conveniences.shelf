@@ -17,6 +17,7 @@
     <memberTool name="hyper_usd_rop"/>
     <memberTool name="use_object_merges"/>
     <memberTool name="render_movs_from_lighting"/>
+    <memberTool name="fix_pruned_fx"/>
     <memberTool name="add_shrink_camera_node"/>
     <memberTool name="toggle_manual_mode"/>
     <memberTool name="re_export_cameras"/>
@@ -291,6 +292,32 @@ def operation():
         tractor_node.parm('submit').pressButton()
 
 HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Render MOVs from Lighting", "lighting")
+]]></script>
+  </tool>
+
+  <tool name="fix_pruned_fx" label="Fix Pruned FX" icon="PLASMA_App">
+    <script scriptType="python"><![CDATA[
+import hou
+import pipe
+from pipe.shared.helper.utilities.houdini_utils import HoudiniUtils, HoudiniNodeUtils, HoudiniPathUtils, HoudiniFXUtils
+import datetime
+import os
+from pipe.shared import Shot
+from pipe.shared.helper.utilities.ui_utils import ListWithCheckboxFilter
+def operation():
+    for prune_node in HoudiniNodeUtils.find_nodes_of_type(hou.node('/stage'), 'dh477::dev::prune_in_box'):
+        exclusion_primitive_pattern = prune_node.parm('excludeprimpattern1').eval()
+        if 'crowd' not in exclusion_primitive_pattern:
+            exclusion_primitive_pattern += ' /crowd/**'
+            print(f"Added 'crowd' to exclusion primitive pattern for {prune_node.name()}")
+        if '/scene/fx' not in exclusion_primitive_pattern:
+            exclusion_primitive_pattern += ' /scene/fx'
+            print(f"Added '/scene/fx' to exclusion primitive pattern for {prune_node.name()}")
+        
+        prune_node.parm('excludeprimpattern1').set(exclusion_primitive_pattern)
+
+
+HoudiniFXUtils.perform_operation_on_selected_shots(operation, "Fix Pruned FX", "lighting")
 ]]></script>
   </tool>
 
