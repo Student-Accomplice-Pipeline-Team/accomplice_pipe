@@ -314,6 +314,10 @@ def operation():
             exclusion_primitive_pattern += ' /scene/fx'
             print(f"Added '/scene/fx' to exclusion primitive pattern for {prune_node.name()}")
         
+        if 'Material' not in exclusion_primitive_pattern:
+            exclusion_primitive_pattern += ' %type:Material'
+            print(f"Added 'Material' to exclusion primitive pattern for {prune_node.name()}")
+        
         prune_node.parm('excludeprimpattern1').set(exclusion_primitive_pattern)
 
 
